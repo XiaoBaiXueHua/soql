@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         floaty review box mod
 // @namespace    saxamaphone
-// @version      0.1
+// @version      1.0
 // @description  Adds a floaty review box. modified from [https://ravenel.tumblr.com/post/156555172141/i-saw-this-post-by-astropixie-about-how-itd-be]
-// @author       You
+// @author       白雪花
 // @match        https://archiveofourown.org/works/*
 // @grant        none
 // ==/UserScript==
@@ -74,6 +74,12 @@ var floatyBoxStyle = `
 	#floaty-root textarea {
 		max-height: 8em;
 	}
+	#floaty_review_box {
+		position: fixed;
+		top: 2vh;
+		left: 2vw;
+        z-index: 999;
+	}
 }
 `
 const style = document.createElement("style");
@@ -83,7 +89,7 @@ header.appendChild(style);
 
 const boxButton = document.createElement("li");
 boxButton.id = "floaty_review_box";
-boxButton.innerHTML = `<a onclick="">Floaty Review Box</a>`;
+boxButton.innerHTML = `<a onclick="document.getElementById('floaty_review_box').style.display='none';">Floaty Review Box</a>`;
 //document.getElementById('floaty-root').hidden=false;
 //this gets the navbar buttons up top
 //the way jquery did it was by picking for a ul w/"work" class, since the only other thing w/"work" class is a td
