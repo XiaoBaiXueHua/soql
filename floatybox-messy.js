@@ -70,6 +70,7 @@ var floatyBoxStyle = `
 @media only screen and (max-width: 48em) {
 	#floaty-root {
 		max-width: 90vw;
+        bottom: 5vh;
 	}
 	#floaty-root textarea {
 		max-height: 8em;
@@ -79,6 +80,9 @@ var floatyBoxStyle = `
 		top: 2vh;
 		left: 2vw;
         z-index: 999;
+        background-color: white;
+        padding: 10px 5px;
+        border: 1px solid black;
 	}
 }
 `
