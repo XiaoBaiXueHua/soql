@@ -169,7 +169,7 @@ navList.addEventListener("click", function floatybox() {
 		const sel = window.getSelection().toString().trim();
 		//makes sure there's smth actually selected before inserting the new line + italics
 		//if want to change the newline from "/" to show newlines (which is there to save space n bc that's my preference when writing comments) to smth else, change `/` after the /g to `</em>\n<em>`
-		var markup = sel ? `\n<em>${sel.replace(/\s{2,}/g, ` / `)}</em>` : "";
+		var markup = sel ? `\n<em>"${sel.replace(/\s{2,}/g, `" / "`)}"</em>` : "";
 		console.log(markup);
 		const tBox = document.getElementById("commentBox");
 		//add the marked up selection to the textbox
@@ -177,6 +177,7 @@ navList.addEventListener("click", function floatybox() {
 		await localStorage.setItem(newURL, tBox.value);
 			var newCount = 10000 - document.getElementById("commentBox").value.length;
 			document.getElementById("charCounter").innerHTML = `Characters left:&nbsp;${newCount}`;
+        realBox.value = commentBox.value;
 	});
 	ins.innerHTML = "Insert Selection";
 	otherButtons.appendChild(ins);
