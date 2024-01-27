@@ -5,6 +5,9 @@
 // @description  Adds a floaty review box. modified from [https://ravenel.tumblr.com/post/156555172141/i-saw-this-post-by-astropixie-about-how-itd-be]
 // @author       白雪花
 // @match        https://archiveofourown.org/works/*
+// @exclude     *://archiveofourown.org/works/*/new
+// @exclude     *://archiveofourown.org/works/*/edit
+// @exclude     *://archiveofourown.org/works/new*
 // @grant        none
 // ==/UserScript==
 'use strict';
