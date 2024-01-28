@@ -40,16 +40,36 @@ const css = `
 #stickyFilters > div {
 	margin-top: 5px;
 }
-#stickyFilters textarea {
+#stickyFilters textarea, #error_debug textarea {
 	resize: none;
 	scrollbar-width: thin!important;
 	font-family: monospace;
+}
+#stickyFilters textarea {
 	min-height: 8em;
 }
-#stickyFilters label {
+#stickyFilters label, #error_debug label {
 	font-weight: bold;
+	text-transform: capitalize;
 }
 #stickyFilters label small {font-weight: normal;}
+#error_debug {
+	display: flex;
+	flex-wrap: wrap;
+}
+#error_debug > div {
+	width: 30%;
+	margin: 10px 1%;
+}
+#error_debug textarea {
+	font-size: 9pt;
+	
+}
+@media only screen and (max-width: 48em) {
+	#error_debug > div {
+		width: 98%;
+	}
+}
 `;
 const style = document.createElement("style");
 style.innerHTML = css;
@@ -78,7 +98,7 @@ var form = document.querySelector("form#work-filters");
 
 var fandomName = function () {
 	var fandom = document.querySelector("#include_fandom_tags label");
-	if (!fandom) {return;}; //if there's no fandom (like, for example, on the error page), just stop
+	if (!fandom) {return null;}; //if there's no fandom (like, for example, on the error page), just stop
 	fandom = fandom.innerText.trim();
 	//this extracts the number of works as long as it's in parentheses
 	var workNumberExtractor = /\(\d+\)/;
@@ -112,7 +132,7 @@ var fandomName = function () {
 }();
 //have to have the () at the end in order to, like, Actually get the fandom name
 
-globalKey = "global-filter";
+globalKey = "filter-global";
 globalFilter = localStorage[globalKey];
 fandomKey = `filter-${fandomName}`; //yeah keep "filter-null" i don't see why not
 fandomFilter = localStorage[fandomKey];
@@ -129,44 +149,77 @@ const searchdd = document.querySelector("dd.search:not(.autocomplete)");
 //searchdt.hidden = true;
 //searchdd.hidden = true;
 
+//if you fucked up the input for the saved filters, show all saved filters for double-checking; otherwise, proceed as normal
+if (!searchdd) {
+	const errorFlash = document.querySelector("div.flash.error")
+	if (errorFlash) {
+		const debugDiv = document.createElement("div");
+		debugDiv.id = "error_debug";
+		const ohno = document.createElement("p");
+		ohno.innerHTML = "oh no! you did a fucky-wucky with the advanced search input :( double-check all your filters to make sure you didn't make any mistakes!";
+		var filterArray = Object.entries(localStorage);
+		for (const [key, value] of filterArray) {
+				console.log(`key: ${key}: ${value}`);
+				cssId = key.replaceAll(/\W+/g,"-");
+			const div = document.createElement("div");
+			div.id = `${cssId}-div`;
+			const label = document.createElement("label");
+			label.innerHTML = key.replace("filter-", "");
+			label.setAttribute("for", cssId);
+			const textarea = document.createElement("textarea");
+			console.log(cssId);
+			textarea.id = cssId;
+			textarea.value = value;
+			//not much point to adding a debug w/o the autosave event listener!!
+			textarea.addEventListener("keyup", async () => await localStorage.setItem(key, textarea.value));
 
+			div.appendChild(label);
+			div.appendChild(textarea);
+			debugDiv.appendChild(div);
+		}
+		document.querySelector("div.flash:not(.error)").appendChild(ohno);
+		document.querySelector("div.flash:not(.error)").appendChild(debugDiv);
+	}
+}
+else {
+	//create the details drop for the saved filters; give them their relevant ids for later
+	const det = document.createElement("details");
+	det.id = "stickyFilters";
+	console.log(det);
+	const summary = document.createElement("summary");
+	summary.innerHTML = "Saved Filters";
+	const saveDiv = document.createElement("div");
+	const globLab = document.createElement("label");
+	globLab.innerHTML = "Global:";
+	globLab.setAttribute("for","globalFilters");
+	const globalBox = document.createElement("textarea");
+	globalBox.id = "globalFilters";
+	globalBox.value = globalFilter ? globalFilter : "";
+	//put these elements together n then append them after the other adv search options
+	saveDiv.append(globLab, globalBox);
+	//check if this is a fandom-specific tag before making the fandom filters box
+	if (fandomName) {
+		const fanLab = document.createElement("label");
+		fanLab.innerHTML = `Fandom <small>(${fandomName})</small>:`;
+		fanLab.setAttribute("for","fandomFilters");
+		const fandomBox = document.createElement("textarea");
+		//give the fandom textarea an id dependent on the fandom so that perhaps later when doing the debugger syntax error screen thing, the event listeners for the autosave each have their own ids to listen to. anyway the regexp replaces all non-word chars with "-" for css compatibility
+		var cssFanName = fandomName.replaceAll(/\W+/g,"-");
+		console.log(`cssFanName: ${cssFanName}`);
+		fandomBox.id = `filter-${cssFanName}`;
+		fandomBox.value = fandomFilter ? fandomFilter : "";
+		//fandomBox.value = "this is the fandom box";
+		saveDiv.append(fanLab, fandomBox);
+		//add the autosave function
+		fandomBox.addEventListener("keyup", async () => {await localStorage.setItem(fandomKey, fandomBox.value)});
+	}
+	det.append(summary, saveDiv);
+	searchdd.appendChild(det);
+}
 
-
-//create the details drop for the saved filters; give them their relevant ids for later
-const det = document.createElement("details");
-det.id = "stickyFilters";
-console.log(det);
-const summary = document.createElement("summary");
-summary.innerHTML = "Saved Filters";
-const saveDiv = document.createElement("div");
-const globLab = document.createElement("label");
-globLab.innerHTML = "Global:";
-globLab.setAttribute("for","globalFilters");
-const globalBox = document.createElement("textarea");
-globalBox.id = "globalFilters";
-globalBox.value = globalFilter ? globalFilter : "";
-//globalBox.value = "this is the global box";
-const fanLab = document.createElement("label");
-fanLab.innerHTML = `Fandom <small>(${fandomName})</small>:`;
-fanLab.setAttribute("for","fandomFilters");
-const fandomBox = document.createElement("textarea");
-//give the fandom textarea an id dependent on the fandom so that perhaps later when doing the debugger syntax error screen thing, the event listeners for the autosave each have their own ids to listen to. anyway the regexp replaces all non-word chars with "-" for css compatibility
-var cssFanName = fandomName.replaceAll(/\W+/g,"-");
-console.log(`cssFanName: ${cssFanName}`);
-fandomBox.id = `filter-${cssFanName}`;
-fandomBox.value = fandomFilter ? fandomFilter : "";
-//fandomBox.value = "this is the fandom box";
-//put these elements together n then append them after the other adv search options
-saveDiv.append(globLab, globalBox, fanLab, fandomBox);
-det.append(summary, saveDiv);
-//const moreOpt = document.querySelector("dt.language");
-searchdd.appendChild(det);
-console.log(searchdd);
+//console.log(searchdd);
 //add the event listeners for the autosaving the filters
 globalBox.addEventListener("keyup", async () => {await localStorage.setItem(globalKey,globalBox.value)});
-fandomBox.addEventListener("keyup", async () => {await localStorage.setItem(fandomKey, fandomBox.value)});
 
-//later probably also make a failsafe for like, when you input the things wrong and you get the syntax error by displaying the saved filters underneath the div.flash.error
-//since idk
 
 //actually it'd be kind of nice to have a thing that'll let you pick a sorting order too, except this time you have the choice to invert it
