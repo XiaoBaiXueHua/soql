@@ -18,7 +18,7 @@ filtButt.innerHTML = `<a id="id_butt" onclick="console.log(document.querySelecto
 //const bxShad = window.getComputedStyle(document.querySelector(".actions a:hover")).boxShadow;
 //for now, rather than use js to get the colors (to match w/the skins ofc), go w/default. is tragic but it's what ao3 gets for not using :root and vars in their css
 const css = `
-*:not(a, button) {box-sizing: border-box;}
+*:not(a, button, #id_output, .current) {box-sizing: border-box;}
 #id_butt {margin:0; padding: 0; background: none; border: none;}
 #id_butt:hover, #id_butt:focus, #id_butt:active {background: none; box-shadow: none; outline: none;}
 #get_id_butt {margin-right: 8px;}
@@ -62,7 +62,7 @@ function nya() {
 	const id = document.querySelector("#favorite_tag_tag_id").value;
 	//thinking of having it automatically add the "filter_ids:" thing up front, but since it also applies to user_ids bc of the subscription method, should probably make it sensitive to this sort of thing
 	idOutput.value = `${id}`;
-	console.log(`window.path: ${window.location.pathname}`);
+	//console.log(`window.path: ${window.location.pathname}`);
 	navList.parentElement.append(idOutput);
 };
 //so it turns out that when you do event listeners, the function does not want the parentheses after it, just the name. that's fun. would've loved to know that.
@@ -72,18 +72,40 @@ filtButt.addEventListener("click", nya);
 var TAG_OWNERSHIP_PERCENT = 70; //taken from the original; seems like a good metric tbh
 var works = document.querySelector("#main.works-index");
 var form = document.querySelector("form#work-filters");
-//var fandomName = ;
-function fandomName() {
+
+var fandomName = function () {
 	var fandom = document.querySelector("#include_fandom_tags label").innerText.trim();
+	//this extracts the number of works as long as it's in parentheses
+	var workNumberExtractor = /\(\d+\)/;
+	//has to be turned into a string for some reason
+	var fandomCount = fandom.match(workNumberExtractor).toString();
+	//this chops off the parentheses lol
+	fandomCount = fandomCount.substring(1, fandomCount.length-1);
+	//now it's back to a number
+	fandomCount = parseInt(fandomCount);
+	console.log(`fandomCount: ${fandomCount}`)
+	//okay. so. it wants to remove any word or number between parentheses, accommodating for ampersands as well. this applies globally too so like. i hope no fandoms have parentheses in their names lol
+	const parenRem = /\((\w+(\s|&)*|\d+\s?)+\)/g;
+	fandom = fandom.replace(parenRem,"").trim();
 	console.log(`fandom: ${fandom}`);
-	const workNumberExtractor = /\(\d+\)/;
-	const workNumber = fandom.match(workNumberExtractor);
-	console.log(`workNumber: ${workNumber}`)
-	//return fandom;
-}
-console.log("running the fandomName var now");
-fandomName();
-//console.log(document.querySelector("#include_fandom_tags label").innerText);
+
+	//okay now to basically do all that but for non-fandom_ids 
+	var tagCount = document.querySelector("h2:has(a.tag)").innerText.trim();
+	console.log(`tagCount: ${tagCount}`);
+	//this gets the number of works in that particular tag we're looking at rn. need that capital W bc "xxx Works in yz tag"
+	workNumberExtractor = /\d+,?\d*\sW/;
+	tagCount = tagCount.match(workNumberExtractor).toString();
+	//stupid thing wants me to remove the comma too, so that's why the replace is tacked on at the end >_>
+	tagCount = tagCount.substring(0, tagCount.length-2).replace(",","");
+	//now it's back to a number
+	tagCount = parseInt(tagCount);
+	console.log(`tagCount: ${tagCount}`);
+	//if for some reason, these numbers don't exist, just stop
+	if (!fandom || !fandomCount || !tagCount) {return;};
+	//if a fandom has more than a (currently set to 70%) share of a particular tag, then we're in that fandom
+	return (fandomCount / tagCount * 100 > TAG_OWNERSHIP_PERCENT) ? fandom : null;
+};
+
 
 
 
