@@ -30,29 +30,32 @@ const css = `
 }
 #id_output {display: block;}
 #stickyFilters {
-	padding: 2px 0;
 	margin-top: 5px;
+}
+#stickyFilters summary {
+	padding: 3px 0;
 	border-top: 1px solid white;
 	border-bottom: 1px solid white;
+}
+#stickyFilters > div {
+	margin-top: 5px;
 }
 #stickyFilters textarea {
 	resize: none;
 	scrollbar-width: thin!important;
 	font-family: monospace;
-	font-size: 9pt;
-	max-height: 8em;
+	min-height: 8em;
 }
 #stickyFilters label {
 	font-weight: bold;
-	font-size: 0.95em;
 }
+#stickyFilters label small {font-weight: normal;}
 `;
 const style = document.createElement("style");
 style.innerHTML = css;
 document.querySelector("head").appendChild(style);
 
 const navList = document.querySelector("#main ul.user.navigation").firstElementChild;
-console.log(navList);
 navList.prepend(filtButt);
 
 //this is the function that gets the tag id n spits it out as an <input> element
@@ -74,7 +77,9 @@ var works = document.querySelector("#main.works-index");
 var form = document.querySelector("form#work-filters");
 
 var fandomName = function () {
-	var fandom = document.querySelector("#include_fandom_tags label").innerText.trim();
+	var fandom = document.querySelector("#include_fandom_tags label");
+	if (!fandom) {return;}; //if there's no fandom (like, for example, on the error page), just stop
+	fandom = fandom.innerText.trim();
 	//this extracts the number of works as long as it's in parentheses
 	var workNumberExtractor = /\(\d+\)/;
 	//has to be turned into a string for some reason
@@ -104,18 +109,18 @@ var fandomName = function () {
 	if (!fandom || !fandomCount || !tagCount) {return;};
 	//if a fandom has more than a (currently set to 70%) share of a particular tag, then we're in that fandom
 	return (fandomCount / tagCount * 100 > TAG_OWNERSHIP_PERCENT) ? fandom : null;
-};
+}();
+//have to have the () at the end in order to, like, Actually get the fandom name
 
-
-
+globalKey = "global-filter";
+globalFilter = localStorage[globalKey];
+fandomKey = `filter-${fandomName}`; //yeah keep "filter-null" i don't see why not
+fandomFilter = localStorage[fandomKey];
 
 
 /* okay now for the part where i try to recreate the autofilter submission boxes */
-//umm. find the "search w/in results" input box
+//find the "search w/in results" input box
 const advSearch = document.querySelector("#work_search_query");
-console.log("advSearch:");
-console.log(advSearch);
-//advSearch.hidden = true;
 
 //now we hide the adv search
 //const searchdt = document.querySelector("dt.search:not(.autocomplete)");
@@ -139,18 +144,29 @@ globLab.innerHTML = "Global:";
 globLab.setAttribute("for","globalFilters");
 const globalBox = document.createElement("textarea");
 globalBox.id = "globalFilters";
-globalBox.value = "this is the global box";
+globalBox.value = globalFilter ? globalFilter : "";
+//globalBox.value = "this is the global box";
 const fanLab = document.createElement("label");
-fanLab.innerHTML = "Fandom:";
+fanLab.innerHTML = `Fandom <small>(${fandomName})</small>:`;
 fanLab.setAttribute("for","fandomFilters");
 const fandomBox = document.createElement("textarea");
-fandomBox.id = "fandomFilters";
-fandomBox.value = "this is the fandom box";
+//give the fandom textarea an id dependent on the fandom so that perhaps later when doing the debugger syntax error screen thing, the event listeners for the autosave each have their own ids to listen to. anyway the regexp replaces all non-word chars with "-" for css compatibility
+var cssFanName = fandomName.replaceAll(/\W+/g,"-");
+console.log(`cssFanName: ${cssFanName}`);
+fandomBox.id = `filter-${cssFanName}`;
+fandomBox.value = fandomFilter ? fandomFilter : "";
+//fandomBox.value = "this is the fandom box";
 //put these elements together n then append them after the other adv search options
 saveDiv.append(globLab, globalBox, fanLab, fandomBox);
 det.append(summary, saveDiv);
 //const moreOpt = document.querySelector("dt.language");
 searchdd.appendChild(det);
 console.log(searchdd);
+//add the event listeners for the autosaving the filters
+globalBox.addEventListener("keyup", async () => {await localStorage.setItem(globalKey,globalBox.value)});
+fandomBox.addEventListener("keyup", async () => {await localStorage.setItem(fandomKey, fandomBox.value)});
+
+//later probably also make a failsafe for like, when you input the things wrong and you get the syntax error by displaying the saved filters underneath the div.flash.error
+//since idk
 
 //actually it'd be kind of nice to have a thing that'll let you pick a sorting order too, except this time you have the choice to invert it
