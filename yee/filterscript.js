@@ -37,6 +37,11 @@ const css = `
 	border-top: 1px solid white;
 	border-bottom: 1px solid white;
 }
+#stickyFilters summary:active, #stickyFilters summary:focus {
+	border-top: 1px dotted;
+	border-bottom: 1px dotted;
+}
+
 #stickyFilters > div {
 	margin-top: 5px;
 }
@@ -85,7 +90,6 @@ function nya() {
 	const id = document.querySelector("#favorite_tag_tag_id").value;
 	//thinking of having it automatically add the "filter_ids:" thing up front, but since it also applies to user_ids bc of the subscription method, should probably make it sensitive to this sort of thing
 	idOutput.value = `${id}`;
-	//console.log(`window.path: ${window.location.pathname}`);
 	navList.parentElement.append(idOutput);
 };
 //so it turns out that when you do event listeners, the function does not want the parentheses after it, just the name. that's fun. would've loved to know that.
@@ -108,8 +112,8 @@ var fandomName = function () {
 	fandomCount = fandomCount.substring(1, fandomCount.length-1);
 	//now it's back to a number
 	fandomCount = parseInt(fandomCount);
-	console.log(`fandomCount: ${fandomCount}`)
 	//okay. so. it wants to remove any word or number between parentheses, accommodating for ampersands as well. this applies globally too so like. i hope no fandoms have parentheses in their names lol
+	//anyway the reason that the disambiguator part of the fandom tag name is getting cut off is for jjk situations, where for w/e reason the anime n manga aren't considered related fandoms and will therefore get filtered out in crossover:false, but if you care enough abt that sort of fandom, you'll probably end up checking both tags. because the local storage is otherwise sensitive to the disambiguator, you'd have to plug in and update the same filters TWICE for both tag variants otherwise.
 	const parenRem = /\((\w+(\s|&)*|\d+\s?)+\)/g;
 	fandom = fandom.replace(parenRem,"").trim();
 	console.log(`fandom: ${fandom}`);
@@ -145,9 +149,16 @@ const advSearch = document.querySelector("#work_search_query");
 //now we hide the adv search
 //const searchdt = document.querySelector("dt.search:not(.autocomplete)");
 const searchdd = document.querySelector("dd.search:not(.autocomplete)");
-//console.log(searchdt);
-//searchdt.hidden = true;
-//searchdd.hidden = true;
+
+//because global filters should always show, they get to be on a higher level
+const globLab = document.createElement("label");
+globLab.innerHTML = "Global:";
+globLab.setAttribute("for","globalFilters");
+const globalBox = document.createElement("textarea");
+globalBox.id = "globalFilters";
+globalBox.value = globalFilter ? globalFilter : "";
+//autosave
+globalBox.addEventListener("keyup", async () => {await localStorage.setItem(globalKey,globalBox.value)});
 
 //if you fucked up the input for the saved filters, show all saved filters for double-checking; otherwise, proceed as normal
 if (!searchdd) {
@@ -159,8 +170,8 @@ if (!searchdd) {
 		ohno.innerHTML = "oh no! you did a fucky-wucky with the advanced search input :( double-check all your filters to make sure you didn't make any mistakes!";
 		var filterArray = Object.entries(localStorage);
 		for (const [key, value] of filterArray) {
-				console.log(`key: ${key}: ${value}`);
-				cssId = key.replaceAll(/\W+/g,"-");
+			console.log(`saved ${key}: ${value}`);
+			cssId = key.replaceAll(/\W+/g,"-");
 			const div = document.createElement("div");
 			div.id = `${cssId}-div`;
 			const label = document.createElement("label");
@@ -180,22 +191,14 @@ if (!searchdd) {
 		document.querySelector("div.flash:not(.error)").appendChild(ohno);
 		document.querySelector("div.flash:not(.error)").appendChild(debugDiv);
 	}
-}
-else {
+} else {
 	//create the details drop for the saved filters; give them their relevant ids for later
 	const det = document.createElement("details");
 	det.id = "stickyFilters";
-	console.log(det);
 	const summary = document.createElement("summary");
 	summary.innerHTML = "Saved Filters";
 	const saveDiv = document.createElement("div");
-	const globLab = document.createElement("label");
-	globLab.innerHTML = "Global:";
-	globLab.setAttribute("for","globalFilters");
-	const globalBox = document.createElement("textarea");
-	globalBox.id = "globalFilters";
-	globalBox.value = globalFilter ? globalFilter : "";
-	//put these elements together n then append them after the other adv search options
+	//append the global box + label
 	saveDiv.append(globLab, globalBox);
 	//check if this is a fandom-specific tag before making the fandom filters box
 	if (fandomName) {
@@ -208,7 +211,6 @@ else {
 		console.log(`cssFanName: ${cssFanName}`);
 		fandomBox.id = `filter-${cssFanName}`;
 		fandomBox.value = fandomFilter ? fandomFilter : "";
-		//fandomBox.value = "this is the fandom box";
 		saveDiv.append(fanLab, fandomBox);
 		//add the autosave function
 		fandomBox.addEventListener("keyup", async () => {await localStorage.setItem(fandomKey, fandomBox.value)});
@@ -216,10 +218,6 @@ else {
 	det.append(summary, saveDiv);
 	searchdd.appendChild(det);
 }
-
-//console.log(searchdd);
-//add the event listeners for the autosaving the filters
-globalBox.addEventListener("keyup", async () => {await localStorage.setItem(globalKey,globalBox.value)});
 
 
 //actually it'd be kind of nice to have a thing that'll let you pick a sorting order too, except this time you have the choice to invert it
