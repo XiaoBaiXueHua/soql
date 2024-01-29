@@ -10,6 +10,51 @@
 // @run-at	  document-end
 // ==/UserScript==
 
+/* saved filters current fandom checker */
+var TAG_OWNERSHIP_PERCENT = 70; //taken from the original; seems like a good metric tbh
+var works = document.querySelector("#main.works-index");
+var form = document.querySelector("form#work-filters");
+
+var fandomName = function () {
+	var fandom = document.querySelector("#include_fandom_tags label");
+	if (!fandom) { return null; }; //if there's no fandom (like, for example, on the error page), just stop
+	fandom = fandom.innerText.trim();
+	//this extracts the number of works as long as it's in parentheses
+	var workNumberExtractor = /\(\d+\)/;
+	//has to be turned into a string for some reason
+	var fandomCount = fandom.match(workNumberExtractor).toString();
+	//this chops off the parentheses lol
+	fandomCount = fandomCount.substring(1, fandomCount.length - 1);
+	//now it's back to a number
+	fandomCount = parseInt(fandomCount);
+	//okay. so. it wants to remove any word or number between parentheses, accommodating for ampersands as well. this applies globally too so like. i hope no fandoms have parentheses in their names lol
+	//anyway the reason that the disambiguator part of the fandom tag name is getting cut off is for jjk situations, where for w/e reason the anime n manga aren't considered related fandoms and will therefore get filtered out in crossover:false, but if you care enough abt that sort of fandom, you'll probably end up checking both tags. because the local storage is otherwise sensitive to the disambiguator, you'd have to plug in and update the same filters TWICE for both tag variants otherwise.
+	const parenRem = /\((\w+(\s|&)*|\d+\s?)+\)/g;
+	fandom = fandom.replace(parenRem, "").trim();
+
+	//okay now to basically do all that but for non-fandom_ids 
+	var tagCount = document.querySelector("h2:has(a.tag)").innerText.trim();
+	//this gets the number of works in that particular tag we're looking at rn. need that capital W bc "xxx Works in yz tag"
+	workNumberExtractor = /\d+,?\d*\sW/;
+	tagCount = tagCount.match(workNumberExtractor).toString();
+	//stupid thing wants me to remove the comma too, so that's why the replace is tacked on at the end >_>
+	tagCount = tagCount.substring(0, tagCount.length - 2).replace(",", "");
+	//now it's back to a number
+	tagCount = parseInt(tagCount);
+	//if for some reason, these numbers don't exist, just stop
+	if (!fandom || !fandomCount || !tagCount) { return; };
+	//if a fandom has more than a (currently set to 70%) share of a particular tag, then we're in that fandom
+	return (fandomCount / tagCount * 100 > TAG_OWNERSHIP_PERCENT) ? fandom : null;
+}();
+//also need a css-friendly fandom name
+const cssFanName = fandomName ? fandomName.replaceAll(/\W+/g, "-") : null; //the null is to let the error page debug work
+
+var tagName = function () {
+	var tag = document.querySelector("h2.heading a.tag").innerHTML;
+	tag = tag.replace(/\((\w+\s?)+\)/, "").trim();
+	return tag;
+}();
+
 const filtButt = document.createElement("li");
 filtButt.id = "get_id_butt";
 filtButt.innerHTML = `<a id="id_butt" onclick="console.log(document.querySelector('#favorite_tag_tag_id').value);">Tag ID</a>`;
@@ -96,6 +141,19 @@ const css = `
 	width: 50%;
 }
 .filter-box-label {display: block;}
+.prev-search p {padding-left:45px;}
+.prev-search p strong {text-transform: capitalize;}
+.prev-search summary {font-size: 1.15em;}
+.prev-search span {font-family: monospace; font-size: 9pt;}
+.prev-advanced-search span {
+	background-color:#d3fdac;
+}
+.prev-global span {
+	background-color: #bfebfd;
+}
+.prev-${cssFanName} span {
+	background-color: #d8cefb;
+}
 @media only screen and (max-width: 48em) {
 	#error_debug > div {
 		width: 98%;
@@ -106,50 +164,6 @@ const style = document.createElement("style");
 style.innerHTML = css;
 document.querySelector("head").appendChild(style);
 
-/* saved filters current fandom checker */
-var TAG_OWNERSHIP_PERCENT = 70; //taken from the original; seems like a good metric tbh
-var works = document.querySelector("#main.works-index");
-var form = document.querySelector("form#work-filters");
-
-var fandomName = function () {
-	var fandom = document.querySelector("#include_fandom_tags label");
-	if (!fandom) { return null; }; //if there's no fandom (like, for example, on the error page), just stop
-	fandom = fandom.innerText.trim();
-	//this extracts the number of works as long as it's in parentheses
-	var workNumberExtractor = /\(\d+\)/;
-	//has to be turned into a string for some reason
-	var fandomCount = fandom.match(workNumberExtractor).toString();
-	//this chops off the parentheses lol
-	fandomCount = fandomCount.substring(1, fandomCount.length - 1);
-	//now it's back to a number
-	fandomCount = parseInt(fandomCount);
-	//okay. so. it wants to remove any word or number between parentheses, accommodating for ampersands as well. this applies globally too so like. i hope no fandoms have parentheses in their names lol
-	//anyway the reason that the disambiguator part of the fandom tag name is getting cut off is for jjk situations, where for w/e reason the anime n manga aren't considered related fandoms and will therefore get filtered out in crossover:false, but if you care enough abt that sort of fandom, you'll probably end up checking both tags. because the local storage is otherwise sensitive to the disambiguator, you'd have to plug in and update the same filters TWICE for both tag variants otherwise.
-	const parenRem = /\((\w+(\s|&)*|\d+\s?)+\)/g;
-	fandom = fandom.replace(parenRem, "").trim();
-
-	//okay now to basically do all that but for non-fandom_ids 
-	var tagCount = document.querySelector("h2:has(a.tag)").innerText.trim();
-	//this gets the number of works in that particular tag we're looking at rn. need that capital W bc "xxx Works in yz tag"
-	workNumberExtractor = /\d+,?\d*\sW/;
-	tagCount = tagCount.match(workNumberExtractor).toString();
-	//stupid thing wants me to remove the comma too, so that's why the replace is tacked on at the end >_>
-	tagCount = tagCount.substring(0, tagCount.length - 2).replace(",", "");
-	//now it's back to a number
-	tagCount = parseInt(tagCount);
-	//if for some reason, these numbers don't exist, just stop
-	if (!fandom || !fandomCount || !tagCount) { return; };
-	//if a fandom has more than a (currently set to 70%) share of a particular tag, then we're in that fandom
-	return (fandomCount / tagCount * 100 > TAG_OWNERSHIP_PERCENT) ? fandom : null;
-}();
-//also need a css-friendly fandom name
-const cssFanName = fandomName ? fandomName.replaceAll(/\W+/g, "-") : null; //the null is to let the error page debug work
-
-var tagName = function () {
-	var tag = document.querySelector("h2.heading a.tag").innerHTML;
-	tag = tag.replace(/\((\w+\s?)+\)/, "").trim();
-	return tag;
-}();
 console.log(`tag name: ${tagName}`);
 //have to have the () at the end in order to, like, Actually get the fandom name
 
@@ -250,6 +264,11 @@ if (!searchdd) {
 	//create fake search w/in results box
 	const fakeSearch = document.createElement("input");
 	fakeSearch.id = "fakeSearch";
+	fakeSearch.addEventListener("keyup", async () => {
+		await localStorage.setItem("filter-advanced-search", fakeSearch.value);
+	});
+	fakeSearch.setAttribute("autocomplete", "off");
+	fakeSearch.value = localStorage["filter-advanced-search"];
 	//create the details drop for the saved filters; give them their relevant ids for later
 	const det = document.createElement("details");
 	det.id = "stickyFilters";
@@ -372,9 +391,56 @@ function nya() {
 filtButt.addEventListener("click", nya);
 
 /* form submit time */
-form.addEventListener("onsubmit", function () {
-	var fanSub = document.querySelector("#fandomFilters") ? document.querySelector("#fandomFilters").value : "";
-	advSearch.value = `${globalBox.value} ${fanSub} ${advSearch}`;
-})
+function submission() {
+	var globeSub = JSON.parse(localStorage["enable-global"])?globalBox.value:"";
+	var fanSub = "";
+	//first check if this is a fandom-specific tag
+	if (document.querySelector("#fandomFilters")) {
+		//then check if it's even enabled
+		if(JSON.parse(localStorage[`enable-${cssFanName}`])) {
+			fanSub = document.querySelector("#fandomFilters").value;
+		} 
+	};
+	var tempSub = localStorage["filter-advanced-search"];
+	advSearch.value = `${globeSub} ${fanSub} ${tempSub}`;
+	console.log(decodeURIComponent(window.location.search));
+}
+form.addEventListener("submit", submission)
+
+/* autosubmit + previous filters drop */
+var search_submit = window.location.search;
+//autofilter when at raw tags
+if (search_submit == "") {
+	submission();
+	form.submit();
+} else {
+	function filterloop(key, parent) {
+		console.log(`key: ${key}`);
+		if (localStorage[`filter-${key}`]) {
+			const prevP = document.createElement("p");
+			//var cssKey = key.replaceAll(/\S+/g,"-");
+			prevP.className = `prev-${key.replaceAll(/\W+/g,"-")}`;
+			prevP.innerHTML = `<strong>${key.replaceAll(/-/g," ").trim()} Filters:</strong></br><span>${localStorage[`filter-${key}`]}</span>`;
+			parent.appendChild(prevP);
+		}
+	}
+	const header = document.querySelector("h2.heading");
+	const details = document.createElement("details");
+	details.className = "prev-search";
+	const dropSummary = document.createElement("summary");
+	dropSummary.innerHTML = "<strong>FILTERS:</strong>";
+	details.appendChild(dropSummary);
+	if (localStorage["filter-advanced-search"]) {
+		filterloop("advanced-search", details);
+	};
+	if (localStorage["filter-global"]) {
+		filterloop("global", details);
+	};
+	if (localStorage[`filter-${fandomName}`]) {
+		filterloop(fandomName, details);
+	};
+	header.insertAdjacentElement("afterend", details);
+	localStorage.setItem("filter-advanced-search", "");
+};
 
 //actually it'd be kind of nice to have a thing that'll let you pick a sorting order too, except this time you have the choice to invert it
