@@ -182,20 +182,39 @@ globalBox.value = globalFilter ? globalFilter : "";
 globalBox.addEventListener("keyup", async () => { await localStorage.setItem(globalKey, globalBox.value) });
 //enable/disable checkbox
 function checkbox(label, thing) {
-	thing?thing:"enable";
+	thing ? thing : "enable";
 	const cbox = document.createElement("input");
-	cbox.setAttribute("type","checkbox");
+	cbox.setAttribute("type", "checkbox");
 	cbox.id = `${thing}-${label}`;
 	const lib = document.createElement("label");
 	lib.setAttribute("for", `${thing}-${label}`);
 	lib.innerHTML = thing;
-	var span =  document.createElement("span");
+	var span = document.createElement("span");
 	span.append(cbox, lib);
 	console.log(span);
 	return span;
 };
 const globCheck = checkbox("global", "enable");
-console.log(globCheck.firstChild);
+function saveCheck(name, box) {
+	//check if the fandom filters have been saved as enabled
+	var checkk = localStorage.getItem(`enable-${name}`);
+	if (!checkk) {
+		//by default is on
+		box.firstChild.checked = true;
+		localStorage.setItem(`enable-${name}`, box.firstChild.checked);
+		box.addEventListener("click", function () {
+			localStorage.setItem(`enable-${name}`, box.firstChild.checked);
+		})
+	} else {
+		//if yeah, then leave it as whatever it was, and listen for changes. the JSON.parse is to convert from string to boolean
+		box.firstChild.checked = JSON.parse(checkk);
+		localStorage.setItem(`enable-${name}`, box.firstChild.checked);
+		box.addEventListener("click", function () {
+			localStorage.setItem(`enable-${name}`, box.firstChild.checked);
+		})
+	}
+}
+saveCheck("global", globCheck);
 
 
 //if you fucked up the input for the saved filters, show all saved filters for double-checking; otherwise, proceed as normal
@@ -252,28 +271,11 @@ if (!searchdd) {
 		//fandomBox.id = `filter-${cssFanName}`;
 		fandomBox.id = "fandomFilters";
 		fandomBox.value = fandomFilter ? fandomFilter : "";
-		const fanCheck = checkbox(cssFanName,"enable");
+		const fanCheck = checkbox(cssFanName, "enable");
 		saveDiv.append(line, fanLab, fandomBox, fanCheck);
 		//add the autosave function
 		fandomBox.addEventListener("keyup", async () => { await localStorage.setItem(fandomKey, fandomBox.value) });
-		//check if the fandom filters have been saved as enabled
-		var enable_fan = localStorage[`enable-${cssFanName}`];
-		if (!enable_fan) {
-			//by default is on
-			fanCheck.firstChild.checked = true;
-			localStorage.setItem(`enable-${cssFanName}`, fanCheck.firstChild.checked);
-			fanCheck.addEventListener("click", async () => {
-				await localStorage.setItem(`enable-${cssFanName}`, fanCheck.firstChild.checked);
-			})
-		} else {
-			console.log(enable_fan);
-			//if yeah, then leave it as whatever it was, and listen for changes. needs the triple = to ignore the fact that it's a string
-			fanCheck.firstChild.checked === enable_fan;
-			localStorage.setItem(`enable-${cssFanName}`, fanCheck.firstChild.checked);
-			fanCheck.addEventListener("click", async () => {
-				await localStorage.setItem(`enable-${cssFanName}`, fanCheck.firstChild.checked);
-			})
-		}
+		saveCheck(cssFanName, fanCheck);
 	}
 	det.append(summary, saveDiv);
 	searchdd.appendChild(det);
@@ -295,7 +297,7 @@ function nya() {
 		idOutput.id = "id_output";
 		//multiple ways to get an id: fave tag id (logged-in only), -> rss feed -> freeform ids (only happens when logged out bc they don't have rss feeds) -> subscribable id (this gets user/story ids)
 		var id = function () {
-			if(document.querySelector("#favorite_tag_tag_id").value) {
+			if (document.querySelector("#favorite_tag_tag_id").value) {
 				console.log("favorite tag id method")
 				return document.querySelector("#favorite_tag_tag_id").value;
 			} else if (document.querySelector("a.rss")) {
@@ -305,9 +307,9 @@ function nya() {
 				var regex = /\d+/;
 				href = href.match(regex);
 				return href;
-			} else if(document.querySelector("input [name='work_search [freeform_ids][]']:first")) {
+			} else if (document.querySelector("input [name='work_search [freeform_ids][]']:first")) {
 				return document.querySelector("input [name='work_search [freeform_ids][]']:first").value;
-			} else if(document.querySelector("#subscription_subscribable_id")) {
+			} else if (document.querySelector("#subscription_subscribable_id")) {
 				return document.querySelector("#subscription_subscribable_id").value;
 			} else {
 				alert("can't find tag id :C")
@@ -331,22 +333,22 @@ function nya() {
 
 		function addFilt(v) {
 			//first check if the value's been added already
-			let doubleck = new RegExp(`\\D${id}\\D`,"g");
+			let doubleck = new RegExp(`\\D${id}\\D`, "g");
 			console.log(doubleck);
 			filt = fandomName ? document.querySelector("#fandomFilters") : document.querySelector("#globalFilters");
 			console.log(filt);
 			if (filt.value.match(doubleck)) {
 				console.log("this filter's already applied!");
-			} else {filt.value += ` ${v}`;}
+			} else { filt.value += ` ${v}`; }
 		}
 		//at this point we should have a var for the filter
-		filter=`filter_ids:${id}`;
+		filter = `filter_ids:${id}`;
 		function confirmP(type) {
 			//add the filter to the box
-			addFilt(`${type==excl?"-":""}${filter}`);
+			addFilt(`${type == excl ? "-" : ""}${filter}`);
 			const p = document.createElement("p");
 			p.className = "appended-tag"
-			p.innerHTML = `now ${type==excl?"excl":"incl"}uding "<strong>${tagName}</strong>" <small>(${filter})</small>.`;
+			p.innerHTML = `now ${type == excl ? "excl" : "incl"}uding "<strong>${tagName}</strong>" <small>(${filter})</small>.`;
 			type.appendChild(p);
 		}
 		exclB.addEventListener("click", async () => {
