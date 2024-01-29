@@ -21,7 +21,6 @@ const optWidth = window.getComputedStyle(document.querySelector("#main ul.user.n
 console.log(parseInt(optWidth));
 const css = `
 *:not(a, #id_output, button, .current) {box-sizing: border-box;}
-* {max-width: 100%;}
 #get_id_butt {margin-right: 8px;}
 #get_id_butt:hover {cursor: pointer;}
 #id_output {width: max-content;min-width: 0; position: static;}
@@ -54,6 +53,12 @@ const css = `
 	text-transform: capitalize;
 }
 #stickyFilters label small {font-weight: normal;}
+#stickyFilters input[type="checkbox"] {
+	min-width: 1em;
+	min-height: 1em;
+	margin-right: 0.67em;
+	position: static;
+}
 #error_debug {
 	display: flex;
 	flex-wrap: wrap;
@@ -174,12 +179,21 @@ globalBox.value = globalFilter ? globalFilter : "";
 //autosave
 globalBox.addEventListener("keyup", async () => { await localStorage.setItem(globalKey, globalBox.value) });
 //enable/disable checkbox
-const globEnab = document.createElement("input");
-globEnab.setAttribute("type","checkbox");
-globEnab.id = "enable-global";
-const gEnabLabel = document.createElement("label");
-gEnabLabel.setAttribute("for", "enable-global");
-gEnabLabel.innerHTML = "Enable";
+function checkbox(label, thing) {
+	thing?thing:"enable";
+	const cbox = document.createElement("input");
+	cbox.setAttribute("type","checkbox");
+	cbox.id = `${thing}-${label}`;
+	const lib = document.createElement("label");
+	lib.setAttribute("for", `${thing}-${label}`);
+	lib.innerHTML = thing;
+	var span =  document.createElement("span");
+	span.append(cbox, lib);
+	console.log(span);
+	return span;
+};
+const globCheck = checkbox("global", "enable");
+
 
 //if you fucked up the input for the saved filters, show all saved filters for double-checking; otherwise, proceed as normal
 if (!searchdd) {
@@ -188,7 +202,7 @@ if (!searchdd) {
 		const debugDiv = document.createElement("div");
 		debugDiv.id = "error_debug";
 		const ohno = document.createElement("p");
-		ohno.innerHTML = "oh no! you did a fucky-wucky with the advanced search input :( double-check all your filters to make sure you didn't make any mistakes!";
+		ohno.innerHTML = "Double-check all your filters to make sure you didn't make any mistakes.";
 		var filterArray = Object.entries(localStorage);
 		for (const [key, value] of filterArray) {
 			console.log(`saved ${key}: ${value}`);
@@ -223,9 +237,10 @@ if (!searchdd) {
 	summary.innerHTML = "Saved Filters";
 	const saveDiv = document.createElement("div");
 	//append the global box + label
-	saveDiv.append(globLab, globalBox, globEnab, gEnabLabel);
+	saveDiv.append(globLab, globalBox, globCheck);
 	//check if this is a fandom-specific tag before making the fandom filters box
 	if (fandomName) {
+		const line = document.createElement("hr");
 		const fanLab = document.createElement("label");
 		fanLab.innerHTML = `Fandom <small>(${fandomName})</small>:`;
 		fanLab.setAttribute("for", "fandomFilters");
@@ -236,7 +251,8 @@ if (!searchdd) {
 		//fandomBox.id = `filter-${cssFanName}`;
 		fandomBox.id = "fandomFilters";
 		fandomBox.value = fandomFilter ? fandomFilter : "";
-		saveDiv.append(fanLab, fandomBox);
+		const fanCheck = checkbox("fandom","enable");
+		saveDiv.append(line, fanLab, fandomBox, fanCheck);
 		//add the autosave function
 		fandomBox.addEventListener("keyup", async () => { await localStorage.setItem(fandomKey, fandomBox.value) });
 	}
@@ -284,29 +300,6 @@ function nya() {
 		//thinking of having it automatically add the "filter_ids:" thing up front, but since it also applies to user_ids bc of the subscription method, should probably make it sensitive to this sort of thing
 		idOutput.value = `${id}`;
 
-		//for now, don't bother with giving the option for incl/excl fandom/global individually; if it's a fandom tag, then it'll be excluded fandomly, otherwise, globally
-		/*
-		excl.innerHTML = "Exclude Tag&hellip;";
-		incl.innerHTML = "Include Tag&hellip;"
-		
-		function filterType(el) {
-			//buttons to show up after picking incl/excl
-			const globButt = document.createElement("button");
-			const fanButt = document.createElement("button");
-			globButt.innerHTML = "Globally";
-			fanButt.innerHTML = `For ${fandomName}`;
-			el.append(globButt, fanButt);
-			//return `${globButt.outerHTML}${fanButt.outerHTML}`;
-		}
-		excl.addEventListener("click", function () {
-			const p = document.createElement("p");
-			this.insertAdjacentHTML("afterend", filterType(p));
-			filterOpt.appendChild(p);
-		});
-		incl.addEventListener("click", function () {
-			this.insertAdjacentHTML("afterend", filterType());
-		})
-		console.log(excl); */
 		const buttonAct = document.createElement("div");
 		buttonAct.id = "tag_actions";
 		const excl = document.createElement("div");
@@ -319,22 +312,33 @@ function nya() {
 		incl.appendChild(inclB);
 
 		function addFilt(v) {
+			//first check if the value's been added already
+			let doubleck = new RegExp(`\\D${id}\\D`,"g");
+			console.log(doubleck);
 			filt = fandomName ? document.querySelector("#fandomFilters") : document.querySelector("#globalFilters");
-			filt.value += ` ${v}`;
+			console.log(filt);
+			if (filt.value.match(doubleck)) {
+				console.log("this filter's already applied!");
+			} else {filt.value += ` ${v}`;}
 		}
-
-		exclB.addEventListener("click", async () => {
-			addFilt(`-filter_ids:${id}`);
+		//at this point we should have a var for the filter
+		filter=`filter_ids:${id}`;
+		function confirmP(type) {
+			//add the filter to the box
+			addFilt(`${type==excl?"-":""}${filter}`);
 			const p = document.createElement("p");
 			p.className = "appended-tag"
-			p.innerHTML = `now excluding "<strong>${tagName}</strong>" <small>(filter_ids:${id})</small> from all searches!`;
-			excl.appendChild(p);
+			p.innerHTML = `now ${type==excl?"excl":"incl"}uding "<strong>${tagName}</strong>" <small>(${filter})</small>.`;
+			type.appendChild(p);
+		}
+		exclB.addEventListener("click", async () => {
+			confirmP(excl);
 			//can't tell which one is gonna be changed here, so just do both
 			await localStorage.setItem(fandomKey, document.querySelector("#fandomFilters").value);
 			await localStorage.setItem(globalKey, document.querySelector("#globalFilters").value);
 		});
 		inclB.addEventListener("click", async () => {
-			addFilt(`filter_ids:${id}`);
+			confirmP(incl);
 			await localStorage.setItem(fandomKey, document.querySelector("#fandomFilters").value);
 			await localStorage.setItem(globalKey, document.querySelector("#globalFilters").value);
 		});
