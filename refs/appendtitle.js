@@ -11,7 +11,7 @@ javascript:(function(w,d,f){var v="1.3.2";if(w.jQuery===undefined||w.jQuery.fn.j
 
 });
 
-//rewritten to regular js. also like a two-line script bc the procedure n output is good imo
+//rewritten to regular js. also like a two-line script bc the original's procedure n output is good imo
 const userstuff = document.querySelectorAll(".userstuff [title]");
 for (var title of userstuff) {
 	title.append(` [${title.attr("title")}]`);
