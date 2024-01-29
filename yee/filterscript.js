@@ -18,9 +18,8 @@ filtButt.innerHTML = `<a id="id_butt" onclick="console.log(document.querySelecto
 //const bxShad = window.getComputedStyle(document.querySelector(".actions a:hover")).boxShadow;
 //for now, rather than use js to get the colors (to match w/the skins ofc), go w/default. is tragic but it's what ao3 gets for not using :root and vars in their css
 const optWidth = window.getComputedStyle(document.querySelector("#main ul.user.navigation.actions")).width;
-console.log(parseInt(optWidth));
 const css = `
-*:not(a, #id_output, button, .current) {box-sizing: border-box;}
+#main *:not(a, #id_output, button, .current) {box-sizing: border-box;}
 #get_id_butt {margin-right: 8px;}
 #get_id_butt:hover {cursor: pointer;}
 #id_output {width: max-content;min-width: 0; position: static;}
@@ -128,7 +127,6 @@ var fandomName = function () {
 	//anyway the reason that the disambiguator part of the fandom tag name is getting cut off is for jjk situations, where for w/e reason the anime n manga aren't considered related fandoms and will therefore get filtered out in crossover:false, but if you care enough abt that sort of fandom, you'll probably end up checking both tags. because the local storage is otherwise sensitive to the disambiguator, you'd have to plug in and update the same filters TWICE for both tag variants otherwise.
 	const parenRem = /\((\w+(\s|&)*|\d+\s?)+\)/g;
 	fandom = fandom.replace(parenRem, "").trim();
-	console.log(`fandom: ${fandom}`);
 
 	//okay now to basically do all that but for non-fandom_ids 
 	var tagCount = document.querySelector("h2:has(a.tag)").innerText.trim();
@@ -139,21 +137,20 @@ var fandomName = function () {
 	tagCount = tagCount.substring(0, tagCount.length - 2).replace(",", "");
 	//now it's back to a number
 	tagCount = parseInt(tagCount);
-	console.log(`tagCount: ${tagCount}`);
 	//if for some reason, these numbers don't exist, just stop
 	if (!fandom || !fandomCount || !tagCount) { return; };
 	//if a fandom has more than a (currently set to 70%) share of a particular tag, then we're in that fandom
 	return (fandomCount / tagCount * 100 > TAG_OWNERSHIP_PERCENT) ? fandom : null;
 }();
 //also need a css-friendly fandom name
-const cssFanName = fandomName.replaceAll(/\W+/g, "-");
+const cssFanName = fandomName ? fandomName.replaceAll(/\W+/g, "-") : null; //the null is to let the error page debug work
 
 var tagName = function () {
 	var tag = document.querySelector("h2.heading a.tag").innerHTML;
 	tag = tag.replace(/\((\w+\s?)+\)/, "").trim();
 	return tag;
 }();
-console.log(tagName);
+console.log(`tag name: ${tagName}`);
 //have to have the () at the end in order to, like, Actually get the fandom name
 
 //the local storage keys
@@ -191,7 +188,6 @@ function checkbox(label, thing) {
 	lib.innerHTML = thing;
 	var span = document.createElement("span");
 	span.append(cbox, lib);
-	console.log(span);
 	return span;
 };
 const globCheck = checkbox("global", "enable");
@@ -224,7 +220,7 @@ if (!searchdd) {
 		const debugDiv = document.createElement("div");
 		debugDiv.id = "error_debug";
 		const ohno = document.createElement("p");
-		ohno.innerHTML = "oh no! you did a fucky-wucky with the advanced search input :( double-check all your filters to make sure you didn't make any mistakes!";
+		ohno.innerHTML = "Double-check your filters for mistakes.";
 		var filterArray = Object.entries(localStorage);
 		for (const [key, value] of filterArray) {
 			console.log(`saved ${key}: ${value}`);
@@ -237,7 +233,6 @@ if (!searchdd) {
 				label.innerHTML = key.replace("filter-", "");
 				label.setAttribute("for", cssId);
 				const textarea = document.createElement("textarea");
-				console.log(cssId);
 				textarea.id = cssId;
 				textarea.value = value;
 				//not much point to adding a debug w/o the autosave event listener!!
@@ -252,6 +247,9 @@ if (!searchdd) {
 		document.querySelector("div.flash:not(.error)").appendChild(debugDiv);
 	}
 } else {
+	//create fake search w/in results box
+	const fakeSearch = document.createElement("input");
+	fakeSearch.id = "fakeSearch";
 	//create the details drop for the saved filters; give them their relevant ids for later
 	const det = document.createElement("details");
 	det.id = "stickyFilters";
@@ -278,6 +276,8 @@ if (!searchdd) {
 		saveCheck(cssFanName, fanCheck);
 	}
 	det.append(summary, saveDiv);
+	advSearch.hidden = true;
+	searchdd.appendChild(fakeSearch);
 	searchdd.appendChild(det);
 }
 
@@ -334,9 +334,7 @@ function nya() {
 		function addFilt(v) {
 			//first check if the value's been added already
 			let doubleck = new RegExp(`\\D${id}\\D`, "g");
-			console.log(doubleck);
 			filt = fandomName ? document.querySelector("#fandomFilters") : document.querySelector("#globalFilters");
-			console.log(filt);
 			if (filt.value.match(doubleck)) {
 				console.log("this filter's already applied!");
 			} else { filt.value += ` ${v}`; }
@@ -373,5 +371,10 @@ function nya() {
 //so it turns out that when you do event listeners, the function does not want the parentheses after it, just the name. that's fun. would've loved to know that.
 filtButt.addEventListener("click", nya);
 
+/* form submit time */
+form.addEventListener("onsubmit", function () {
+	var fanSub = document.querySelector("#fandomFilters") ? document.querySelector("#fandomFilters").value : "";
+	advSearch.value = `${globalBox.value} ${fanSub} ${advSearch}`;
+})
 
 //actually it'd be kind of nice to have a thing that'll let you pick a sorting order too, except this time you have the choice to invert it
