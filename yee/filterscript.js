@@ -145,6 +145,8 @@ var fandomName = function () {
 	//if a fandom has more than a (currently set to 70%) share of a particular tag, then we're in that fandom
 	return (fandomCount / tagCount * 100 > TAG_OWNERSHIP_PERCENT) ? fandom : null;
 }();
+//also need a css-friendly fandom name
+const cssFanName = fandomName.replaceAll(/\W+/g, "-");
 
 var tagName = function () {
 	var tag = document.querySelector("h2.heading a.tag").innerHTML;
@@ -193,6 +195,7 @@ function checkbox(label, thing) {
 	return span;
 };
 const globCheck = checkbox("global", "enable");
+console.log(globCheck.firstChild);
 
 
 //if you fucked up the input for the saved filters, show all saved filters for double-checking; otherwise, proceed as normal
@@ -202,7 +205,7 @@ if (!searchdd) {
 		const debugDiv = document.createElement("div");
 		debugDiv.id = "error_debug";
 		const ohno = document.createElement("p");
-		ohno.innerHTML = "Double-check all your filters to make sure you didn't make any mistakes.";
+		ohno.innerHTML = "oh no! you did a fucky-wucky with the advanced search input :( double-check all your filters to make sure you didn't make any mistakes!";
 		var filterArray = Object.entries(localStorage);
 		for (const [key, value] of filterArray) {
 			console.log(`saved ${key}: ${value}`);
@@ -246,15 +249,31 @@ if (!searchdd) {
 		fanLab.setAttribute("for", "fandomFilters");
 		fanLab.className = "filter-box-label";
 		const fandomBox = document.createElement("textarea");
-		//give the fandom textarea an id dependent on the fandom so that perhaps later when doing the debugger syntax error screen thing, the event listeners for the autosave each have their own ids to listen to. anyway the regexp replaces all non-word chars with "-" for css compatibility
-		var cssFanName = fandomName.replaceAll(/\W+/g, "-");
 		//fandomBox.id = `filter-${cssFanName}`;
 		fandomBox.id = "fandomFilters";
 		fandomBox.value = fandomFilter ? fandomFilter : "";
-		const fanCheck = checkbox("fandom","enable");
+		const fanCheck = checkbox(cssFanName,"enable");
 		saveDiv.append(line, fanLab, fandomBox, fanCheck);
 		//add the autosave function
 		fandomBox.addEventListener("keyup", async () => { await localStorage.setItem(fandomKey, fandomBox.value) });
+		//check if the fandom filters have been saved as enabled
+		var enable_fan = localStorage[`enable-${cssFanName}`];
+		if (!enable_fan) {
+			//by default is on
+			fanCheck.firstChild.checked = true;
+			localStorage.setItem(`enable-${cssFanName}`, fanCheck.firstChild.checked);
+			fanCheck.addEventListener("click", async () => {
+				await localStorage.setItem(`enable-${cssFanName}`, fanCheck.firstChild.checked);
+			})
+		} else {
+			console.log(enable_fan);
+			//if yeah, then leave it as whatever it was, and listen for changes. needs the triple = to ignore the fact that it's a string
+			fanCheck.firstChild.checked === enable_fan;
+			localStorage.setItem(`enable-${cssFanName}`, fanCheck.firstChild.checked);
+			fanCheck.addEventListener("click", async () => {
+				await localStorage.setItem(`enable-${cssFanName}`, fanCheck.firstChild.checked);
+			})
+		}
 	}
 	det.append(summary, saveDiv);
 	searchdd.appendChild(det);
@@ -297,7 +316,6 @@ function nya() {
 		const label = document.createElement("label");
 		label.innerHTML = "filter_ids:";
 		label.setAttribute("for", "id_output");
-		//thinking of having it automatically add the "filter_ids:" thing up front, but since it also applies to user_ids bc of the subscription method, should probably make it sensitive to this sort of thing
 		idOutput.value = `${id}`;
 
 		const buttonAct = document.createElement("div");
