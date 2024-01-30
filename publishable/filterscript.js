@@ -335,7 +335,7 @@ function submission() {
 			fanSub = f_val;
 		}
 	};
-	var tempSub = localStorage["filter-advanced-search"];
+	var tempSub = localStorage["filter-advanced-search"] ? localStorage["filter-advanced-search"] : "";
 	advSearch.value = `${globeSub} ${fanSub} ${tempSub}`;
 	advSearch.value = advSearch.value.trim();
 }
