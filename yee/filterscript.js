@@ -202,6 +202,9 @@ console.log(advSearch);
 //now we hide the adv search
 const searchdt = document.querySelector("dt.search:not(.autocomplete)");
 const searchdd = document.querySelector("dd.search:not(.autocomplete)");
+console.log("search dt/dd");
+console.log(searchdt);
+console.log(searchdd);
 
 //because global filters should always show, they get to be on a higher level
 const globLab = document.createElement("label");
@@ -213,6 +216,8 @@ globalBox.id = "globalFilters";
 globalBox.value = globalFilter ? globalFilter : "";
 //autosave
 globalBox.addEventListener("keyup", async () => { await localStorage.setItem(globalKey, globalBox.value) });
+console.log("localStorage");
+console.log(localStorage);
 //enable/disable checkbox
 function checkbox(label, thing) {
 	thing ? thing : "enable";
@@ -246,6 +251,8 @@ function saveCheck(name, box) {
 	}
 }
 saveCheck("global", globCheck);
+console.log("globalBox");
+console.log(globalBox);
 
 
 //if you fucked up the input for the saved filters, show all saved filters for double-checking; otherwise, proceed as normal
