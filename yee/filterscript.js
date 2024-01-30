@@ -381,10 +381,10 @@ function nya() {
 			para.className = "appended-tag";
 			var type = t==excl?true:false;
 			if (filt.value.match(doubleck)) {
-				para.innerHTML = `${tagName} is already being filtered!`; //later make it so that picking the opposite button will automatically switch in the autofilters
+				para.innerHTML = `<strong>${tagName}</strong> is already being filtered!`; //later make it so that picking the opposite button will automatically switch in the autofilters
 			} else { 
 				filt.value += ` ${type?"-":""}${v}`; 
-				para.innerHTML = `Now filtering ${type?"out":"for"} ${tagName}.`
+				para.innerHTML = `Now filtering ${type?"out":"for"} <strong>${tagName}</strong>.`
 			}
 			par.appendChild(para);
 		};
