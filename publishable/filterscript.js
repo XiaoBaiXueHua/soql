@@ -1,13 +1,14 @@
 // ==UserScript==
-// @name filterscript
-// @namespace saxamaphone
-// @description rewriting that thing
-// @match     http*://archiveofourown.org/tags/*/works*
-// @match     http*://archiveofourown.org/works?work_search*
-// @match     http*://archiveofourown.org/works?commit=*&tag_id=*
-// @version 1.0
-// @grant        none
-// @run-at	  document-end
+// @name 		ao3 sticky filters
+// @namespace 	saxamaphone
+// @author 		白雪花
+// @description rewriting thE saved filters script from https://greasyfork.org/en/scripts/3578-ao3-saved-filters, as well as adding in features made possible by flamebyrd's tag id bookmarklet (https://random.fangirling.net/scripts/ao3_tag_id)
+// @match     	http*://archiveofourown.org/tags/*/works*
+// @match     	http*://archiveofourown.org/works?work_search*
+// @match     	http*://archiveofourown.org/works?commit=*&tag_id=*
+// @version 	1.0
+// @grant       none
+// @run-at	  	document-end
 // ==/UserScript==
 
 /* saved filters current fandom checker */
