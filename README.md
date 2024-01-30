@@ -22,7 +22,9 @@ but what matters is that it SCROLLS WITH YOU and SAVES YOUR PROGRESS and has a C
 [the original script](https://greasyfork.org/en/scripts/3578-ao3-saved-filters) by tuff on greasyfork was made in like 2014 and utilizes the __search within results__ box for its filtration purposes. however, ever since ao3 added in native exclusion filters in like 2018, the skills required to use such a script properly (or as expected) have depreciated in the general ao3 userbase.
 
 thus, i have combined it with [this tag id fetcher bookmarklet](https://random.fangirling.net/scripts/ao3_tag_id) by [flamebyrd](https://flamebyrd.dreamdwidth.org) to add in this tag id ui:
+
 ![tag id button with the submission form showing the include/exclude buttons](https://github.com/XiaoBaiXueHua/soql/blob/main/docs/img/tagidui.png)
+
 the filters will also autosave n stuff :D
 
 anyway every time i showcase the script to a friend, i discover some new minor bug, and there will probably be more found moving forward, but here are some known ones:
