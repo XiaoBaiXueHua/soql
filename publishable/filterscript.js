@@ -214,10 +214,11 @@ if (!searchdt) {
 };
 
 /* vars for whether the filters are enabled or not*/
+const fandomBox = fandomName ? document.querySelector("#fandomFilters") : null;
 const g_enable = JSON.parse(localStorage["enable-global"]);
 const f_enable = fandomName ? JSON.parse(localStorage[`enable-${cssFanName}`]) : false;
-const g_val = globalBox.value;
-const f_val = fandomName ? document.getElementById("fandomFilters").value : false;
+var g_val = globalBox.value;
+var f_val = fandomName ? fandomBox.value : false;
 
 /* display tag id */
 
@@ -233,7 +234,7 @@ function nya() {
 		idOutput.id = "id_output";
 		//multiple ways to get an id: fave tag id (logged-in only), -> rss feed -> freeform ids (only happens when logged out bc they don't have rss feeds) -> subscribable id (this gets user/story ids)
 		var id = function () {
-			if (document.querySelector("#favorite_tag_tag_id").value) {
+			if (document.querySelector("#favorite_tag_tag_id")) {
 				console.log("favorite tag id method")
 				return document.querySelector("#favorite_tag_tag_id").value;
 			} else if (document.querySelector("a.rss")) {
@@ -243,12 +244,15 @@ function nya() {
 				var regex = /\d+/;
 				href = href.match(regex);
 				return href;
-			} else if (document.querySelector("input [name='work_search [freeform_ids][]']:first")) {
-				return document.querySelector("input [name='work_search [freeform_ids][]']:first").value;
+			} else if (document.querySelector("#include_freeform_tags input:first-of-type")) {
+				console.log("first freeform tag method");
+				return document.querySelector("#include_freeform_tags input:first-of-type").value;
 			} else if (document.querySelector("#subscription_subscribable_id")) {
+				console.log("subscribable id method");
 				return document.querySelector("#subscription_subscribable_id").value;
 			} else {
-				alert("can't find tag id :C")
+				alert("can't find tag id :C");
+				return null;
 			}
 		}();
 		const label = document.createElement("label");
@@ -272,7 +276,7 @@ function nya() {
 		function addFilt(v, t, par) {
 			//first check if the value's been added already
 			let doubleck = new RegExp(`\\D${id}\\D`, "g");
-			filt = fandomName ? document.querySelector("#fandomFilters") : document.querySelector("#globalFilters");
+			filt = fandomName ? fandomBox : globalBox;
 			const para = document.createElement("p");
 			para.className = "appended-tag";
 			var type = t == excl ? true : false;
@@ -280,17 +284,33 @@ function nya() {
 				para.innerHTML = `<strong>${tagName}</strong> is already being filtered!`; //later make it so that picking the opposite button will automatically switch in the autofilters
 			} else {
 				filt.value += ` ${type ? "-" : ""}${v}`;
+				filt.value.trim();
 				para.innerHTML = `Now filtering ${type ? "out" : "for"} <strong>${tagName}</strong>.`
 			}
 			par.appendChild(para);
 		};
 		exclB.addEventListener("click", async () => {
 			addFilt(filter, excl, buttonAct);
-			await fandomName ? localStorage.setItem(fandomKey, f_val) : localStorage.setItem(globalKey, g_val);
+			//can't do the shortcut here
+			if (fandomName) {
+				//update the vars w/new values
+				f_val = fandomBox.value;
+				await localStorage.setItem(fandomKey, f_val);
+			} else {
+				g_val = globalBox.value;
+				await localStorage.setItem(globalKey, g_val);
+			}
 		});
 		inclB.addEventListener("click", async () => {
 			addFilt(filter, incl, buttonAct);
-			await fandomName ? localStorage.setItem(fandomKey, f_val) : localStorage.setItem(globalKey, g_val);
+			console.log(fandomName);
+			if (fandomName) {
+				f_val = fandomBox.value;
+				await localStorage.setItem(fandomKey, f_val);
+			} else {
+				g_val = globalBox.value;
+				await localStorage.setItem(globalKey, g_val);
+			}
 		});
 
 		//append all the things yeah
@@ -309,7 +329,7 @@ function submission() {
 	var globeSub = g_enable ? g_val : "";
 	var fanSub = "";
 	//first check if this is a fandom-specific tag
-	if (document.querySelector("#fandomFilters")) {
+	if (fandomBox) {
 		//then check if it's even enabled
 		if (f_enable) {
 			fanSub = f_val;
@@ -375,6 +395,7 @@ if (form) {
 	const optWidth = window.getComputedStyle(document.querySelector("#main ul.user.navigation.actions")).width;
 	const hoverShad = window.getComputedStyle(document.querySelector("form#work-filters fieldset")).boxShadow;
 	const hoverLine = window.getComputedStyle(document.querySelector(".actions input")).borderColor;
+	const optMWidth = window.getComputedStyle(form).width;
 	css = `
 	#main *:not(a, #id_output, button, .current) {box-sizing: border-box;}
 	#get_id_butt {margin-right: 8px;}
@@ -422,6 +443,7 @@ if (form) {
 		float: right;
 		max-width: 100%; 
 		width: ${parseInt(optWidth)}px;
+		min-width: ${parseInt(optMWidth)}px;
 		margin-top: 5px;
 		margin-right: 5px;
 		text-align: left;
