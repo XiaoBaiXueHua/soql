@@ -8,6 +8,7 @@
 // @exclude     *://archiveofourown.org/works/*/new
 // @exclude     *://archiveofourown.org/works/*/edit
 // @exclude     *://archiveofourown.org/works/new*
+// @exclude     https://archiveofourown.org/works/search?*
 // @grant        none
 // ==/UserScript==
 'use strict';
@@ -96,14 +97,15 @@ header.appendChild(style);
 
 const boxButton = document.createElement("li");
 boxButton.id = "floaty_review_box";
-boxButton.innerHTML = `<a onclick="document.getElementById('floaty_review_box').style.display='none';">Floaty Review Box</a>`;
+boxButton.className = "chapter";
+boxButton.innerHTML = `<a>Floaty Review Box</a>`;
 //document.getElementById('floaty-root').hidden=false;
 //this gets the navbar buttons up top
 //the way jquery did it was by picking for a ul w/"work" class, since the only other thing w/"work" class is a td
-const navList = document.getElementsByClassName("work")[0];
+const navList = document.querySelector("#main ul.work");
 navList.prepend(boxButton);
 //it turns out the whole thing's gotta be inside an event listener in order to work. god unbless.
-navList.addEventListener("click", function floatybox() {
+boxButton.addEventListener("click", function floatybox() {
 	var curURL = document.URL;
 	//if the current url has a fragment, cut it off for the stored text indexing purposes
 	if (curURL.includes("#")) {
