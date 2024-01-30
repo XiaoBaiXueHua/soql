@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name 		ao3 sticky filters
-// @namespace 	saxamaphone
+// @namespace 	https://sincerelyandyourstruly.neocities.org
 // @author 		白雪花
 // @description rewriting thE saved filters script from https://greasyfork.org/en/scripts/3578-ao3-saved-filters, as well as adding in features made possible by flamebyrd's tag id bookmarklet (https://random.fangirling.net/scripts/ao3_tag_id)
 // @match     	http*://archiveofourown.org/tags/*/works*

@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         floaty review box mod
-// @namespace    saxamaphone
+// @namespace    https://sincerelyandyourstruly.neocities.org
 // @version      1.0
 // @description  Adds a floaty review box. modified from [https://ravenel.tumblr.com/post/156555172141/i-saw-this-post-by-astropixie-about-how-itd-be]
 // @author       白雪花
