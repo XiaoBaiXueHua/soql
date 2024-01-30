@@ -65,6 +65,8 @@ filtButt.id = "get_id_butt";
 filtButt.innerHTML = `<a id="id_butt" onclick="console.log(document.querySelector('#favorite_tag_tag_id').value);">Tag ID</a>`;
 const navList = document.querySelector("#main ul.user.navigation").firstElementChild;
 navList.prepend(filtButt);
+console.log("navList:");
+console.log(navList);
 
 //const borderHover = window.getComputedStyle(document.querySelector(".actions a:hover")).borderTop;
 //const bxShad = window.getComputedStyle(document.querySelector(".actions a:hover")).boxShadow;
@@ -177,6 +179,8 @@ const css = `
 	}
 }
 `;
+console.log("css:");
+console.log(css);
 const style = document.createElement("style");
 style.innerHTML = css;
 document.querySelector("head").appendChild(style);
@@ -193,6 +197,7 @@ fandomFilter = localStorage[fandomKey];
 /* okay now for the part where i try to recreate the autofilter submission boxes */
 //find the "search w/in results" input box
 const advSearch = document.querySelector("#work_search_query");
+console.log(advSearch);
 
 //now we hide the adv search
 const searchdt = document.querySelector("dt.search:not(.autocomplete)");
