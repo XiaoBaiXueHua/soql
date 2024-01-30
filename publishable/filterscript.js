@@ -469,6 +469,7 @@ if (form) {
 	}
 	@media only screen and (max-width: 48em) {
 		.prev-search {margin: 10px 0;}
+		.prev-search p {padding-left: 15px;}
 	}
 	`;
 } else {
