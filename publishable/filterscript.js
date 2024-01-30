@@ -286,14 +286,11 @@ function nya() {
 		};
 		exclB.addEventListener("click", async () => {
 			addFilt(filter, excl, buttonAct);
-			//can't tell which one is gonna be changed here, so just do both
-			await localStorage.setItem(fandomKey, document.querySelector("#fandomFilters").value);
-			await localStorage.setItem(globalKey, document.querySelector("#globalFilters").value);
+			await fandomName ? localStorage.setItem(fandomKey, f_val) : localStorage.setItem(globalKey, g_val);
 		});
 		inclB.addEventListener("click", async () => {
 			addFilt(filter, incl, buttonAct);
-			await localStorage.setItem(fandomKey, document.querySelector("#fandomFilters").value);
-			await localStorage.setItem(globalKey, document.querySelector("#globalFilters").value);
+			await fandomName ? localStorage.setItem(fandomKey, f_val) : localStorage.setItem(globalKey, g_val);
 		});
 
 		//append all the things yeah
