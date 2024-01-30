@@ -34,3 +34,4 @@ anyway every time i showcase the script to a friend, i discover some new minor b
 there's more i'd like to do with this script, ofc, which would probably be best realized through a full browser extension lol but even then, they are thusly:
 1. since the tag id fetcher also works on users n works by getting their subscribable ids, also add in options on user and works pages to filter out those users/works specifically (without need for muting!)
 2. smth smth "add in the ability to automatically determine sorting order" and "options for some of the lesser-known, non-filter_ids methods of querying the ao3 database like `expected_number_of_chapters` or `backdate` or `in_anon_collection`" sort of thing.
+3. when reenabling/disabling the particular fandom box and then hitting submit, the newly enabled/disabled filter does not apply orz

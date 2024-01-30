@@ -16,8 +16,6 @@ var TAG_OWNERSHIP_PERCENT = 70; //taken from the original; will need to study ho
 var works = document.querySelector("#main.works-index");
 var form = document.querySelector("form#work-filters");
 
-//this is necessary for working w/true-false values in localstorage
-
 var fandomName = function () {
 	var fandom = document.querySelector("#include_fandom_tags label");
 	if (!fandom) { return null; }; //if there's no fandom (like, for example, on the error page), just stop
@@ -215,8 +213,8 @@ if (!searchdt) {
 
 /* vars for whether the filters are enabled or not*/
 const fandomBox = fandomName ? document.querySelector("#fandomFilters") : null;
-const g_enable = JSON.parse(localStorage["enable-global"]);
-const f_enable = fandomName ? JSON.parse(localStorage[`enable-${cssFanName}`]) : false;
+var g_enable = JSON.parse(localStorage["enable-global"]);
+var f_enable = fandomName ? JSON.parse(localStorage[`enable-${cssFanName}`]) : false;
 var g_val = globalBox.value;
 var f_val = fandomName ? fandomBox.value : false;
 
