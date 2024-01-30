@@ -3,8 +3,7 @@ boxButton.id = "floaty_review_box";
 boxButton.innerHTML = `<a>Floaty Review Box</a>`;
 
 //this gets the navbar buttons up top
-//the way jquery did it was by picking for a ul w/"work" class, since the only other thing w/"work" class is a td
-const navList = document.getElementsByClassName("work")[0];
+const navList = document.querySelector("ul.work");
 console.log(navList);
 navList.prepend(boxButton);
 
@@ -18,7 +17,6 @@ if (curURL.includes("#")) {
 }
 var newURL = curURL;
 console.log(`newURL: ${newURL}`);
-
 
 //this is the styling for the floaty review box bc i can't stand in-line css lol
 var floatyBoxStyle = `
@@ -98,86 +96,6 @@ const dragArea = document.createElement('div');
 dragArea.id = "drag-area"
 //dragArea.draggable = true;
 
-function floatybox() {
-	const box = document.createElement('div');
-	const root = document.createElement('div');
-	root.id = 'floaty-root';
-
-	box.id = `floatyBox`;
-	box.setAttribute("tabindex", 0);
-
-	const headerDiv = document.createElement('div');
-	headerDiv.id = "headerDiv";
-
-	/* make the "FLOATY REVIEW BOX" label that you can click on to expand the box */
-	const nambel = document.createElement('span');
-	nambel.id = 'nambel';
-	//nambel.className = 'label';
-	nambel.innerHTML = `Floaty Review Box`;
-	nambel.setAttribute("onclick", "expandBox()");
-	nambel.setAttribute("for", "commentBox");
-	headerDiv.appendChild(nambel);
-
-	/* makes the closing x and shrinking dash */
-	const buchner = document.createElement('div');
-	buchner.id = "bootens";
-	buchner.className = 'closeFloaty';
-	const shrink = document.createElement('button');
-	shrink.setAttribute("onclick", "shrinkBox()");
-	shrink.innerHTML = `&ndash;`;
-	buchner.appendChild(shrink);
-	headerDiv.appendChild(buchner);
-
-	//header is part of the draggable area
-	dragArea.appendChild(headerDiv);
-
-	/* makes the text counter + insert selection button */
-	const otherButtons = document.createElement('div');
-	otherButtons.id = "otherButtons";
-	//this span is the one with the #charCounter and the actual number
-	const counter = document.createElement('span');
-	counter.id = "charCounter";
-	counter.innerHTML = "Characters left:&nbsp;10000";
-	const ins = document.createElement('button');
-	ins.className = "closeFloaty";
-	ins.setAttribute("onclick", "insText();");
-	ins.innerHTML = "Insert Selection";
-	otherButtons.appendChild(ins);
-	otherButtons.appendChild(counter);
-	//changed otherButtons div from the form to the draggable area
-	dragArea.appendChild(otherButtons);
-
-	/* makes the textarea box */
-	const commentBox = document.createElement('textarea');
-	commentBox.id = 'commentBox';
-	//this is the localStorage part from the second script
-	commentBox.addEventListener("keyup", async () => {
-		//saves the comment in local storage
-		await localStorage.setItem(newURL, commentBox.value);
-		//then adds the comment to the real comment box below
-		//console.log(realBox);
-		realBox.value = commentBox.value;
-		//updates character count
-		updtCount();
-	});
-	var savedText = localStorage.getItem(newURL);
-	if (savedText) {
-		commentBox.value = savedText;
-	}
-	
-	box.appendChild(dragArea);
-	box.appendChild(commentBox);
-
-	root.appendChild(box);
-	document.getElementById("main").appendChild(root);
-
-	//when you click on the real comment box, the floaty one goes away, since this one currently doesn't have an x lmao
-	//as things are right now, if for w/e reason you're typing more stuff into the real comment box n then close the tab/refresh the page, that progress doesn't get saved c':
-	realBox.addEventListener("click", async () => {
-		await dismiss("floaty-root");
-	});
-}
-
 //insert selection into textbox. also more or less from the script that gave us the save-comment-so-far
 async function insText() {
     const sel = window.getSelection().toString().trim();
@@ -215,42 +133,82 @@ function expandBox() {
     revive('commentBox');
 };
 
-boxButton.addEventListener("onclick", floatybox());
+function floatybox() {
+	const box = document.createElement('div');
+	box.id = `floatyBox`;
+	box.setAttribute("tabindex", 0);
+	const root = document.createElement('div');
+	root.id = 'floaty-root';
 
-//floatybox();
+	const headerDiv = document.createElement('div');
+	headerDiv.id = "headerDiv";
 
+	/* make the "FLOATY REVIEW BOX" label that you can click on to expand the box */
+	const nambel = document.createElement('span');
+	nambel.id = 'nambel';
+	nambel.innerHTML = `Floaty Review Box`;
+	nambel.addEventListener("click", expandBox);
+	nambel.setAttribute("for", "commentBox");
+	headerDiv.appendChild(nambel);
 
-/* gonna try to make this draggable wish me luck qwq */
-//dragArea.ondragstart = function () { return false;}
-/*
-function mve(element) { return document.getElementById(element);
+	/* makes the closing x and shrinking dash */
+	const buchner = document.createElement('div');
+	buchner.id = "bootens";
+	buchner.className = 'closeFloaty';
+	const shrink = document.createElement('button');
+	shrink.addEventListener("click", shrinkBox);
+	shrink.innerHTML = `&ndash;`;
+	buchner.appendChild(shrink);
+	headerDiv.appendChild(buchner);
+
+	//header is part of the draggable area
+	dragArea.appendChild(headerDiv);
+
+	/* makes the text counter + insert selection button */
+	const otherButtons = document.createElement('div');
+	otherButtons.id = "otherButtons";
+	//this span is the one with the #charCounter and the actual number
+	const counter = document.createElement('span');
+	counter.id = "charCounter";
+	counter.innerHTML = "Characters left:&nbsp;10000";
+	const ins = document.createElement('button');
+	ins.className = "closeFloaty";
+	ins.addEventListener("click", insText);
+	ins.innerHTML = "Insert Selection";
+	otherButtons.appendChild(ins);
+	otherButtons.appendChild(counter);
+	//changed otherButtons div from the form to the draggable area
+	dragArea.appendChild(otherButtons);
+
+	/* makes the textarea box */
+	const commentBox = document.createElement('textarea');
+	commentBox.id = 'commentBox';
+	//this is the localStorage part from the second script
+	commentBox.addEventListener("keyup", async () => {
+		//saves the comment in local storage
+		await localStorage.setItem(newURL, commentBox.value);
+		//then adds the comment to the real comment box below
+		realBox.value = commentBox.value;
+		//updates character count
+		updtCount();
+	});
+	var savedText = localStorage.getItem(newURL);
+	if (savedText) {
+		commentBox.value = savedText;
+		updtCount();
+	}
+	
+	box.appendChild(dragArea);
+	box.appendChild(commentBox);
+
+	root.appendChild(box);
+	document.getElementById("main").appendChild(root);
+
+	//when you click on the real comment box, the floaty one goes away, since this one currently doesn't have an x lmao
+	//as things are right now, if for w/e reason you're typing more stuff into the real comment box n then close the tab/refresh the page, that progress doesn't get saved c':
+	realBox.addEventListener("click", async () => {
+		await dismiss("floaty-root");
+	});
 }
-var m = mve("drag-area"), offset;
-m.addEventListener("mousedown", mousedown, false);
-window.addEventListener("mouseup", mouseUp, false);
-function mouseUp() {window.removeEventListener("mousemove", move, true);}
-function mousedown(e) {
-	console.log(e);
-	//save the offset here
-	offset = {
-		left: e.pageX -realOffset(m).left,
-		top: e.pageY - realOffset(m).top 
-	};
-	console.log(offset);
-	window.addEventListener("mousemove", move, true);
-}
-function move(e) {
-    // REUSE THE OFFSET HERE
-    m.style.left  = (e.pageX - offset.left) + "px";
-    m.style.top = (e.pageY - offset.top) + "px";
-}
-function realOffset(elem) {
-    var top = 0, left = 0;
-    while (elem) {
-        top = top + parseInt(elem.offsetTop, 10);
-        left = left + parseInt(elem.offsetLeft, 10);
-        elem = elem.offsetParent;
-    }
-    return { top: top, left: left };
-} */
-//...yeah that ain't working :ChildeSigh:
+
+boxButton.addEventListener("onclick", floatybox);
