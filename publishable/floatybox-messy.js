@@ -83,10 +83,6 @@ var floatyBoxStyle = `
 		position: fixed;
 		top: 2vh;
 		left: 2vw;
-        z-index: 999;
-        background-color: white;
-        padding: 10px 5px;
-        border: 1px solid black;
 	}
 }
 `
