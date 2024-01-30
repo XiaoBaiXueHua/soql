@@ -65,7 +65,7 @@ const filtButt = document.createElement("li");
 filtButt.id = "get_id_butt";
 filtButt.innerHTML = `<a id="id_butt" onclick="console.log(document.querySelector('#favorite_tag_tag_id').value);">Tag ID</a>`;
 const navList = document.querySelector("#main ul.user.navigation").firstElementChild;
-if (form) {navList.prepend(filtButt);}; //no point if there's not a form, right?
+if (form) { navList.prepend(filtButt); }; //no point if there's not a form, right?
 console.log("navList:");
 console.log(navList);
 
@@ -176,7 +176,7 @@ if (!searchdt) {
 	//create fake search w/in results box
 	const fakeSearch = document.createElement("input");
 	fakeSearch.id = "fakeSearch";
-	fakeSearch.value = localStorage["filter-advanced-search"]?localStorage["filter-advanced-search"]:"";
+	fakeSearch.value = localStorage["filter-advanced-search"] ? localStorage["filter-advanced-search"] : "";
 	fakeSearch.addEventListener("keyup", async () => {
 		await localStorage.setItem("filter-advanced-search", fakeSearch.value);
 	});
@@ -208,7 +208,7 @@ if (!searchdt) {
 	}
 	det.append(summary, saveDiv);
 	advSearch.hidden = true;
-	searchdt.insertAdjacentElement("beforebegin",det);
+	searchdt.insertAdjacentElement("beforebegin", det);
 	searchdd.appendChild(fakeSearch);
 	//searchdd.appendChild(det);
 };
@@ -275,12 +275,12 @@ function nya() {
 			filt = fandomName ? document.querySelector("#fandomFilters") : document.querySelector("#globalFilters");
 			const para = document.createElement("p");
 			para.className = "appended-tag";
-			var type = t==excl?true:false;
+			var type = t == excl ? true : false;
 			if (filt.value.match(doubleck)) {
 				para.innerHTML = `<strong>${tagName}</strong> is already being filtered!`; //later make it so that picking the opposite button will automatically switch in the autofilters
-			} else { 
-				filt.value += ` ${type?"-":""}${v}`; 
-				para.innerHTML = `Now filtering ${type?"out":"for"} <strong>${tagName}</strong>.`
+			} else {
+				filt.value += ` ${type ? "-" : ""}${v}`;
+				para.innerHTML = `Now filtering ${type ? "out" : "for"} <strong>${tagName}</strong>.`
 			}
 			par.appendChild(para);
 		};
@@ -301,7 +301,7 @@ function nya() {
 		fil.append(label, idOutput);
 		filterOpt.append(fil, buttonAct);
 		//navList.parentElement.appendChild(filterOpt);
-		navList.parentElement.parentElement.insertAdjacentElement("afterend",filterOpt);
+		navList.parentElement.parentElement.insertAdjacentElement("afterend", filterOpt);
 	}
 };
 //so it turns out that when you do event listeners, the function does not want the parentheses after it, just the name. that's fun. would've loved to know that.
@@ -309,14 +309,14 @@ filtButt.addEventListener("click", nya);
 
 /* form submit time */
 function submission() {
-	var globeSub = g_enable?g_val:"";
+	var globeSub = g_enable ? g_val : "";
 	var fanSub = "";
 	//first check if this is a fandom-specific tag
 	if (document.querySelector("#fandomFilters")) {
 		//then check if it's even enabled
-		if(f_enable) {
+		if (f_enable) {
 			fanSub = f_val;
-		} 
+		}
 	};
 	var tempSub = localStorage["filter-advanced-search"];
 	advSearch.value = `${globeSub} ${fanSub} ${tempSub}`;
@@ -332,9 +332,9 @@ var search_submit = window.location.search;
 //autofilter when at raw tags
 if (search_submit == "") {
 	//at least one of these must be enabled before autosubmit runs
-	if(g_enable || f_enable) {
+	if (g_enable || f_enable) {
 		//since they're on by default, also check that they have values
-		if(g_val || f_val) {
+		if (g_val || f_val) {
 			submission();
 			form.submit();
 		}
@@ -345,8 +345,8 @@ if (search_submit == "") {
 		if (localStorage[`filter-${key}`]) {
 			const prevP = document.createElement("p");
 			//var cssKey = key.replaceAll(/\S+/g,"-");
-			prevP.className = `prev-${key.replaceAll(/\W+/g,"-")}`;
-			prevP.innerHTML = `<strong>${key.replaceAll(/-/g," ").trim()} Filters:</strong></br><span>${localStorage[`filter-${key}`]}</span>`;
+			prevP.className = `prev-${key.replaceAll(/\W+/g, "-")}`;
+			prevP.innerHTML = `<strong>${key.replaceAll(/-/g, " ").trim()} Filters:</strong></br><span>${localStorage[`filter-${key}`]}</span>`;
 			parent.appendChild(prevP);
 		}
 	}
@@ -453,6 +453,7 @@ if (form) {
 		width: 50%;
 	}
 	.filter-box-label {display: block;}
+	.prev-search {margin-top: 5px;}
 	.prev-search p {padding-left:45px;}
 	.prev-search p strong {text-transform: capitalize;}
 	.prev-search summary {font-size: 1.15em;}
@@ -465,6 +466,9 @@ if (form) {
 	}
 	.prev-${cssFanName} span {
 		background-color: #d8cefb;
+	}
+	@media only screen and (max-width: 48em) {
+		.prev-search {margin: 10px 0;}
 	}
 	`;
 } else {
