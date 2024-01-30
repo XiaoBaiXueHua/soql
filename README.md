@@ -28,7 +28,7 @@ thus, i have combined it with [this tag id fetcher bookmarklet](https://random.f
 the filters will also autosave n stuff :D
 
 anyway every time i showcase the script to a friend, i discover some new minor bug, and there will probably be more found moving forward, but here are some known ones:
-1. when using the script for the very first time, its first-ever search will include the word "undefined" in it. it has smth to do with the way the code puts values into the search w/in results box, but i'm too lazy to suss it out atm since it's just that first time
+1. ~~when using the script for the very first time, its first-ever search will include the word "undefined" in it. it has smth to do with the way the code puts values into the search w/in results box, but i'm too lazy to suss it out atm since it's just that first time~~ patched 30 january 2024
 2. if you refresh the page and then try to include/exclude the tag again, it'll still append the tag. however, if you click on it again WITHOUT refreshing, then it'll (correctly!) show "this tag is already being filtered!" it should show "this tag is already being filtered!" both times.
 
 there's more i'd like to do with this script, ofc, which would probably be best realized through a full browser extension lol but even then, they are thusly:
