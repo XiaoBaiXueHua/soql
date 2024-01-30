@@ -65,126 +65,9 @@ const filtButt = document.createElement("li");
 filtButt.id = "get_id_butt";
 filtButt.innerHTML = `<a id="id_butt" onclick="console.log(document.querySelector('#favorite_tag_tag_id').value);">Tag ID</a>`;
 const navList = document.querySelector("#main ul.user.navigation").firstElementChild;
-navList.prepend(filtButt);
+if (form) {navList.prepend(filtButt);}; //no point if there's not a form, right?
 console.log("navList:");
 console.log(navList);
-
-//const borderHover = window.getComputedStyle(document.querySelector(".actions a:hover")).borderTop;
-//const bxShad = window.getComputedStyle(document.querySelector(".actions a:hover")).boxShadow;
-//for now, rather than use js to get the colors (to match w/the skins ofc), go w/default. is tragic but it's what ao3 gets for not using :root and vars in their css
-const optWidth = window.getComputedStyle(document.querySelector("#main ul.user.navigation.actions")).width;
-const hoverShad = window.getComputedStyle(document.querySelector("form#work-filters fieldset")).boxShadow;
-const hoverLine = window.getComputedStyle(document.querySelector(".actions input")).borderColor;
-const css = `
-#main *:not(a, #id_output, button, .current) {box-sizing: border-box;}
-#get_id_butt {margin-right: 8px;}
-#get_id_butt:hover {cursor: pointer;}
-#id_output {width: max-content;min-width: 0; position: static;}
-#stickyFilters {
-	margin-top: 5px;
-}
-#stickyFilters summary {
-	padding: 3px 0;
-	padding-left: 3px;
-	border-bottom: 1px solid white;
-	float: left;
-	min-width: 100%;
-	margin-bottom: 5px;
-}
-#stickyFilters summary:active, #stickyFilters summary:focus {
-	border-bottom: 1px dotted;
-}
-
-#stickyFilters > div {
-	margin-top: 5px;
-}
-#stickyFilters textarea, #error_debug textarea {
-	resize: none;
-	scrollbar-width: thin!important;
-	font-family: monospace;
-}
-#stickyFilters textarea {
-	min-height: 8em;
-}
-#stickyFilters label, #error_debug label {
-	font-weight: bold;
-	text-transform: capitalize;
-}
-#stickyFilters label small {font-weight: normal;}
-#stickyFilters input[type="checkbox"] {
-	min-width: 1em;
-	min-height: 1em;
-	margin-right: 0.67em;
-	position: static;
-}
-#error_debug {
-	display: flex;
-	flex-wrap: wrap;
-}
-#error_debug > div {
-	width: 30%;
-	margin: 10px 1%;
-}
-#error_debug textarea {
-	font-size: 9pt;	
-}
-#filter_opt {
-	display: block; 
-	float: right;
-	max-width: 100%; 
-	width: ${parseInt(optWidth)}px;
-	margin-top: 5px;
-	margin-right: 5px;
-	text-align: left;
-}
-#filter_opt input {
-	max-width: 33%;
-	border-radius: 0.3em;
-}
-#filter_opt label:hover+input {
-  border-top:1px solid ${hoverLine};
-  border-left:1px solid ${hoverLine};
-  box-shadow: ${hoverShad};
-}
-#tag_actions {
-	width: 100%; 
-	margin: 5px 0 0;
-	display: flex;
-	flex-wrap: wrap;
-}
-#tag_actions .appended-tag {
-	font-size: 0.9em;
-	display: block;
-	margin-bottom: 0;
-}
-#tag_actions > div {
-	width: 50%;
-}
-.filter-box-label {display: block;}
-.prev-search p {padding-left:45px;}
-.prev-search p strong {text-transform: capitalize;}
-.prev-search summary {font-size: 1.15em;}
-.prev-search span {font-family: monospace; font-size: 8pt;}
-.prev-advanced-search span {
-	background-color:#d3fdac;
-}
-.prev-global span {
-	background-color: #bfebfd;
-}
-.prev-${cssFanName} span {
-	background-color: #d8cefb;
-}
-@media only screen and (max-width: 48em) {
-	#error_debug > div {
-		width: 98%;
-	}
-}
-`;
-console.log("css:");
-console.log(css);
-const style = document.createElement("style");
-style.innerHTML = css;
-document.querySelector("head").appendChild(style);
 
 console.log(`tag name: ${tagName}`);
 //have to have the () at the end in order to, like, Actually get the fandom name
@@ -439,7 +322,10 @@ function submission() {
 	advSearch.value = `${globeSub} ${fanSub} ${tempSub}`;
 	advSearch.value = advSearch.value.trim();
 }
-form.addEventListener("submit", submission)
+//bc the form doesn't exist on the error page, check if it's there first
+if (form) {
+	form.addEventListener("submit", submission)
+}
 
 /* autosubmit + previous filters drop */
 var search_submit = window.location.search;
@@ -482,5 +368,137 @@ if (search_submit == "") {
 	header.insertAdjacentElement("afterend", details);
 	localStorage.setItem("filter-advanced-search", "");
 };
+
+/* CSS STYLING HERE AT THE END BC IT'S A PICKY BITCH */
+//const borderHover = window.getComputedStyle(document.querySelector(".actions a:hover")).borderTop;
+//const bxShad = window.getComputedStyle(document.querySelector(".actions a:hover")).boxShadow;
+//for now, rather than use js to get the colors (to match w/the skins ofc), go w/default. is tragic but it's what ao3 gets for not using :root and vars in their css
+var css;
+if (form) {
+	const optWidth = window.getComputedStyle(document.querySelector("#main ul.user.navigation.actions")).width;
+	const hoverShad = window.getComputedStyle(document.querySelector("form#work-filters fieldset")).boxShadow;
+	const hoverLine = window.getComputedStyle(document.querySelector(".actions input")).borderColor;
+	css = `
+	#main *:not(a, #id_output, button, .current) {box-sizing: border-box;}
+	#get_id_butt {margin-right: 8px;}
+	#get_id_butt:hover {cursor: pointer;}
+	#id_output {width: max-content;min-width: 0; position: static;}
+	#stickyFilters {
+		margin-top: 5px;
+	}
+	#stickyFilters summary {
+		padding: 3px 0;
+		padding-left: 3px;
+		border-bottom: 1px solid white;
+		float: left;
+		min-width: 100%;
+		margin-bottom: 5px;
+	}
+	#stickyFilters summary:active, #stickyFilters summary:focus {
+		border-bottom: 1px dotted;
+	}
+	
+	#stickyFilters > div {
+		margin-top: 5px;
+	}
+	#stickyFilters textarea {
+		resize: none;
+		scrollbar-width: thin!important;
+		font-family: monospace;
+	}
+	#stickyFilters textarea {
+		min-height: 8em;
+	}
+	#stickyFilters label {
+		font-weight: bold;
+		text-transform: capitalize;
+	}
+	#stickyFilters label small {font-weight: normal;}
+	#stickyFilters input[type="checkbox"] {
+		min-width: 1em;
+		min-height: 1em;
+		margin-right: 0.67em;
+		position: static;
+	}
+	#filter_opt {
+		display: block; 
+		float: right;
+		max-width: 100%; 
+		width: ${parseInt(optWidth)}px;
+		margin-top: 5px;
+		margin-right: 5px;
+		text-align: left;
+	}
+	#filter_opt input {
+		max-width: 33%;
+		border-radius: 0.3em;
+	}
+	#filter_opt label:hover+input {
+	  border-top:1px solid ${hoverLine};
+	  border-left:1px solid ${hoverLine};
+	  box-shadow: ${hoverShad};
+	}
+	#tag_actions {
+		width: 100%; 
+		margin: 5px 0 0;
+		display: flex;
+		flex-wrap: wrap;
+	}
+	#tag_actions .appended-tag {
+		font-size: 0.9em;
+		display: block;
+		margin-bottom: 0;
+	}
+	#tag_actions > div {
+		width: 50%;
+	}
+	.filter-box-label {display: block;}
+	.prev-search p {padding-left:45px;}
+	.prev-search p strong {text-transform: capitalize;}
+	.prev-search summary {font-size: 1.15em;}
+	.prev-search span {font-family: monospace; font-size: 8pt;}
+	.prev-advanced-search span {
+		background-color:#d3fdac;
+	}
+	.prev-global span {
+		background-color: #bfebfd;
+	}
+	.prev-${cssFanName} span {
+		background-color: #d8cefb;
+	}
+	`;
+} else {
+	css = `
+	#error_debug {
+		display: flex;
+		flex-wrap: wrap;
+	}
+	#error_debug label {
+		font-weight: bold;
+		text-transform: capitalize;
+	}
+	#error_debug textarea {
+		resize: none;
+		scrollbar-width: thin!important;
+		font-family: monospace;
+	}
+	#error_debug > div {
+		width: 30%;
+		margin: 10px 1%;
+	}
+	#error_debug textarea {
+		font-size: 9pt;	
+	}
+	@media only screen and (max-width: 48em) {
+		#error_debug > div {
+			width: 98%;
+		}
+	}
+	`;
+}
+
+const style = document.createElement("style");
+style.innerHTML = css;
+document.querySelector("head").appendChild(style);
 
 //actually it'd be kind of nice to have a thing that'll let you pick a sorting order too, except this time you have the choice to invert it
