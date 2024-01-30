@@ -83,6 +83,7 @@ var floatyBoxStyle = `
 		position: fixed;
 		top: 2vh;
 		left: 2vw;
+		z-index: 999;
 	}
 }
 `
