@@ -156,7 +156,7 @@ if (!searchdt) {
 				const div = document.createElement("div");
 				div.id = `${cssId}-div`;
 				const label = document.createElement("label");
-				label.innerHTML = key.replace("filter-", "");
+				label.innerHTML = key.replace("filter-", "").replace(/-/, " ");
 				label.setAttribute("for", cssId);
 				const textarea = document.createElement("textarea");
 				textarea.id = cssId;
