@@ -23,10 +23,8 @@ const fandomName = function () {
 	if (!raw) {return null;};
 	raw = raw.innerText;
 	var fandom = raw.replace(remAmbig,"").trim(); 
-	//console.log(fandom);
 	//later, maybe have it look at the other top fandoms n see if they're related, either by like an author name, or if there's an "all media types" attached to redeclare the cutoff
 
-	//console.log(raw);
 	var fandomCount = raw.match(/\(\d+\)/).toString();
 	fandomCount = fandomCount.substring(1, fandomCount.length-1); //chops off parentheses
 	fandomCount = parseInt(fandomCount);
@@ -70,16 +68,11 @@ f_enable = enable(cssFanName);
 
 //the obj versions of the relevant vars should pretty much be like, "type/name", "key", "filter", "enabled", and then for the boxes, they have their subarrays. hmmm
 var global = ["global", globalKey, globalFilter, g_enable];
-//console.log(global);
 var fan = fandomName? ["fandom", fandomKey, fandomFilter, f_enable] : null;
-//console.log(fan);
-//fandomName ? JSON.parse(localStorage[`enable-${cssFanName}`]) : false; 
 
 /* declaring functions */
 function autosave(key, value) {
 	localStorage.setItem(key, value);
-	console.log(`${key}:`);
-	console.log(localStorage[key]);
 };
 function checkbox(name, bool, prefix) {
 	prefix = prefix ? prefix : "enable"; //if not specified, then the prefix will be "enable";
@@ -94,7 +87,6 @@ function checkbox(name, bool, prefix) {
 	span.append(cbox, l);
 	span.addEventListener("click", function () {
 		bool = cbox.checked; //bool should be stored in a var, like g_enable or smth, so now we're updating it to the latest checked status
-		//console.log(`bool: ${bool}`);
 		autosave(`${prefix}-${name}`, bool);
 	});
 	return span;
@@ -116,7 +108,6 @@ function box(obj) {
 	const chk = checkbox(name, obj[3]);
 	const els = [label, box, chk];
 	obj.push(els);
-	console.log(obj);
 	return obj;
 };
 
@@ -125,7 +116,6 @@ const globEl = global[4];
 
 /* now to deal w/the currently-existing form */
 const searchdt = document.querySelector("dt.search:not(.autocomplete)");
-console.log(searchdt);
 const searchdd = document.querySelector("dt.search:not(.autocomplete");
 
 //if there's one there will obvs be the other, but just so that they don't feel left out, using "or"
@@ -156,7 +146,6 @@ if (searchdt !== null || searchdd !== null) {
 			saveDiv.appendChild(el);
 		};
 	};
-	console.log(saveDiv);
 	details.append(summary, saveDiv);
 	searchdt.insertAdjacentElement("beforebegin", details);
 } else {
@@ -190,12 +179,9 @@ if (searchdt !== null || searchdd !== null) {
 }
 
 const fandomEl = fandomName ? fan[4] : null;
-console.log(fandomEl);
 
 /* now for the tag id fetcher */
-//this is to reassure myself that you can change the value of a thing in an array 
-global[3] = true;
-console.log(global);
+
 /* the function to add the tag ids n stuff */
 //gotta make these first for nya
 const navList = document.querySelector("#main ul.user.navigation");
@@ -258,13 +244,8 @@ function nya() {
 		function addFilt(obj) {
 			let doubleck = new RegExp(`\\D${id}\\s\?`, "g");
 			//if fandom-specific, goes into the fandom filter box
-
 			var filtArr = fandomName ? fan : global;
-			//console.log("filterArr:");
-			//console.log(filtArr);
-			//var filt = ` ${filtArr[2]}`;
 			var filt = ` ${filtArr[4][1].value}`; //need the space up front in order to match the values later lol. it'll be trimmed in the end
-			//at some point figure out how to save these box values as an array to make things easier w/a loop at the addition/autosave point
 			var type = ` ${obj.pre}${filter_ids}`;
 			const p = document.createElement("p");
 			p.className = "appended-tag";
@@ -273,11 +254,9 @@ function nya() {
 			if (filt.match(doubleck)) {
 				//...first check if it's being filtered in the Same Way (in or out)
 				if (filt.match(type)) {
-					//this is correct
 					p.innerHTML = `You are already ${obj.ing}ing <strong>${tagName}</strong>!`
 				} else {
 					//otherwise, if supposed to be now excluded, add the "-"; else remove
-					//var newfilter_ids = obj.exclude ? ` -${filter_ids}` : ` ${filter_ids}`;
 					var old_ids = obj.exclude ? ` ${filter_ids}` : `-${filter_ids}`;
 					filt = filt.replace(old_ids, type); //i forgot. to put in the "filt =". i feel like an idiot
 					p.innerHTML = `Changed <strong>${tagName}</strong> to ${obj.ing}e.`;
