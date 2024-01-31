@@ -1,0 +1,459 @@
+// ==UserScript==
+// @name 		ao3 sticky filters
+// @namespace 	https://sincerelyandyourstruly.neocities.org
+// @author 		白雪花
+// @description rewriting thE saved filters script from https://greasyfork.org/en/scripts/3578-ao3-saved-filters, as well as adding in features made possible by flamebyrd's tag id bookmarklet (https://random.fangirling.net/scripts/ao3_tag_id)
+// @match     	http*://archiveofourown.org/tags/*/works*
+// @match     	http*://archiveofourown.org/works?work_search*
+// @match     	http*://archiveofourown.org/works?commit=*&tag_id=*
+// @version 	2.0
+// @grant       none
+// @run-at	  	document-end
+// ==/UserScript==
+
+/* current fandom checker */
+const works = document.querySelector("#main.works-index");
+const form = document.querySelector("form#work-filters");
+const errorFlash = document.querySelector("div.flash.error");
+
+var remAmbig = /\((\w+(\s|&)*|\d+\s?)+\)/g; //removes disambiguators
+const fandomName = function () {
+	var fandom_cutoff = 70;
+	var raw = document.querySelector("#include_fandom_tags label");
+	if (!raw) {return null;};
+	raw = raw.innerText;
+	var fandom = raw.replace(remAmbig,"").trim(); 
+	//console.log(fandom);
+	//later, maybe have it look at the other top fandoms n see if they're related, either by like an author name, or if there's an "all media types" attached to redeclare the cutoff
+
+	//console.log(raw);
+	var fandomCount = raw.match(/\(\d+\)/).toString();
+	fandomCount = fandomCount.substring(1, fandomCount.length-1); //chops off parentheses
+	fandomCount = parseInt(fandomCount);
+
+	var tagCount = document.querySelector("h2:has(a.tag)").innerText;
+	tagCount = tagCount.match(/\d+,?\d*\sW/).toString().replace(",","");
+	tagCount = tagCount.substring(0, tagCount.length-2);
+	tagCount = parseInt(tagCount);
+
+	if (!fandom || !fandomCount || !tagCount) {return;}
+
+	return (fandomCount / tagCount * 100 >= fandom_cutoff) ? fandom : null;
+}();
+const cssFanName = fandomName ? fandomName.replaceAll(/\W+/g, "-") : null;
+const tagName = function () {
+	var tag = document.querySelector("h2.heading a.tag").innerText;
+	tag = tag.replace(remAmbig, "").trim();
+	return tag;
+}();
+
+/* local storage keys */
+globalKey = "filter-global";
+globalFilter = localStorage[globalKey] ? localStorage[globalKey] : "";
+fandomKey = `filter-${fandomName}`;
+fandomFilter = localStorage[fandomKey] ? localStorage[fandomKey] : "";
+function enable(key) {
+	let enabled = true;
+	try {
+		enabled = JSON.parse(localStorage[`enable-${key}`]);
+	} catch (e) {
+		console.error(`[${key}] has no set filters yet, so`, e);
+		//if it's not "null" (aka no fandom), then default is true
+		if (key) {
+			localStorage.setItem(`enable-${key}`, true);
+		}
+	}
+	return enabled;
+}
+g_enable = enable("global");
+f_enable = enable(cssFanName);
+
+//the obj versions of the relevant vars should pretty much be like, "type/name", "key", "filter", "enabled", and then for the boxes, they have their subarrays. hmmm
+var global = ["global", globalKey, globalFilter, g_enable];
+//console.log(global);
+var fan = fandomName? ["fandom", fandomKey, fandomFilter, f_enable] : null;
+//console.log(fan);
+//fandomName ? JSON.parse(localStorage[`enable-${cssFanName}`]) : false; 
+
+/* declaring functions */
+function autosave(key, value) {
+	localStorage.setItem(key, value);
+	console.log(`${key}:`);
+	console.log(localStorage[key]);
+};
+function checkbox(name, bool, prefix) {
+	prefix = prefix ? prefix : "enable"; //if not specified, then the prefix will be "enable";
+	const cbox = document.createElement("input");
+	cbox.setAttribute("type","checkbox");
+	cbox.id = `${prefix}-${name}`;
+	cbox.checked = bool;
+	const l = document.createElement("label");
+	l.setAttribute("for", `${prefix}-${name}`);
+	l.innerHTML = prefix;
+	const span = document.createElement("span");
+	span.append(cbox, l);
+	span.addEventListener("click", function () {
+		bool = cbox.checked; //bool should be stored in a var, like g_enable or smth, so now we're updating it to the latest checked status
+		//console.log(`bool: ${bool}`);
+		autosave(`${prefix}-${name}`, bool);
+	});
+	return span;
+};
+function box(obj) {
+	if (!obj) {return null;}; //exit if no fandom
+	var name = obj[0]
+	const box = document.createElement("textarea");
+	box.id = `${name}Filters`;
+	box.value = obj[2] ? obj[2] : "";
+	box.addEventListener("keyup", async () => {
+		await autosave(obj[1], box.value);
+	});
+	const label = document.createElement("label");
+	label.className = "filter-box-label";
+	var htm = obj[0]=="fandom"?`${name} <small>(${obj[1].replace("filter-","")})</small>` : name;
+	label.innerHTML = `${htm}:`;
+	label.setAttribute("for", `${name}Filters`);
+	const chk = checkbox(name, obj[3]);
+	const els = [label, box, chk];
+	obj.push(els);
+	console.log(obj);
+	return obj;
+};
+
+box(global);
+const globEl = global[4];
+
+/* now to deal w/the currently-existing form */
+const searchdt = document.querySelector("dt.search:not(.autocomplete)");
+console.log(searchdt);
+const searchdd = document.querySelector("dt.search:not(.autocomplete");
+
+//if there's one there will obvs be the other, but just so that they don't feel left out, using "or"
+if (searchdt !== null || searchdd !== null) {
+	const advSearch = document.querySelector("#work_search_query");
+	advSearch.hidden = true;
+	const fakeSearch = document.createElement("input");
+	fakeSearch.id = "fakeSearch";
+	fakeSearch.setAttribute("autocomplete", "off");
+	fakeSearch.value = localStorage["filter-advanced-search"] ? localStorage["filter-advanced-search"] : "";
+	fakeSearch.addEventListener("keyup", async () => {
+		await autosave("filter-advanced-search", fakeSearch.value);
+	});
+	searchdd.appendChild(fakeSearch);
+
+	const details = document.createElement("details");
+	details.id = "stickyFilters";
+	const summary = document.createElement("summary");
+	summary.innerHTML = "Saved Filters";
+	const saveDiv = document.createElement("div");
+	/* make the global box */
+	for (el of globEl) {
+		saveDiv.appendChild(el);
+	};
+	const fanEl = box(fan) ? fan[4] : null;
+	if (fanEl) {
+		for (el of fanEl) {
+			saveDiv.appendChild(el);
+		};
+	};
+	console.log(saveDiv);
+	details.append(summary, saveDiv);
+	searchdt.insertAdjacentElement("beforebegin", details);
+} else {
+	if (errorFlash) {
+		const debugDiv = document.createElement("div");
+		debugDiv.id = "error_debug";
+		const p = document.createElement("p");
+		p.innerHTML = "Double-check your filters for mistakes.";
+		const filterArray = Object.entries(localStorage);
+		for (const [key, value] of filterArray) {
+			if (key.toString().startsWith("filter-")) {
+				cssId = key.replaceAll(/\W+/g, "-");
+				const div = document.createElement("div");
+				div.id = `${cssId}-div`;
+				const label = document.createElement("label");
+				label.innerHTML = key.replace("filter-","").replace(/-/," ");
+				label.setAttribute("for", cssId);
+				const textarea = document.createElement("textarea");
+				textarea.id = cssId;
+				textarea.value = value;
+				textarea.addEventListener("keyup", async () => {
+					await autosave(key, textarea.value);
+				});
+				div.append(label, textarea);
+				debugDiv.appendChild(div);
+			}
+		}
+		errorFlash.insertAdjacentElement("afterend", debugDiv);
+		errorFlash.insertAdjacentElement("afterend", p);
+	} else {console.error("lol idk you dun goof'd i guess")}
+}
+
+const fandomEl = fandomName ? fan[4] : null;
+console.log(fandomEl);
+
+/* now for the tag id fetcher */
+//this is to reassure myself that you can change the value of a thing in an array 
+global[3] = true;
+console.log(global);
+/* the function to add the tag ids n stuff */
+//gotta make these first for nya
+const navList = document.querySelector("#main ul.user.navigation");
+const filtButt = document.createElement("li");
+filtButt.id = "get_id_butt";
+filtButt.innerHTML = `<a id="id_butt">Tag ID</a>`;
+
+//id fetcher function
+const id = function () {
+	if (document.querySelector("#favorite_tag_tag_id")) {
+		console.log("favorite tag id method")
+		return document.querySelector("#favorite_tag_tag_id").value;
+	} else if (document.querySelector("a.rss")) {
+		console.log("rss feed method");
+		var href = document.querySelector("a.rss");
+		href = href.getAttribute("href");
+		href = href.match(/\d+/);
+		return href;
+	} else if (document.querySelector("#include_freeform_tags input:first-of-type")) {
+		console.log("first freeform tag method");
+		return document.querySelector("#include_freeform_tags input:first-of-type").value;
+	} else if (document.querySelector("#subscription_subscribable_id")) {
+		console.log("subscribable id method");
+		return document.querySelector("#subscription_subscribable_id").value;
+	} else {
+		if (!errorFlash) {alert("can't find tag id :C");};
+		return null;
+	};
+}();
+var filter_ids = `filter_ids:${id}`;
+
+//click on the id button
+function nya() {
+	if (!document.querySelector("#filter_opt")) {
+		const filterOpt = document.createElement("fieldset");
+		filterOpt.id = "filter_opt";
+		const fil = document.createElement("div");
+		const output = document.createElement("input");
+		output.id = "id_output";
+		output.value = id;
+		const label = document.createElement("label");
+		label.innerHTML = "filter_ids:";
+		label.setAttribute("for", "id_output");
+		const buttonAct = document.createElement("div");
+		buttonAct.id = "tag_actions";
+		const appp = document.createElement("div");
+		appp.id = "append-p";
+
+		const ex = {
+			exclude: true,
+			pre: "-",
+			ing: "exclud",
+		}
+		const inc = {
+			exclude: false,
+			pre: "",
+			ing: "includ",
+		}
+
+		function addFilt(obj) {
+			let doubleck = new RegExp(`\\D${id}\\s\?`, "g");
+			//if fandom-specific, goes into the fandom filter box
+
+			var filtArr = fandomName ? fan : global;
+			//console.log("filterArr:");
+			//console.log(filtArr);
+			//var filt = ` ${filtArr[2]}`;
+			var filt = ` ${filtArr[4][1].value}`; //need the space up front in order to match the values later lol. it'll be trimmed in the end
+			//at some point figure out how to save these box values as an array to make things easier w/a loop at the addition/autosave point
+			var type = ` ${obj.pre}${filter_ids}`;
+			const p = document.createElement("p");
+			p.className = "appended-tag";
+
+			//if this tag is already being filtered in some way...
+			if (filt.match(doubleck)) {
+				//...first check if it's being filtered in the Same Way (in or out)
+				if (filt.match(type)) {
+					//this is correct
+					p.innerHTML = `You are already ${obj.ing}ing <strong>${tagName}</strong>!`
+				} else {
+					//otherwise, if supposed to be now excluded, add the "-"; else remove
+					//var newfilter_ids = obj.exclude ? ` -${filter_ids}` : ` ${filter_ids}`;
+					var old_ids = obj.exclude ? ` ${filter_ids}` : `-${filter_ids}`;
+					filt = filt.replace(old_ids, type); //i forgot. to put in the "filt =". i feel like an idiot
+					p.innerHTML = `Changed <strong>${tagName}</strong> to ${obj.ing}e.`;
+				}
+			} else {
+				filt += type;
+				p.innerHTML = `Now ${obj.ing}ing <strong>${tagName}</strong>.`;
+			}
+			filt = filt.trim();
+			filtArr[4][1].value = filt;
+			filtArr[2] = filt;
+			appp.prepend(p);
+			autosave(filtArr[1], filtArr[2]);
+		}
+		function tagButtons(obj) {
+			const div = document.createElement("div");
+			const button = document.createElement("button");
+			button.innerHTML = `${obj.ing}e Tag`;
+			div.appendChild(button);
+			buttonAct.appendChild(div);
+			button.addEventListener("click", function () {
+				addFilt(obj);
+			})
+		};
+		tagButtons(ex);
+		tagButtons(inc);
+		fil.append(label, output);
+		filterOpt.append(fil, buttonAct, appp);
+		navList.parentElement.insertAdjacentElement("afterend", filterOpt);
+	}
+}
+
+if (form) {
+	navList.insertAdjacentElement("afterbegin", filtButt);
+	filtButt.addEventListener("mouseup", nya);
+}
+
+/* CSS STYLING AT THE END BC IT'S A PICKY BITCH */
+var css;
+if (form) {
+	const optWidth = window.getComputedStyle(document.querySelector("#main ul.user.navigation.actions")).width;
+	const hoverShad = window.getComputedStyle(document.querySelector("form#work-filters fieldset")).boxShadow;
+	const hoverLine = window.getComputedStyle(document.querySelector(".actions input")).borderColor;
+	const optMWidth = window.getComputedStyle(form).width;
+	const borderBottom = window.getComputedStyle(document.querySelector("form#work-filters dt")).borderBottom;
+	const lineColor = window.getComputedStyle(document.querySelector("form#work-filters dt")).bordeBottomColor;
+	css = `
+	#main *:not(a, #id_output, button, .current) {box-sizing: border-box;}
+	#get_id_butt:hover {cursor: pointer;}
+	#id_output {width: max-content;min-width: 0; position: static;}
+	#stickyFilters {
+		margin-top: 5px;
+	}
+	#stickyFilters summary {
+		padding: 3px 0;
+		padding-left: 3px;
+		border-bottom: 1px solid white;
+		float: left;
+		min-width: 100%;
+		margin-bottom: 5px;
+	}
+	#stickyFilters summary:active, #stickyFilters summary:focus {
+		border-bottom: 1px dotted;
+	}
+	
+	#stickyFilters > div {
+		margin-top: 5px;
+	}
+	#stickyFilters textarea {
+		resize: none;
+		scrollbar-width: thin!important;
+		font-family: monospace;
+	}
+	#stickyFilters textarea {
+		min-height: 8em;
+	}
+	#stickyFilters label {
+		font-weight: bold;
+		text-transform: capitalize;
+	}
+	#stickyFilters label small {font-weight: normal;}
+	#stickyFilters input[type="checkbox"] {
+		min-width: 1em;
+		min-height: 1em;
+		margin-right: 0.67em;
+		position: static;
+	}
+	#stickyFilters span {
+		padding-bottom: 3px;
+		margin-bottom: 3px;
+		display: block;
+		width: 100%;
+		border-bottom: ${borderBottom};
+	}
+	#filter_opt {
+		display: block; 
+		float: right;
+		max-width: 100%; 
+		width: ${parseInt(optWidth)}px;
+		min-width: ${parseInt(optMWidth)}px;
+		margin-top: 5px;
+		margin-right: 5px;
+		text-align: left;
+	}
+	#filter_opt input {
+		max-width: 33%;
+		border-radius: 0.3em;
+	}
+	#filter_opt label:hover+input {
+	  border-top:1px solid ${hoverLine};
+	  border-left:1px solid ${hoverLine};
+	  box-shadow: ${hoverShad};
+	}
+	#tag_actions {
+		width: 100%; 
+		margin: 5px 0 0;
+		display: flex;
+		flex-wrap: wrap;
+	}
+	#tag_actions > div {
+		width: 50%;
+	}
+	#append-p {max-height: 4em; overflow-y: auto; scrollbar-width: thin!important; font-size: 0.9em;}
+	.appended-tag {
+		border-bottom: ${borderBottom};
+	}
+	.filter-box-label {display: block;}
+	.prev-search {margin-top: 5px;}
+	.prev-search p {padding-left:45px;}
+	.prev-search p strong {text-transform: capitalize;}
+	.prev-search summary {font-size: 1.15em;}
+	.prev-search span {font-family: monospace; font-size: 8pt;}
+	.prev-advanced-search span {
+		background-color:#d3fdac;
+	}
+	.prev-global span {
+		background-color: #bfebfd;
+	}
+	.prev-${cssFanName} span {
+		background-color: #d8cefb;
+	}
+	@media only screen and (max-width: 48em) {
+		.prev-search {margin: 10px 0;}
+		.prev-search p {padding-left: 15px;}
+	}
+	`;
+} else {
+	css = `
+	#error_debug {
+		display: flex;
+		flex-wrap: wrap;
+	}
+	#error_debug label {
+		font-weight: bold;
+		text-transform: capitalize;
+	}
+	#error_debug textarea {
+		resize: none;
+		scrollbar-width: thin!important;
+		font-family: monospace;
+	}
+	#error_debug > div {
+		width: 30%;
+		margin: 10px 1%;
+	}
+	#error_debug textarea {
+		font-size: 9pt;	
+	}
+	@media only screen and (max-width: 48em) {
+		#error_debug > div {
+			width: 98%;
+		}
+	}
+	`;
+}
+
+const style = document.createElement("style");
+style.innerHTML = css;
+document.querySelector("head").appendChild(style);
