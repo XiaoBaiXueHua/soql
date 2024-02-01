@@ -46,11 +46,8 @@ const tagName = function () {
 }();
 
 /* local storage keys */
-globalKey = "filter-global";
-globalFilter = localStorage[globalKey] ? localStorage[globalKey] : "";
-fandomKey = `filter-${fandomName}`;
-fandomFilter = localStorage[fandomKey] ? localStorage[fandomKey] : "";
 function enable(key) {
+	if (key=="advanced-search") {return null};
 	let enabled = true;
 	try {
 		enabled = JSON.parse(localStorage[`enable-${key}`]);
@@ -63,12 +60,21 @@ function enable(key) {
 	}
 	return enabled;
 }
-g_enable = enable("global");
-f_enable = enable(cssFanName);
-
-//the obj versions of the relevant vars should pretty much be like, "type/name", "key", "filter", "enabled", and then for the boxes, they have their subarrays. hmmm
-var global = ["global", globalKey, globalFilter, g_enable];
-var fan = fandomName? ["fandom", fandomKey, fandomFilter, f_enable] : null;
+function filterTypes(name) {
+	console.log(name);
+	var is = name=="fandom" ? true:false;
+	if (is&&!fandomName) {return null;} //
+	var key = `filter-${is?fandomName:name}`;
+	var filter = localStorage[key];
+	var en = enable(is?cssFanName:name);
+	var obj = [name, key, filter, en];
+	return obj;
+}
+var global = filterTypes("global");
+console.log(global);
+var fan = filterTypes("fandom");
+console.log(fan);
+var tempp = filterTypes("advanced-search");
 
 /* declaring functions */
 function autosave(key, value) {
@@ -93,7 +99,7 @@ function checkbox(name, bool, prefix) {
 };
 function box(obj) {
 	if (!obj) {return null;}; //exit if no fandom
-	var name = obj[0]
+	var name = obj[0];
 	const box = document.createElement("textarea");
 	box.id = `${name}Filters`;
 	box.value = obj[2] ? obj[2] : "";
@@ -117,15 +123,15 @@ const globEl = global[4];
 /* now to deal w/the currently-existing form */
 const searchdt = document.querySelector("dt.search:not(.autocomplete)");
 const searchdd = document.querySelector("dt.search:not(.autocomplete");
+const advSearch = document.querySelector("#work_search_query");
 
 //if there's one there will obvs be the other, but just so that they don't feel left out, using "or"
 if (searchdt !== null || searchdd !== null) {
-	const advSearch = document.querySelector("#work_search_query");
 	advSearch.hidden = true;
 	const fakeSearch = document.createElement("input");
 	fakeSearch.id = "fakeSearch";
 	fakeSearch.setAttribute("autocomplete", "off");
-	fakeSearch.value = localStorage["filter-advanced-search"] ? localStorage["filter-advanced-search"] : "";
+	fakeSearch.value = tempp[2] ? tempp[2] : "";
 	fakeSearch.addEventListener("keyup", async () => {
 		await autosave("filter-advanced-search", fakeSearch.value);
 	});
@@ -207,7 +213,7 @@ const id = function () {
 		console.log("subscribable id method");
 		return document.querySelector("#subscription_subscribable_id").value;
 	} else {
-		if (!errorFlash) {alert("can't find tag id :C");};
+		//if (!errorFlash) {alert("can't find tag id :C");};
 		return null;
 	};
 }();
@@ -288,10 +294,65 @@ function nya() {
 		navList.parentElement.insertAdjacentElement("afterend", filterOpt);
 	}
 }
-
+//only add the tag id fetcher button if there's a form
 if (form) {
 	navList.insertAdjacentElement("afterbegin", filtButt);
 	filtButt.addEventListener("mouseup", nya);
+}
+
+/* add filters + temp search to search w/in results box */
+function submission() {
+	var globeSub = global[3] ? global[2] : "";
+	var fanSub = "";
+	if (fandomName) {
+		if (fan[3]) {
+			fanSub = fan[2];
+		}
+	};
+	var tempSub = tempp[2] ? tempp[2] : "";
+	advSearch.value = `${globeSub} ${fanSub} ${tempSub}`;
+	advSearch.value = advSearch.value.trim();
+	form.submit();
+}
+if (form) {form.addEventListener("submit", submission)};
+
+/* autosubmit + previous filters drop */
+const search_submit = window.location.search;
+if (search_submit == "") {
+	//there needs to be both the thing enabled and a value in the thing
+	if(global[3] && global[2]) {
+		submission();
+	} else if (fan && fan[3] && fan[2]) {
+		submission();
+	};
+} else {
+	const header = document.querySelector("h2.heading");
+	const details = document.createElement("details");
+	details.className = "prev-search";
+	const summary = document.createElement("summary");
+	summary.innerHTML = "<strong>FILTERS:</strong>";
+	details.appendChild(summary);
+
+	function filterloop(key) {
+		if(localStorage[`filter-${key}`]) {
+			const p = document.createElement("p");
+			p.className = `prev-${key.replaceAll(/\W+/g, "-")}`;
+			p.innerHTML = `<strong>${key.replaceAll(/-/g, " ").trim()} Filters:</strong></br><span>${localStorage[`filter-${key}`]}</span>`;
+			details.appendChild(p);
+		};
+	};
+	if (tempp[2]) {
+		//this one's different bc the adv search doesn't Actually have a checkbox for its enabling
+		filterloop("advanced-search");
+	}
+	if (global[3]) {
+		filterloop("global");
+	}
+	if (fan && fan[3]) {
+		filterloop(fandomName);
+	}
+	header.insertAdjacentElement("afterend", details);
+	localStorage.setItem("filter-advanced-search", "");
 }
 
 /* CSS STYLING AT THE END BC IT'S A PICKY BITCH */
@@ -302,7 +363,6 @@ if (form) {
 	const hoverLine = window.getComputedStyle(document.querySelector(".actions input")).borderColor;
 	const optMWidth = window.getComputedStyle(form).width;
 	const borderBottom = window.getComputedStyle(document.querySelector("form#work-filters dt")).borderBottom;
-	const lineColor = window.getComputedStyle(document.querySelector("form#work-filters dt")).bordeBottomColor;
 	css = `
 	#main *:not(a, #id_output, button, .current) {box-sizing: border-box;}
 	#get_id_butt:hover {cursor: pointer;}
@@ -432,7 +492,6 @@ if (form) {
 	}
 	`;
 }
-
 const style = document.createElement("style");
 style.innerHTML = css;
 document.querySelector("head").appendChild(style);

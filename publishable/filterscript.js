@@ -101,19 +101,18 @@ globalBox.addEventListener("keyup", async () => { await localStorage.setItem(glo
 console.log("localStorage");
 console.log(localStorage);
 //enable/disable checkbox
-function checkbox(label, thing) {
+function checkbox(name, thing) {
 	thing ? thing : "enable";
 	const cbox = document.createElement("input");
 	cbox.setAttribute("type", "checkbox");
-	cbox.id = `${thing}-${label}`;
+	cbox.id = `${thing}-${name}`;
 	const lib = document.createElement("label");
-	lib.setAttribute("for", `${thing}-${label}`);
+	lib.setAttribute("for", `${thing}-${name}`);
 	lib.innerHTML = thing;
 	var span = document.createElement("span");
 	span.append(cbox, lib);
 	return span;
 };
-const globCheck = checkbox("global", "enable");
 function saveCheck(name, box) {
 	//check if the fandom filters have been saved as enabled
 	var checkk = localStorage.getItem(`enable-${name}`);
@@ -132,6 +131,7 @@ function saveCheck(name, box) {
 		})
 	}
 }
+const globCheck = checkbox("global", "enable");
 saveCheck("global", globCheck);
 console.log("globalBox");
 console.log(globalBox);
