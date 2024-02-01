@@ -440,6 +440,9 @@ if (form) {
 	#tag_actions > div {
 		width: 50%;
 	}
+	#tag_actions button {
+		text-transform: capitalize;
+	}
 	#append-p {max-height: 4em; overflow-y: auto; scrollbar-width: thin!important; font-size: 0.9em;}
 	.appended-tag {
 		border-bottom: ${borderBottom};
