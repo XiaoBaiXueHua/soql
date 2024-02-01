@@ -71,9 +71,7 @@ function filterTypes(name) {
 	return obj;
 }
 var global = filterTypes("global");
-console.log(global);
 var fan = filterTypes("fandom");
-console.log(fan);
 var tempp = filterTypes("advanced-search");
 
 /* declaring functions */
@@ -99,6 +97,7 @@ function checkbox(name, bool, prefix) {
 };
 function box(obj) {
 	if (!obj) {return null;}; //exit if no fandom
+	var is = obj[0] == "fandom"?true:false;
 	var name = obj[0];
 	const box = document.createElement("textarea");
 	box.id = `${name}Filters`;
@@ -108,10 +107,11 @@ function box(obj) {
 	});
 	const label = document.createElement("label");
 	label.className = "filter-box-label";
-	var htm = obj[0]=="fandom"?`${name} <small>(${obj[1].replace("filter-","")})</small>` : name;
+	var htm = name;
+	htm += is?` <small>(${fandomName})</small>`:"";
 	label.innerHTML = `${htm}:`;
 	label.setAttribute("for", `${name}Filters`);
-	const chk = checkbox(name, obj[3]);
+	const chk = checkbox(is?cssFanName:name, obj[3]);
 	const els = [label, box, chk];
 	obj.push(els);
 	return obj;
@@ -302,17 +302,16 @@ if (form) {
 
 /* add filters + temp search to search w/in results box */
 function submission() {
-	var globeSub = global[3] ? global[2] : "";
+	var globeSub = document.querySelector("#enable-global").checked ? global[2] : "";
 	var fanSub = "";
 	if (fandomName) {
-		if (fan[3]) {
+		if (document.querySelector(`#enable-${cssFanName}`).checked) {
 			fanSub = fan[2];
 		}
 	};
 	var tempSub = tempp[2] ? tempp[2] : "";
 	advSearch.value = `${globeSub} ${fanSub} ${tempSub}`;
 	advSearch.value = advSearch.value.trim();
-	form.submit();
 }
 if (form) {form.addEventListener("submit", submission)};
 
@@ -320,10 +319,12 @@ if (form) {form.addEventListener("submit", submission)};
 const search_submit = window.location.search;
 if (search_submit == "") {
 	//there needs to be both the thing enabled and a value in the thing
-	if(global[3] && global[2]) {
+	if(document.querySelector("#enable-global").checked && global[2]) {
 		submission();
-	} else if (fan && fan[3] && fan[2]) {
+		form.submit();
+	} else if (fan && document.querySelector(`#enable-${cssFanName}`).checked && fan[2]) {
 		submission();
+		form.submit();
 	};
 } else {
 	const header = document.querySelector("h2.heading");
