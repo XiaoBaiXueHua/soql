@@ -6,397 +6,365 @@
 // @match     	http*://archiveofourown.org/tags/*/works*
 // @match     	http*://archiveofourown.org/works?work_search*
 // @match     	http*://archiveofourown.org/works?commit=*&tag_id=*
-// @version 	1.0
+// @version 	2.0
 // @grant       none
 // @run-at	  	document-end
 // ==/UserScript==
 
-/* saved filters current fandom checker */
-var TAG_OWNERSHIP_PERCENT = 70; //taken from the original; will need to study how fandom names are standardized to improve sensitivity
-var works = document.querySelector("#main.works-index");
-var form = document.querySelector("form#work-filters");
+/* current fandom checker */
+const works = document.querySelector("#main.works-index");
+const form = document.querySelector("form#work-filters");
+const errorFlash = document.querySelector("div.flash.error");
 
-var fandomName = function () {
-	var fandom = document.querySelector("#include_fandom_tags label");
-	if (!fandom) { return null; }; //if there's no fandom (like, for example, on the error page), just stop
-	fandom = fandom.innerText.trim();
-	//this extracts the number of works as long as it's in parentheses
-	var workNumberExtractor = /\(\d+\)/;
-	//has to be turned into a string for some reason
-	var fandomCount = fandom.match(workNumberExtractor).toString();
-	//this chops off the parentheses lol
-	fandomCount = fandomCount.substring(1, fandomCount.length - 1);
-	//now it's back to a number
+var remAmbig = /\((\w+(\s|&)*|\d+\s?)+\)/g; //removes disambiguators
+const fandomName = function () {
+	var fandom_cutoff = 70;
+	var raw = document.querySelector("#include_fandom_tags label");
+	if (!raw) {return null;};
+	raw = raw.innerText;
+	var fandom = raw.replace(remAmbig,"").trim(); 
+	//later, maybe have it look at the other top fandoms n see if they're related, either by like an author name, or if there's an "all media types" attached to redeclare the cutoff
+
+	var fandomCount = raw.match(/\(\d+\)/).toString();
+	fandomCount = fandomCount.substring(1, fandomCount.length-1); //chops off parentheses
 	fandomCount = parseInt(fandomCount);
-	//okay. so. it wants to remove any word or number between parentheses, accommodating for ampersands as well. this applies globally too so like. i hope no fandoms have parentheses in their names lol
-	//anyway the reason that the disambiguator part of the fandom tag name is getting cut off is for jjk situations, where for w/e reason the anime n manga aren't considered related fandoms and will therefore get filtered out in crossover:false, but if you care enough abt that sort of fandom, you'll probably end up checking both tags. because the local storage is otherwise sensitive to the disambiguator, you'd have to plug in and update the same filters TWICE for both tag variants otherwise.
-	const parenRem = /\((\w+(\s|&)*|\d+\s?)+\)/g;
-	fandom = fandom.replace(parenRem, "").trim();
-	//just realized we'll probably also want to remove "all media types", but that can be a project for another day
-	//fandom = fandom.replace(/-\sall\smedia\stypes/i,"").trim();
 
-	//okay now to basically do all that but for non-fandom_ids 
-	var tagCount = document.querySelector("h2:has(a.tag)").innerText.trim();
-	//this gets the number of works in that particular tag we're looking at rn. need that capital W bc "xxx Works in yz tag"
-	workNumberExtractor = /\d+,?\d*\sW/;
-	tagCount = tagCount.match(workNumberExtractor).toString();
-	//stupid thing wants me to remove the comma too, so that's why the replace is tacked on at the end >_>
-	tagCount = tagCount.substring(0, tagCount.length - 2).replace(",", "");
-	//now it's back to a number
+	var tagCount = document.querySelector("h2:has(a.tag)").innerText;
+	tagCount = tagCount.match(/\d+,?\d*\sW/).toString().replace(",","");
+	tagCount = tagCount.substring(0, tagCount.length-2);
 	tagCount = parseInt(tagCount);
-	//if for some reason, these numbers don't exist, just stop
-	if (!fandom || !fandomCount || !tagCount) { return; };
-	//if a fandom has more than a (currently set to 70%) share of a particular tag, then we're in that fandom
-	return (fandomCount / tagCount * 100 >= TAG_OWNERSHIP_PERCENT) ? fandom : null;
-}();
-//also need a css-friendly fandom name
-const cssFanName = fandomName ? fandomName.replaceAll(/\W+/g, "-") : null; //the null is to let the error page debug work
 
-var tagName = function () {
-	var tag = document.querySelector("h2.heading a.tag").innerHTML;
-	tag = tag.replace(/\((\w+\s?)+\)/, "").trim();
+	if (!fandom || !fandomCount || !tagCount) {return;}
+
+	return (fandomCount / tagCount * 100 >= fandom_cutoff) ? fandom : null;
+}();
+const cssFanName = fandomName ? fandomName.replaceAll(/\W+/g, "-") : null;
+const tagName = function () {
+	var tag = document.querySelector("h2.heading a.tag").innerText;
+	tag = tag.replace(remAmbig, "").trim();
 	return tag;
 }();
 
-/* make the filter id button */
-const filtButt = document.createElement("li");
-filtButt.id = "get_id_butt";
-filtButt.innerHTML = `<a id="id_butt" onclick="console.log(document.querySelector('#favorite_tag_tag_id').value);">Tag ID</a>`;
-const navList = document.querySelector("#main ul.user.navigation").firstElementChild;
-if (form) { navList.prepend(filtButt); }; //no point if there's not a form, right?
-console.log("navList:");
-console.log(navList);
+/* local storage keys */
+function enable(key) {
+	if (key=="advanced-search") {return null};
+	let enabled = true;
+	try {
+		enabled = JSON.parse(localStorage[`enable-${key}`]);
+	} catch (e) {
+		console.error(`[${key}] has no set filters yet, so`, e);
+		//if it's not "null" (aka no fandom), then default is true
+		if (key) {
+			localStorage.setItem(`enable-${key}`, true);
+		}
+	}
+	return enabled;
+}
+function filterTypes(name) {
+	var is = name=="fandom" ? true:false;
+	if (is&&!fandomName) {return null;} //
+	var key = `filter-${is?fandomName:name}`;
+	var filter = localStorage[key];
+	var en = enable(is?cssFanName:name);
+	var obj = [name, key, filter, en];
+	return obj;
+}
+var global = filterTypes("global");
+var fan = filterTypes("fandom");
+var tempp = filterTypes("advanced-search");
 
-console.log(`tag name: ${tagName}`);
-//have to have the () at the end in order to, like, Actually get the fandom name
-
-//the local storage keys
-globalKey = "filter-global";
-globalFilter = localStorage[globalKey];
-fandomKey = `filter-${fandomName}`;
-fandomFilter = localStorage[fandomKey];
-
-/* okay now for the part where i try to recreate the autofilter submission boxes */
-//find the "search w/in results" input box
-const advSearch = document.querySelector("#work_search_query");
-console.log(advSearch);
-
-//now we hide the adv search
-const searchdt = document.querySelector("dt.search:not(.autocomplete)");
-const searchdd = document.querySelector("dd.search:not(.autocomplete)");
-console.log("search dt/dd");
-console.log(searchdt);
-console.log(searchdd);
-
-//because global filters should always show, they get to be on a higher level
-const globLab = document.createElement("label");
-globLab.className = "filter-box-label";
-globLab.innerHTML = "Global:";
-globLab.setAttribute("for", "globalFilters");
-const globalBox = document.createElement("textarea");
-globalBox.id = "globalFilters";
-globalBox.value = globalFilter ? globalFilter : "";
-//autosave
-globalBox.addEventListener("keyup", async () => { await localStorage.setItem(globalKey, globalBox.value) });
-console.log("localStorage");
-console.log(localStorage);
-//enable/disable checkbox
-function checkbox(name, thing) {
-	thing ? thing : "enable";
+/* declaring functions */
+function autosave(key, value) {
+	localStorage.setItem(key, value);
+};
+function checkbox(name, bool, prefix) {
+	prefix = prefix ? prefix : "enable"; //if not specified, then the prefix will be "enable";
 	const cbox = document.createElement("input");
-	cbox.setAttribute("type", "checkbox");
-	cbox.id = `${thing}-${name}`;
-	const lib = document.createElement("label");
-	lib.setAttribute("for", `${thing}-${name}`);
-	lib.innerHTML = thing;
-	var span = document.createElement("span");
-	span.append(cbox, lib);
+	cbox.setAttribute("type","checkbox");
+	cbox.id = `${prefix}-${name}`;
+	cbox.checked = bool;
+	const l = document.createElement("label");
+	l.setAttribute("for", `${prefix}-${name}`);
+	l.innerHTML = prefix;
+	const span = document.createElement("span");
+	span.append(cbox, l);
+	span.addEventListener("click", function () {
+		bool = cbox.checked; //bool should be stored in a var, like g_enable or smth, so now we're updating it to the latest checked status
+		autosave(`${prefix}-${name}`, bool);
+	});
 	return span;
 };
-function saveCheck(name, box) {
-	//check if the fandom filters have been saved as enabled
-	var checkk = localStorage.getItem(`enable-${name}`);
-	if (!checkk) {
-		//by default is on
-		box.firstChild.checked = true;
-		localStorage.setItem(`enable-${name}`, box.firstChild.checked);
-		box.addEventListener("click", function () {
-			localStorage.setItem(`enable-${name}`, box.firstChild.checked);
-		})
-	} else {
-		box.firstChild.checked = JSON.parse(checkk);
-		localStorage.setItem(`enable-${name}`, box.firstChild.checked);
-		box.addEventListener("click", function () {
-			localStorage.setItem(`enable-${name}`, box.firstChild.checked);
-		})
-	}
-}
-const globCheck = checkbox("global", "enable");
-saveCheck("global", globCheck);
-console.log("globalBox");
-console.log(globalBox);
+function box(obj) {
+	if (!obj) {return null;}; //exit if no fandom
+	var is = obj[0] == "fandom"?true:false;
+	var name = obj[0];
+	const box = document.createElement("textarea");
+	box.id = `${name}Filters`;
+	box.value = obj[2] ? obj[2] : "";
+	box.addEventListener("keyup", async () => {
+		await autosave(obj[1], box.value);
+	});
+	const label = document.createElement("label");
+	label.className = "filter-box-label";
+	var htm = name;
+	htm += is?` <small>(${fandomName})</small>`:"";
+	label.innerHTML = `${htm}:`;
+	label.setAttribute("for", `${name}Filters`);
+	const chk = checkbox(is?cssFanName:name, obj[3]);
+	const els = [label, box, chk];
+	obj.push(els);
+	return obj;
+};
 
+box(global);
+const globEl = global[4];
 
-//if you fucked up the input for the saved filters, show all saved filters for double-checking; otherwise, proceed as normal
-if (!searchdt) {
-	const errorFlash = document.querySelector("div.flash.error")
+/* now to deal w/the currently-existing form */
+const searchdt = document.querySelector("dt.search:not(.autocomplete)");
+const searchdd = document.querySelector("dt.search:not(.autocomplete");
+const advSearch = document.querySelector("#work_search_query");
+
+//if there's one there will obvs be the other, but just so that they don't feel left out, using "or"
+if (searchdt !== null || searchdd !== null) {
+	advSearch.hidden = true;
+	const fakeSearch = document.createElement("input");
+	fakeSearch.id = "fakeSearch";
+	fakeSearch.setAttribute("autocomplete", "off");
+	fakeSearch.value = tempp[2] ? tempp[2] : "";
+	fakeSearch.addEventListener("keyup", async () => {
+		await autosave("filter-advanced-search", fakeSearch.value);
+	});
+	searchdd.appendChild(fakeSearch);
+
+	const details = document.createElement("details");
+	details.id = "stickyFilters";
+	const summary = document.createElement("summary");
+	summary.innerHTML = "Saved Filters";
+	const saveDiv = document.createElement("div");
+	/* make the global box */
+	for (el of globEl) {
+		saveDiv.appendChild(el);
+	};
+	const fanEl = box(fan) ? fan[4] : null;
+	if (fanEl) {
+		for (el of fanEl) {
+			saveDiv.appendChild(el);
+		};
+	};
+	details.append(summary, saveDiv);
+	searchdt.insertAdjacentElement("beforebegin", details);
+} else {
 	if (errorFlash) {
 		const debugDiv = document.createElement("div");
 		debugDiv.id = "error_debug";
-		const ohno = document.createElement("p");
-		ohno.innerHTML = "Double-check your filters for mistakes.";
-		var filterArray = Object.entries(localStorage);
+		const p = document.createElement("p");
+		p.innerHTML = "Double-check your filters for mistakes.";
+		const filterArray = Object.entries(localStorage);
 		for (const [key, value] of filterArray) {
-			console.log(`saved ${key}: ${value}`);
-			//if the localStorage thing doesn't start with "filter-", then don't do anything w/it
 			if (key.toString().startsWith("filter-")) {
 				cssId = key.replaceAll(/\W+/g, "-");
 				const div = document.createElement("div");
 				div.id = `${cssId}-div`;
 				const label = document.createElement("label");
-				label.innerHTML = key.replace("filter-", "").replace(/-/, " ");
+				label.innerHTML = key.replace("filter-","").replace(/-/," ");
 				label.setAttribute("for", cssId);
 				const textarea = document.createElement("textarea");
 				textarea.id = cssId;
 				textarea.value = value;
-				//not much point to adding a debug w/o the autosave event listener!!
-				textarea.addEventListener("keyup", async () => await localStorage.setItem(key, textarea.value));
-
-				div.appendChild(label);
-				div.appendChild(textarea);
+				textarea.addEventListener("keyup", async () => {
+					await autosave(key, textarea.value);
+				});
+				div.append(label, textarea);
 				debugDiv.appendChild(div);
 			}
 		}
-		document.querySelector("div.flash:not(.error)").appendChild(ohno);
-		document.querySelector("div.flash:not(.error)").appendChild(debugDiv);
-	}
-} else {
-	//create fake search w/in results box
-	const fakeSearch = document.createElement("input");
-	fakeSearch.id = "fakeSearch";
-	fakeSearch.value = localStorage["filter-advanced-search"] ? localStorage["filter-advanced-search"] : "";
-	fakeSearch.addEventListener("keyup", async () => {
-		await localStorage.setItem("filter-advanced-search", fakeSearch.value);
-	});
-	fakeSearch.setAttribute("autocomplete", "off");
-	//create the details drop for the saved filters; give them their relevant ids for later
-	const det = document.createElement("details");
-	det.id = "stickyFilters";
-	const summary = document.createElement("summary");
-	summary.innerHTML = "Saved Filters";
-	const saveDiv = document.createElement("div");
-	//append the global box + label
-	saveDiv.append(globLab, globalBox, globCheck);
-	//check if this is a fandom-specific tag before making the fandom filters box
-	if (fandomName) {
-		const line = document.createElement("hr");
-		const fanLab = document.createElement("label");
-		fanLab.innerHTML = `Fandom <small>(${fandomName})</small>:`;
-		fanLab.setAttribute("for", "fandomFilters");
-		fanLab.className = "filter-box-label";
-		const fandomBox = document.createElement("textarea");
-		//fandomBox.id = `filter-${cssFanName}`;
-		fandomBox.id = "fandomFilters";
-		fandomBox.value = fandomFilter ? fandomFilter : "";
-		const fanCheck = checkbox(cssFanName, "enable");
-		saveDiv.append(line, fanLab, fandomBox, fanCheck);
-		//add the autosave function
-		fandomBox.addEventListener("keyup", async () => { await localStorage.setItem(fandomKey, fandomBox.value) });
-		saveCheck(cssFanName, fanCheck);
-	}
-	det.append(summary, saveDiv);
-	advSearch.hidden = true;
-	searchdt.insertAdjacentElement("beforebegin", det);
-	searchdd.appendChild(fakeSearch);
-	//searchdd.appendChild(det);
-};
+		errorFlash.insertAdjacentElement("afterend", debugDiv);
+		errorFlash.insertAdjacentElement("afterend", p);
+	} else {console.error("lol idk you dun goof'd i guess")}
+}
 
-/* vars for whether the filters are enabled or not*/
-const fandomBox = fandomName ? document.querySelector("#fandomFilters") : null;
-var g_enable = JSON.parse(localStorage["enable-global"]);
-var f_enable = fandomName ? JSON.parse(localStorage[`enable-${cssFanName}`]) : false;
-var g_val = globalBox.value;
-var f_val = fandomName ? fandomBox.value : false;
+const fandomEl = fandomName ? fan[4] : null;
 
-/* display tag id */
+/* now for the tag id fetcher */
 
-//this is the function that gets the tag id n spits it out as an <input> element
+/* the function to add the tag ids n stuff */
+//gotta make these first for nya
+const navList = document.querySelector("#main ul.user.navigation");
+const filtButt = document.createElement("li");
+filtButt.id = "get_id_butt";
+filtButt.innerHTML = `<a id="id_butt">Tag ID</a>`;
+
+//id fetcher function
+const id = function () {
+	if (document.querySelector("#favorite_tag_tag_id")) {
+		console.log("favorite tag id method")
+		return document.querySelector("#favorite_tag_tag_id").value;
+	} else if (document.querySelector("a.rss")) {
+		console.log("rss feed method");
+		var href = document.querySelector("a.rss");
+		href = href.getAttribute("href");
+		href = href.match(/\d+/);
+		return href;
+	} else if (document.querySelector("#include_freeform_tags input:first-of-type")) {
+		console.log("first freeform tag method");
+		return document.querySelector("#include_freeform_tags input:first-of-type").value;
+	} else if (document.querySelector("#subscription_subscribable_id")) {
+		console.log("subscribable id method");
+		return document.querySelector("#subscription_subscribable_id").value;
+	} else {
+		//if (!errorFlash) {alert("can't find tag id :C");};
+		return null;
+	};
+}();
+var filter_ids = `filter_ids:${id}`;
+
+//click on the id button
 function nya() {
-	//don't do anything if there's already a thing
 	if (!document.querySelector("#filter_opt")) {
-		//add in like an options dropdown for the filer id number
 		const filterOpt = document.createElement("fieldset");
 		filterOpt.id = "filter_opt";
 		const fil = document.createElement("div");
-		const idOutput = document.createElement("input");
-		idOutput.id = "id_output";
-		//multiple ways to get an id: fave tag id (logged-in only), -> rss feed -> freeform ids (only happens when logged out bc they don't have rss feeds) -> subscribable id (this gets user/story ids)
-		var id = function () {
-			if (document.querySelector("#favorite_tag_tag_id")) {
-				console.log("favorite tag id method")
-				return document.querySelector("#favorite_tag_tag_id").value;
-			} else if (document.querySelector("a.rss")) {
-				console.log("rss feed method");
-				var href = document.querySelector("a.rss");
-				href = href.getAttribute("href");
-				var regex = /\d+/;
-				href = href.match(regex);
-				return href;
-			} else if (document.querySelector("#include_freeform_tags input:first-of-type")) {
-				console.log("first freeform tag method");
-				return document.querySelector("#include_freeform_tags input:first-of-type").value;
-			} else if (document.querySelector("#subscription_subscribable_id")) {
-				console.log("subscribable id method");
-				return document.querySelector("#subscription_subscribable_id").value;
-			} else {
-				alert("can't find tag id :C");
-				return null;
-			}
-		}();
+		const output = document.createElement("input");
+		output.id = "id_output";
+		output.value = id;
 		const label = document.createElement("label");
 		label.innerHTML = "filter_ids:";
 		label.setAttribute("for", "id_output");
-		idOutput.value = `${id}`;
-
 		const buttonAct = document.createElement("div");
 		buttonAct.id = "tag_actions";
-		const excl = document.createElement("div");
-		const exclB = document.createElement("button");
-		exclB.innerHTML = "Exclude Tag";
-		excl.appendChild(exclB);
-		const incl = document.createElement("div");
-		const inclB = document.createElement("button");
-		inclB.innerHTML = "Include Tag";
-		incl.appendChild(inclB);
+		const appp = document.createElement("div");
+		appp.id = "append-p";
 
-		//at this point we should have a var for the filter
-		filter = `filter_ids:${id}`;
-		function addFilt(v, t, par) {
-			//first check if the value's been added already
-			let doubleck = new RegExp(`\\D${id}\\D`, "g");
-			filt = fandomName ? fandomBox : globalBox;
-			const para = document.createElement("p");
-			para.className = "appended-tag";
-			var type = t == excl ? true : false;
-			if (filt.value.match(doubleck)) {
-				para.innerHTML = `<strong>${tagName}</strong> is already being filtered!`; //later make it so that picking the opposite button will automatically switch in the autofilters
+		const ex = {
+			exclude: true,
+			pre: "-",
+			ing: "exclud",
+		}
+		const inc = {
+			exclude: false,
+			pre: "",
+			ing: "includ",
+		}
+
+		function addFilt(obj) {
+			let doubleck = new RegExp(`\\D${id}\\s\?`, "g");
+			//if fandom-specific, goes into the fandom filter box
+			var filtArr = fandomName ? fan : global;
+			var filt = ` ${filtArr[4][1].value}`; //need the space up front in order to match the values later lol. it'll be trimmed in the end
+			var type = ` ${obj.pre}${filter_ids}`;
+			const p = document.createElement("p");
+			p.className = "appended-tag";
+
+			//if this tag is already being filtered in some way...
+			if (filt.match(doubleck)) {
+				//...first check if it's being filtered in the Same Way (in or out)
+				if (filt.match(type)) {
+					p.innerHTML = `You are already ${obj.ing}ing <strong>${tagName}</strong>!`
+				} else {
+					//otherwise, if supposed to be now excluded, add the "-"; else remove
+					var old_ids = obj.exclude ? ` ${filter_ids}` : `-${filter_ids}`;
+					filt = filt.replace(old_ids, type); //i forgot. to put in the "filt =". i feel like an idiot
+					p.innerHTML = `Changed <strong>${tagName}</strong> to ${obj.ing}e.`;
+				}
 			} else {
-				filt.value += ` ${type ? "-" : ""}${v}`;
-				filt.value.trim();
-				para.innerHTML = `Now filtering ${type ? "out" : "for"} <strong>${tagName}</strong>.`
+				filt += type;
+				p.innerHTML = `Now ${obj.ing}ing <strong>${tagName}</strong>.`;
 			}
-			par.appendChild(para);
+			filt = filt.trim();
+			filtArr[4][1].value = filt;
+			filtArr[2] = filt;
+			appp.prepend(p);
+			autosave(filtArr[1], filtArr[2]);
+		}
+		function tagButtons(obj) {
+			const div = document.createElement("div");
+			const button = document.createElement("button");
+			button.innerHTML = `${obj.ing}e Tag`;
+			div.appendChild(button);
+			buttonAct.appendChild(div);
+			button.addEventListener("click", function () {
+				addFilt(obj);
+			})
 		};
-		exclB.addEventListener("click", async () => {
-			addFilt(filter, excl, buttonAct);
-			//can't do the shortcut here
-			if (fandomName) {
-				//update the vars w/new values
-				f_val = fandomBox.value;
-				await localStorage.setItem(fandomKey, f_val);
-			} else {
-				g_val = globalBox.value;
-				await localStorage.setItem(globalKey, g_val);
-			}
-		});
-		inclB.addEventListener("click", async () => {
-			addFilt(filter, incl, buttonAct);
-			console.log(fandomName);
-			if (fandomName) {
-				f_val = fandomBox.value;
-				await localStorage.setItem(fandomKey, f_val);
-			} else {
-				g_val = globalBox.value;
-				await localStorage.setItem(globalKey, g_val);
-			}
-		});
-
-		//append all the things yeah
-		buttonAct.append(excl, incl);
-		fil.append(label, idOutput);
-		filterOpt.append(fil, buttonAct);
-		//navList.parentElement.appendChild(filterOpt);
-		navList.parentElement.parentElement.insertAdjacentElement("afterend", filterOpt);
+		tagButtons(ex);
+		tagButtons(inc);
+		fil.append(label, output);
+		filterOpt.append(fil, buttonAct, appp);
+		navList.parentElement.insertAdjacentElement("afterend", filterOpt);
 	}
-};
-//so it turns out that when you do event listeners, the function does not want the parentheses after it, just the name. that's fun. would've loved to know that.
-filtButt.addEventListener("click", nya);
+}
+//only add the tag id fetcher button if there's a form
+if (form) {
+	navList.insertAdjacentElement("afterbegin", filtButt);
+	filtButt.addEventListener("mouseup", nya);
+}
 
-/* form submit time */
+/* add filters + temp search to search w/in results box */
 function submission() {
-	var globeSub = g_enable ? g_val : "";
+	var globeSub = document.querySelector("#enable-global").checked ? global[2] : "";
 	var fanSub = "";
-	//first check if this is a fandom-specific tag
-	if (fandomBox) {
-		//then check if it's even enabled
-		if (f_enable) {
-			fanSub = f_val;
+	if (fandomName) {
+		if (document.querySelector(`#enable-${cssFanName}`).checked) {
+			fanSub = fan[2];
 		}
 	};
-	var tempSub = localStorage["filter-advanced-search"] ? localStorage["filter-advanced-search"] : "";
+	var tempSub = tempp[2] ? tempp[2] : "";
 	advSearch.value = `${globeSub} ${fanSub} ${tempSub}`;
 	advSearch.value = advSearch.value.trim();
 }
-//bc the form doesn't exist on the error page, check if it's there first
-if (form) {
-	form.addEventListener("submit", submission)
-}
+if (form) {form.addEventListener("submit", submission)};
 
 /* autosubmit + previous filters drop */
-var search_submit = window.location.search;
-//autofilter when at raw tags
+const search_submit = window.location.search;
 if (search_submit == "") {
-	//at least one of these must be enabled before autosubmit runs
-	if (g_enable || f_enable) {
-		//since they're on by default, also check that they have values
-		if (g_val || f_val) {
-			submission();
-			form.submit();
-		}
-	}
+	//there needs to be both the thing enabled and a value in the thing
+	if(document.querySelector("#enable-global").checked && global[2]) {
+		submission();
+		form.submit();
+	} else if (fan && document.querySelector(`#enable-${cssFanName}`).checked && fan[2]) {
+		submission();
+		form.submit();
+	};
 } else {
-	function filterloop(key, parent) {
-		console.log(`key: ${key}`);
-		if (localStorage[`filter-${key}`]) {
-			const prevP = document.createElement("p");
-			//var cssKey = key.replaceAll(/\S+/g,"-");
-			prevP.className = `prev-${key.replaceAll(/\W+/g, "-")}`;
-			prevP.innerHTML = `<strong>${key.replaceAll(/-/g, " ").trim()} Filters:</strong></br><span>${localStorage[`filter-${key}`]}</span>`;
-			parent.appendChild(prevP);
-		}
-	}
 	const header = document.querySelector("h2.heading");
 	const details = document.createElement("details");
 	details.className = "prev-search";
-	const dropSummary = document.createElement("summary");
-	dropSummary.innerHTML = "<strong>FILTERS:</strong>";
-	details.appendChild(dropSummary);
-	if (localStorage["filter-advanced-search"]) {
-		filterloop("advanced-search", details);
+	const summary = document.createElement("summary");
+	summary.innerHTML = "<strong>FILTERS:</strong>";
+	details.appendChild(summary);
+
+	function filterloop(key) {
+		if(localStorage[`filter-${key}`]) {
+			const p = document.createElement("p");
+			p.className = `prev-${key.replaceAll(/\W+/g, "-")}`;
+			p.innerHTML = `<strong>${key.replaceAll(/-/g, " ").trim()} Filters:</strong></br><span>${localStorage[`filter-${key}`]}</span>`;
+			details.appendChild(p);
+		};
 	};
-	if (g_enable) {
-		filterloop("global", details);
-	};
-	if (f_enable) {
-		filterloop(fandomName, details);
-	};
+	if (tempp[2]) {
+		//this one's different bc the adv search doesn't Actually have a checkbox for its enabling
+		filterloop("advanced-search");
+	}
+	if (global[3]) {
+		filterloop("global");
+	}
+	if (fan && fan[3]) {
+		filterloop(fandomName);
+	}
 	header.insertAdjacentElement("afterend", details);
 	localStorage.setItem("filter-advanced-search", "");
-};
+}
 
-/* CSS STYLING HERE AT THE END BC IT'S A PICKY BITCH */
-//const borderHover = window.getComputedStyle(document.querySelector(".actions a:hover")).borderTop;
-//const bxShad = window.getComputedStyle(document.querySelector(".actions a:hover")).boxShadow;
-//for now, rather than use js to get the colors (to match w/the skins ofc), go w/default. is tragic but it's what ao3 gets for not using :root and vars in their css
+/* CSS STYLING AT THE END BC IT'S A PICKY BITCH */
 var css;
 if (form) {
 	const optWidth = window.getComputedStyle(document.querySelector("#main ul.user.navigation.actions")).width;
 	const hoverShad = window.getComputedStyle(document.querySelector("form#work-filters fieldset")).boxShadow;
 	const hoverLine = window.getComputedStyle(document.querySelector(".actions input")).borderColor;
 	const optMWidth = window.getComputedStyle(form).width;
+	const borderBottom = window.getComputedStyle(document.querySelector("form#work-filters dt")).borderBottom;
 	css = `
 	#main *:not(a, #id_output, button, .current) {box-sizing: border-box;}
-	#get_id_butt {margin-right: 8px;}
 	#get_id_butt:hover {cursor: pointer;}
 	#id_output {width: max-content;min-width: 0; position: static;}
 	#stickyFilters {
@@ -436,6 +404,13 @@ if (form) {
 		margin-right: 0.67em;
 		position: static;
 	}
+	#stickyFilters span {
+		padding-bottom: 3px;
+		margin-bottom: 3px;
+		display: block;
+		width: 100%;
+		border-bottom: ${borderBottom};
+	}
 	#filter_opt {
 		display: block; 
 		float: right;
@@ -461,13 +436,15 @@ if (form) {
 		display: flex;
 		flex-wrap: wrap;
 	}
-	#tag_actions .appended-tag {
-		font-size: 0.9em;
-		display: block;
-		margin-bottom: 0;
-	}
 	#tag_actions > div {
 		width: 50%;
+	}
+	#tag_actions button {
+		text-transform: capitalize;
+	}
+	#append-p {max-height: 4em; overflow-y: auto; scrollbar-width: thin!important; font-size: 0.9em;}
+	.appended-tag {
+		border-bottom: ${borderBottom};
 	}
 	.filter-box-label {display: block;}
 	.prev-search {margin-top: 5px;}
@@ -518,9 +495,6 @@ if (form) {
 	}
 	`;
 }
-
 const style = document.createElement("style");
 style.innerHTML = css;
 document.querySelector("head").appendChild(style);
-
-//actually it'd be kind of nice to have a thing that'll let you pick a sorting order too, except this time you have the choice to invert it
