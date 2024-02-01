@@ -61,7 +61,6 @@ function enable(key) {
 	return enabled;
 }
 function filterTypes(name) {
-	console.log(name);
 	var is = name=="fandom" ? true:false;
 	if (is&&!fandomName) {return null;} //
 	var key = `filter-${is?fandomName:name}`;
