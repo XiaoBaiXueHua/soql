@@ -268,7 +268,7 @@ function nya() {
 				} else {
 					//otherwise, if supposed to be now excluded, add the "-"; else remove
 					var old_ids = obj.exclude ? ` ${filter_ids} ` : `-${filter_ids} `;
-					filt = filt.replace(old_ids, type); //i forgot. to put in the "filt =". i feel like an idiot
+					filt = filt.replace(old_ids, type).replace("  ", " "); //i forgot. to put in the "filt =". i feel like an idiot
 					p.innerHTML = `Changed <strong>${tagName}</strong> to ${obj.ing}e.`;
 				}
 			} else {
