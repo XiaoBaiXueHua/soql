@@ -6,6 +6,8 @@
 // @match	http*://archiveofourown.org/tags/*/works*
 // @match	http*://archiveofourown.org/works?work_search*
 // @match	http*://archiveofourown.org/works?commit=*&tag_id=*
+// @downloadURL	https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/filterscript.js
+// @updateURL	https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/filterscript.js
 // @version	2.0
 // @grant	none
 // @run-at	document-end
