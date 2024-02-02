@@ -6,6 +6,8 @@
 // @match	http*://archiveofourown.org/tags/*/works*
 // @match	http*://archiveofourown.org/works?work_search*
 // @match	http*://archiveofourown.org/works?commit=*&tag_id=*
+// @downloadURL	https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/filterscript.js
+// @updateURL	https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/filterscript.js
 // @version	2.0
 // @grant	none
 // @run-at	document-end
@@ -254,7 +256,7 @@ function nya() {
 			//if fandom-specific, goes into the fandom filter box
 			var filtArr = fandomName ? fan : global;
 			var filt = ` ${filtArr[4][1].value} `; //need the spaces in order to correctly match the values later lol. it'll be trimmed in the end
-			var type = ` ${obj.pre}${filter_ids}`;
+			var type = ` ${obj.pre}${filter_ids} `;
 			const p = document.createElement("p");
 			p.className = "appended-tag";
 
