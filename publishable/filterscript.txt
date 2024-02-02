@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name	ao3 sticky filters
-// @namespace	https://sincerelyandyourstruly.neocities.org
-// @author	白雪花
-// @description	rewriting thE saved filters script from https://greasyfork.org/en/scripts/3578-ao3-saved-filters, as well as adding in features made possible by flamebyrd's tag id bookmarklet (https://random.fangirling.net/scripts/ao3_tag_id)
+// @namespace 	https://sincerelyandyourstruly.neocities.org
+// @author 	白雪花
+// @description rewriting thE saved filters script from https://greasyfork.org/en/scripts/3578-ao3-saved-filters, as well as adding in features made possible by flamebyrd's tag id bookmarklet (https://random.fangirling.net/scripts/ao3_tag_id)
 // @match	http*://archiveofourown.org/tags/*/works*
 // @match	http*://archiveofourown.org/works?work_search*
 // @match	http*://archiveofourown.org/works?commit=*&tag_id=*
@@ -61,11 +61,10 @@ function enable(key) {
 	return enabled;
 }
 function filterTypes(name) {
-	console.log(name);
 	var is = name=="fandom" ? true:false;
 	if (is&&!fandomName) {return null;} //
 	var key = `filter-${is?fandomName:name}`;
-	var filter = localStorage[key] ? localStorage[key] : "";
+	var filter = localStorage[key];
 	var en = enable(is?cssFanName:name);
 	var obj = [name, key, filter, en];
 	return obj;
@@ -103,8 +102,7 @@ function box(obj) {
 	box.id = `${name}Filters`;
 	box.value = obj[2] ? obj[2] : "";
 	box.addEventListener("keyup", async () => {
-		obj[2] = box.value;
-		await autosave(obj[1], obj[2]);
+		await autosave(obj[1], box.value);
 	});
 	const label = document.createElement("label");
 	label.className = "filter-box-label";
@@ -134,8 +132,7 @@ if (searchdt !== null || searchdd !== null) {
 	fakeSearch.setAttribute("autocomplete", "off");
 	fakeSearch.value = tempp[2] ? tempp[2] : "";
 	fakeSearch.addEventListener("keyup", async () => {
-		tempp[2] = fakeSearch.value; //have to do this bc unlike the other boxes, it didn't go through a function for its autosaving thing
-		await autosave(tempp[1], tempp[2]);
+		await autosave("filter-advanced-search", fakeSearch.value);
 	});
 	searchdd.appendChild(fakeSearch);
 
@@ -253,7 +250,7 @@ function nya() {
 			let doubleck = new RegExp(`\\D${id}\\s\?`, "g");
 			//if fandom-specific, goes into the fandom filter box
 			var filtArr = fandomName ? fan : global;
-			var filt = ` ${filtArr[4][1].value} `; //need the spaces in order to correctly match the values later lol. it'll be trimmed in the end
+			var filt = ` ${filtArr[4][1].value}`; //need the space up front in order to match the values later lol. it'll be trimmed in the end
 			var type = ` ${obj.pre}${filter_ids}`;
 			const p = document.createElement("p");
 			p.className = "appended-tag";
@@ -265,7 +262,7 @@ function nya() {
 					p.innerHTML = `You are already ${obj.ing}ing <strong>${tagName}</strong>!`
 				} else {
 					//otherwise, if supposed to be now excluded, add the "-"; else remove
-					var old_ids = obj.exclude ? ` ${filter_ids} ` : `-${filter_ids} `;
+					var old_ids = obj.exclude ? ` ${filter_ids}` : `-${filter_ids}`;
 					filt = filt.replace(old_ids, type); //i forgot. to put in the "filt =". i feel like an idiot
 					p.innerHTML = `Changed <strong>${tagName}</strong> to ${obj.ing}e.`;
 				}
@@ -304,12 +301,6 @@ if (form) {
 
 /* add filters + temp search to search w/in results box */
 function submission() {
-console.log("real box value:")
-console.log(advSearch.value);
-console.log("global array:");
-console.log(global);
-console.log("fandom array:");
-console.log(fan);
 	var globeSub = document.querySelector("#enable-global").checked ? global[2] : "";
 	var fanSub = "";
 	if (fandomName) {
@@ -318,12 +309,6 @@ console.log(fan);
 		}
 	};
 	var tempSub = tempp[2] ? tempp[2] : "";
-	console.log("globalSub:");
-	console.log(globeSub);
-	console.log("fanSub:");
-	console.log(fanSub);
-	console.log("tempp:");
-	console.log(tempp);
 	advSearch.value = `${globeSub} ${fanSub} ${tempSub}`;
 	advSearch.value = advSearch.value.trim();
 }
@@ -367,7 +352,6 @@ if (search_submit == "") {
 		filterloop(fandomName);
 	}
 	header.insertAdjacentElement("afterend", details);
-	console.log("we are now erasing the local storage for the advanced search");
 	localStorage.setItem("filter-advanced-search", "");
 }
 
