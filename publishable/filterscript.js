@@ -256,7 +256,7 @@ function nya() {
 			//if fandom-specific, goes into the fandom filter box
 			var filtArr = fandomName ? fan : global;
 			var filt = ` ${filtArr[4][1].value} `; //need the spaces in order to correctly match the values later lol. it'll be trimmed in the end
-			var type = ` ${obj.pre}${filter_ids}`;
+			var type = ` ${obj.pre}${filter_ids} `;
 			const p = document.createElement("p");
 			p.className = "appended-tag";
 
