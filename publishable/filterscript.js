@@ -6,7 +6,7 @@
 // @match     	http*://archiveofourown.org/tags/*/works*
 // @match     	http*://archiveofourown.org/works?work_search*
 // @match     	http*://archiveofourown.org/works?commit=*&tag_id=*
-// @version 	1.0
+// @version 	2.0
 // @grant       none
 // @run-at	  	document-end
 // ==/UserScript==
@@ -113,6 +113,68 @@ function checkbox(label, thing) {
 	span.append(cbox, lib);
 	return span;
 };
+function box(obj) {
+	if (!obj) {return null;}; //exit if no fandom
+	var is = obj[0] == "fandom"?true:false;
+	var name = obj[0];
+	const box = document.createElement("textarea");
+	box.id = `${name}Filters`;
+	box.value = obj[2] ? obj[2] : "";
+	box.addEventListener("keyup", async () => {
+		obj[2] = box.value;
+		await autosave(obj[1], obj[2]);
+	});
+	const label = document.createElement("label");
+	label.className = "filter-box-label";
+	var htm = name;
+	htm += is?` <small>(${fandomName})</small>`:"";
+	label.innerHTML = `${htm}:`;
+	label.setAttribute("for", `${name}Filters`);
+	const chk = checkbox(is?cssFanName:name, obj[3]);
+	const els = [label, box, chk];
+	obj.push(els);
+	return obj;
+};
+
+box(global);
+const globEl = global[4];
+
+/* now to deal w/the currently-existing form */
+const searchdt = document.querySelector("dt.search:not(.autocomplete)");
+const searchdd = document.querySelector("dt.search:not(.autocomplete");
+const advSearch = document.querySelector("#work_search_query");
+
+//if there's one there will obvs be the other, but just so that they don't feel left out, using "or"
+if (searchdt !== null || searchdd !== null) {
+	advSearch.hidden = true;
+	const fakeSearch = document.createElement("input");
+	fakeSearch.id = "fakeSearch";
+	fakeSearch.setAttribute("autocomplete", "off");
+	fakeSearch.value = tempp[2] ? tempp[2] : "";
+	fakeSearch.addEventListener("keyup", async () => {
+		tempp[2] = fakeSearch.value; //have to do this bc unlike the other boxes, it didn't go through a function for its autosaving thing
+		await autosave(tempp[1], tempp[2]);
+	});
+	searchdd.appendChild(fakeSearch);
+
+	const details = document.createElement("details");
+	details.id = "stickyFilters";
+	const summary = document.createElement("summary");
+	summary.innerHTML = "Saved Filters";
+	const saveDiv = document.createElement("div");
+	/* make the global box */
+	for (el of globEl) {
+		saveDiv.appendChild(el);
+	};
+	const fanEl = box(fan) ? fan[4] : null;
+	if (fanEl) {
+		for (el of fanEl) {
+			saveDiv.appendChild(el);
+		};
+	};
+	details.append(summary, saveDiv);
+	searchdt.insertAdjacentElement("beforebegin", details);
+} else {
 const globCheck = checkbox("global", "enable");
 function saveCheck(name, box) {
 	//check if the fandom filters have been saved as enabled
@@ -333,7 +395,13 @@ function submission() {
 			fanSub = f_val;
 		}
 	};
-	var tempSub = localStorage["filter-advanced-search"] ? localStorage["filter-advanced-search"] : "";
+	var tempSub = tempp[2] ? tempp[2] : "";
+	console.log("globalSub:");
+	console.log(globeSub);
+	console.log("fanSub:");
+	console.log(fanSub);
+	console.log("tempp:");
+	console.log(tempp);
 	advSearch.value = `${globeSub} ${fanSub} ${tempSub}`;
 	advSearch.value = advSearch.value.trim();
 }
@@ -381,6 +449,7 @@ if (search_submit == "") {
 		filterloop(fandomName, details);
 	};
 	header.insertAdjacentElement("afterend", details);
+	console.log("we are now erasing the local storage for the advanced search");
 	localStorage.setItem("filter-advanced-search", "");
 };
 
