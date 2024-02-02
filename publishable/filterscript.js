@@ -469,7 +469,7 @@ if (form) {
 	.prev-search p {padding-left:45px;}
 	.prev-search p strong {text-transform: capitalize;}
 	.prev-search summary {font-size: 1.15em;}
-	.prev-search span {font-family: monospace; font-size: 8pt;}
+	.prev-search span {font-family: monospace; font-size: 8pt; color: black;}
 	.prev-advanced-search span {
 		background-color:#d3fdac;
 	}
