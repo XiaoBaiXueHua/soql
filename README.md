@@ -12,8 +12,7 @@ this is the script that introduced me to the concept of userscripts and is by fa
 3. was convenient to summon even on my phone
 
 it's still a little hacked together n has a lot of event listeners (which i'm not sure is ideal?) but hey at least it works for the moment. it still has some bugs (esp. on mobile), namely:
-1. ~~why does the floaty review box button look unstyled on mobile~~ patched 30 jan 2024 yay
-2. how come none of the buttons work after pressing it the first time and then scrolling a bit :C
+1. how come none of the buttons work after pressing it the first time and then scrolling a bit :C
 
 but what matters is that it SCROLLS WITH YOU and SAVES YOUR PROGRESS and has a CONVENIENT LITTLE BUTTON THAT SHOWS UP IN THE CORNER when you refresh the page.
 
@@ -28,10 +27,8 @@ thus, i have combined it with [this tag id fetcher bookmarklet](https://random.f
 the filters will also autosave n stuff :D
 
 anyway every time i showcase the script to a friend, i discover some new minor bug, and there will probably be more found moving forward, but here are some known ones:
-1. ~~when using the script for the very first time, its first-ever search will include the word "undefined" in it. it has smth to do with the way the code puts values into the search w/in results box, but i'm too lazy to suss it out atm since it's just that first time~~ patched 30 january 2024
-2. if you refresh the page and then try to include/exclude the tag again, it'll still append the tag. however, if you click on it again WITHOUT refreshing, then it'll (correctly!) show "this tag is already being filtered!" it should show "this tag is already being filtered!" both times.
+1. known bugs have currently been eliminated! yay
 
 there's more i'd like to do with this script, ofc, which would probably be best realized through a full browser extension lol but even then, they are thusly:
 1. since the tag id fetcher also works on users n works by getting their subscribable ids, also add in options on user and works pages to filter out those users/works specifically (without need for muting!)
 2. smth smth "add in the ability to automatically determine sorting order" and "options for some of the lesser-known, non-filter_ids methods of querying the ao3 database like `expected_number_of_chapters` or `backdate` or `in_anon_collection`" sort of thing.
-3. when reenabling/disabling the particular fandom box and then hitting submit, the newly enabled/disabled filter does not apply orz
