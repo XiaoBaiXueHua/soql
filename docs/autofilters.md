@@ -61,3 +61,146 @@ at the moment, you have to go *find* the tag again to see have your newly-debugg
 
 ## other filtration references
 
+ao3 uses apache lucene to parse their search queries, [so please refer to their documentation](https://lucene.apache.org/core/2_9_4/queryparsersyntax.html) for basic information about including, excluding, or grouping queries.
+
+### unobtainable id numbers
+
+some tags do not have ids which can be fetched with the tag id button, because they do not have a raw tag to click on. fortunately, ao3 provided these numbers in [an admin post back in like 2013](https://archiveofourown.org/admin_posts/349).
+
+#### RATINGS
+
+| TAG               | ID NUMBER       |
+|-------------------|-----------------|
+| Not Rated         | `filter_ids:9`  |
+| General Audiences | `filter_ids:10` |
+| Teen & Up         | `filter_ids:11` |
+| Mature            | `filter_ids:12` |
+| Explicit          | `filter_ids:13` |
+
+#### WARNINGS
+
+| TAG | ID NUMBER |
+|---|---|
+| Author Chose Not To Use Archive Warnings | `filter_ids:14` |
+| No Archive Warnings Apply | `filter_ids:16` |
+| Graphic Depictions of Violence | `filter_ids:17` |
+| Major Character Death | `filter_ids:18` |
+| Rape/Non-Con | `filter_ids:19` |
+| Underage | `filter_ids:20` |
+
+#### CATEGORIES
+
+| TAG | ID NUMBER |
+|---|---|
+| General | `filter_ids:21` |
+| M/F | `filter_ids:22` |
+| M/M | `filter_ids:23` |
+| Other | `filter_ids:24` |
+| F/F | `filter_ids:116` |
+| Multi | `filter_ids:2246` |
+
+### other parameters
+
+tags aren't the only thing you can search by, though!! here's a list of various inputs i've found by digging through ao3's source code and subsequently tested to confirm as working.
+
+please bear in mind that *except* for the **booleans**, these will all accept ranges!
+
+#### INTEGERS 
+
+(aka plain numbers)
+
+##### Work Data / Stats
+
+| PARAMETER | DESCRIPTION |
+|---|---|
+| `word_count` | work's word count |
+| `major_version` | closest approximation to "current number of chapters" available, although testing suggests that it also counts drafted and deleted chapters. |
+| `minor_version` | increases every time a creator hits the "Edit" button, it seems. honestly kind of useless. |
+| `expected_number_of_chapters` | work's final chapter count. for oneshots, this is 1. may or may not be complete. |
+| `hits` | number of hits to the work |
+| `comment_count` | number of comments |
+| `kudos_count` | number of kudos |
+| `bookmarks_count` | number of bookmarks |
+
+##### Other Types of Tag IDs
+
+because these numbers will be the same as the one the tag id fetcher labels `filter_ids`, these filter types are most useful when trying to include or exclude swathes of Particular tag types.
+
+for example, for WHATEVER reason, jujutsu kaisen has its anime and its manga listed as separate, unrelated fandoms in ao3's database. because many jjk fans will tag their works with both the anime **and** the manga for its fandom, this means when you try to filter out crossovers using the usual additional options, most jjk fics will be filtered out. 
+
+this obviously sucks ass, but you can filter out all other fandoms with one easy input!
+`-fandom_ids:>49281637 -fandom_ids:<28410929 -fandom_ids:{28410929 TO 49281637}`
+
+anyway.
+
+| TAG TYPE |
+|---|
+| `fandom_ids` |
+| `character_ids` |
+| `relationship_ids` |
+| `freeform_ids` |
+
+##### Other ID Numbers
+
+| ID TYPE | NOTES |
+|---|---|
+| `user_ids` | user IDs are displayed on user profiles. can be used to filter out all instances of a user, including their pseuds. |
+| `collection_ids` | the only way to get a collection ID is at end of a url after going into the desired collection and submitting a query. |
+| `work_skin_id` | there are only three public workskins ([seen here](https://archiveofourown.org/skins?skin_type=WorkSkin)). their ID numbers are in their urls. also note the lack of an 's' at the end. |
+| `id` | refers to the ID number of a particular work. this is the number directly after the /works/ part of a work's url. useful in case we ever have a sequel to The Sexy Times With Wangxian Incident. |
+
+#### DATES
+
+| TYPE | DESCRIPTION |
+|---|---|
+| `created_at` | publishing date of a work |
+| `updated_at` | the last time a work was updated |
+| `revised_at` | date when a work was last edited, but not necessarily fully updated. when `minor_version` goes up. |
+
+#### STRINGS (TEXT)
+
+just remember that if you want to have a specific sequence of words in your search, you have to put it in ***UNCURLED*** quotes ("like this")
+
+##### any string
+
+these will take any string, including wildcards like `*` or `?` mentioned in the apache lucene query parser linked above.
+
+| PARAMETER | NOTES |
+|---|---|
+| `summary` | text within the work's summary |
+| `notes` | text within all of the work's author's notes |
+| `endnotes` | text ONLY INSIDE the work's END notes. |
+| `creators` | filters similarly to `user_ids` except this time you can specify a pseud. |
+| `series.title` | series title. mind the period, as an underscore won't work here. |
+| `imported_from_url` | lets you find works which were imported from a particular url or domain. |
+| `tag` | do ***NOT*** make the mistake that this will work identically to using a tag's `filter_ids` number. using `filter_ids` will also catch a tag's synonyms, whereas `tag` will only search the text of tags. useful for filtering reader-inserts with `tag:reader`. |
+
+##### specific strings
+
+| FILTER | ACCEPTED PARAMETERS | NOTES |
+|---|---|---|
+| `language_id` | any ISO language code | [list of accepted iso language codes here](https://en.wikipedia.org/w/index.php?title=List_of_ISO_639_language_codes&useskin=vector) |
+| `sort` | `posted`, `updated`, `author`, `title`, `kudos`, `hits`, `bookmarks`, `comments` | putting a `>` before the sorting parameter will reverse the sort order. |
+| `work_types` | `Audio`, `Art`, `Video`, `Text` | these particular strings are case-sensitive. |
+
+#### BOOLEAN (TRUE/FALSE)
+
+| FILTER | NOTES |
+|---|---|
+| `complete` | completion status. |
+| `crossover` | will filter out all fandoms which haven't been marked as related by wranglers. |
+| `otp` | when set to `true`, will return all works with Exactly One relationship tagged. |
+| `backdate` | `true` will return all works which have had their `updated_at` date changed to before their creation date. |
+| `restricted` | archive-locked works. |
+| `in_anon_collection` | works in a collection which has been marked as anonymous. |
+| `nonfiction` | `true` will return works with tags like `essay`, `reviews`, `reference`, `nonfiction`, etc. |
+
+### examples
+
+it's important to note that there should NEVER be a space between the colon and the thing you're trying to filter. but anyway, as my final parting gift, here are some examples of more complex query groupings.
+
+| EXAMPLE | EXPECTED RESULTS |
+|---|---|
+| `language_id:(en \|\| zh)` | returns fics that are either in english or chinese. |
+| `-(word_count:[0 TO 1000} !filter_ids:7844` | returns fics that are over 1k words UNLESS they are fanart. |
+| `-(filter_ids:103132 AND complete:false AND word_count:[* TO 10000]) -(filter_ids:103132 AND complete:true AND word_count:[* TO 50000])` | will filter out a fic tagged slow burn IF and ONLY IF it is EITHER 1. incomplete AND less than 10k words 2. complete AND less than 50k words |
