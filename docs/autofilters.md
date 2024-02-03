@@ -124,21 +124,19 @@ please bear in mind that *except* for the **booleans**, these will all accept ra
 
 ##### Other Types of Tag IDs
 
-because these numbers will be the same as the one the tag id fetcher labels `filter_ids`, these filter types are most useful when trying to include or exclude swathes of Particular tag types.
-
-for example, for WHATEVER reason, jujutsu kaisen has its anime and its manga listed as separate, unrelated fandoms in ao3's database. because many jjk fans will tag their works with both the anime **and** the manga for its fandom, this means when you try to filter out crossovers using the usual additional options, most jjk fics will be filtered out. 
-
-this obviously sucks ass, but you can filter out all other fandoms with one easy input!
-`-fandom_ids:>49281637 -fandom_ids:<28410929 -fandom_ids:{28410929 TO 49281637}`
-
-anyway.
-
 | TAG TYPE |
 |---|
 | `fandom_ids` |
 | `character_ids` |
 | `relationship_ids` |
 | `freeform_ids` |
+
+because these numbers will be the same as the one the tag id fetcher labels `filter_ids`, these filter types are most useful when trying to include or exclude swathes of Particular tag types.
+
+for example, for WHATEVER reason, jujutsu kaisen has its anime and its manga listed as separate, unrelated fandoms in ao3's database. because many jjk fans will tag their works with both the anime **and** the manga for its fandom, this means when you try to filter out crossovers using the usual additional options, most jjk fics will be filtered out. 
+
+this obviously sucks ass, but you can filter out all other fandoms with one easy input!
+`-fandom_ids:>49281637 -fandom_ids:<28410929 -fandom_ids:{28410929 TO 49281637}`
 
 ##### Other ID Numbers
 
@@ -202,5 +200,5 @@ it's important to note that there should NEVER be a space between the colon and 
 | EXAMPLE | EXPECTED RESULTS |
 |---|---|
 | `language_id:(en \|\| zh)` | returns fics that are either in english or chinese. |
-| `-(word_count:[0 TO 1000} !filter_ids:7844` | returns fics that are over 1k words UNLESS they are fanart. |
-| `-(filter_ids:103132 AND complete:false AND word_count:[* TO 10000]) -(filter_ids:103132 AND complete:true AND word_count:[* TO 50000])` | will filter out a fic tagged slow burn IF and ONLY IF it is EITHER 1. incomplete AND less than 10k words 2. complete AND less than 50k words |
+| `-(word_count:[0 TO 1000} !filter_ids:7844)` | returns fics that are over 1k words UNLESS they are fanart. |
+| `-(filter_ids:103132 AND complete:false AND word_count:[* TO 10000]) -(filter_ids:103132 AND complete:true AND word_count:[* TO 50000])` | will filter out a fic tagged slow burn IF and ONLY IF it is EITHER 1. incomplete AND less than 10k words, ***OR*** 2. complete AND less than 50k words |
