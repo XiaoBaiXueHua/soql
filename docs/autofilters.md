@@ -33,7 +33,7 @@ the fandom filters textarea will also disappear if not in a fandom-specific tag.
 
 currently & by default, when you're in a fandom-specific tag and hit the "include/exclude tag" button, that tag will be added to the saved filters for that particular fandom, whereas if you're in a non-specific tag, clicking the "include/exclude tag" will add that tag to the global filters. 
 
-there will probably be buttons to control this better later, but for now if you wanna add a non-specific tag to your filters for just one fandom, that's pretty much why the tag's id number is also shown: so that you can copy the id number and add "`filter_ids:{id number}`" to your particular fandom filters.
+there will probably be buttons to control this better later, but for now if you wanna add a non-specific tag to your filters for just one fandom, that's pretty much why the tag's id number is also shown: so that you can copy the id number and add "`filter_ids:(id number)`" to your particular fandom filters.
 
 ### 3. autosaving and autosubmitting
 

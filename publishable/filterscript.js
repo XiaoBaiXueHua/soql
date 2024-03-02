@@ -24,7 +24,7 @@ const fandomName = function () {
 	var raw = document.querySelector("#include_fandom_tags label");
 	if (!raw) {return null;};
 	raw = raw.innerText;
-	var fandom = raw.replace(remAmbig,"").trim(); 
+	var fandom = raw.replace(remAmbig,"").trim();
 	//later, maybe have it look at the other top fandoms n see if they're related, either by like an author name, or if there's an "all media types" attached to redeclare the cutoff
 
 	var fandomCount = raw.match(/\(\d+\)/).toString();
@@ -125,7 +125,7 @@ const globEl = global[4];
 
 /* now to deal w/the currently-existing form */
 const searchdt = document.querySelector("dt.search:not(.autocomplete)");
-const searchdd = document.querySelector("dt.search:not(.autocomplete");
+const searchdd = document.querySelector("dd.search:not(.autocomplete");
 const advSearch = document.querySelector("#work_search_query");
 
 //if there's one there will obvs be the other, but just so that they don't feel left out, using "or"
@@ -316,7 +316,7 @@ console.log(fan);
 	var fanSub = "";
 	if (fandomName) {
 		if (document.querySelector(`#enable-${cssFanName}`).checked) {
-			fanSub = fan[2];
+			fanSub = fan[2] ? fan[2] : ""; //if you don't do this, then it'll submit "undefined" when there's nothing
 		}
 	};
 	var tempSub = tempp[2] ? tempp[2] : "";
@@ -399,7 +399,7 @@ if (form) {
 	#stickyFilters summary:active, #stickyFilters summary:focus {
 		border-bottom: 1px dotted;
 	}
-	
+
 	#stickyFilters > div {
 		margin-top: 5px;
 	}
@@ -430,9 +430,9 @@ if (form) {
 		border-bottom: ${borderBottom};
 	}
 	#filter_opt {
-		display: block; 
+		display: block;
 		float: right;
-		max-width: 100%; 
+		max-width: 100%;
 		width: ${parseInt(optWidth)}px;
 		min-width: ${parseInt(optMWidth)}px;
 		margin-top: 5px;
@@ -449,7 +449,7 @@ if (form) {
 	  box-shadow: ${hoverShad};
 	}
 	#tag_actions {
-		width: 100%; 
+		width: 100%;
 		margin: 5px 0 0;
 		display: flex;
 		flex-wrap: wrap;
@@ -504,7 +504,7 @@ if (form) {
 		margin: 10px 1%;
 	}
 	#error_debug textarea {
-		font-size: 9pt;	
+		font-size: 9pt;
 	}
 	@media only screen and (max-width: 48em) {
 		#error_debug > div {
