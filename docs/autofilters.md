@@ -201,6 +201,4 @@ it's important to note that there should NEVER be a space between the colon and 
 |---|---|
 | `language_id:(en \|\| zh)` | returns fics that are either in english or chinese. |
 | `-(word_count:[0 TO 1000} !filter_ids:7844)` | returns fics that are over 1k words UNLESS they are fanart. |
-| `-(filter_ids:103132 AND complete:false AND word_count:[* TO 10000]) -(filter_ids:103132 AND complete:true AND word_count:[* TO 50000])` | will filter out a fic tagged slow burn IF and ONLY IF it is EITHER 
-1. incomplete AND less than 10k words, ***OR*** 
-2. complete AND less than 50k words |
+| `-(filter_ids:103132 AND complete:false AND word_count:[* TO 10000]) -(filter_ids:103132 AND complete:true AND word_count:[* TO 50000])` | will filter out a fic tagged slow burn IF and ONLY IF it is EITHER 1. incomplete AND less than 10k words, ***OR*** 2. complete AND less than 50k words |
