@@ -33,7 +33,7 @@ the fandom filters textarea will also disappear if not in a fandom-specific tag.
 
 currently & by default, when you're in a fandom-specific tag and hit the "include/exclude tag" button, that tag will be added to the saved filters for that particular fandom, whereas if you're in a non-specific tag, clicking the "include/exclude tag" will add that tag to the global filters. 
 
-there will probably be buttons to control this better later, but for now if you wanna add a non-specific tag to your filters for just one fandom, that's pretty much why the tag's id number is also shown: so that you can copy the id number and add "`filter_ids:{id number}`" to your particular fandom filters.
+there will probably be buttons to control this better later, but for now if you wanna add a non-specific tag to your filters for just one fandom, that's pretty much why the tag's id number is also shown: so that you can copy the id number and add "`filter_ids:(id number)`" to your particular fandom filters.
 
 ### 3. autosaving and autosubmitting
 
@@ -201,4 +201,6 @@ it's important to note that there should NEVER be a space between the colon and 
 |---|---|
 | `language_id:(en \|\| zh)` | returns fics that are either in english or chinese. |
 | `-(word_count:[0 TO 1000} !filter_ids:7844)` | returns fics that are over 1k words UNLESS they are fanart. |
-| `-(filter_ids:103132 AND complete:false AND word_count:[* TO 10000]) -(filter_ids:103132 AND complete:true AND word_count:[* TO 50000])` | will filter out a fic tagged slow burn IF and ONLY IF it is EITHER 1. incomplete AND less than 10k words, ***OR*** 2. complete AND less than 50k words |
+| `-(filter_ids:103132 AND complete:false AND word_count:[* TO 10000]) -(filter_ids:103132 AND complete:true AND word_count:[* TO 50000])` | will filter out a fic tagged slow burn IF and ONLY IF it is EITHER 
+1. incomplete AND less than 10k words, ***OR*** 
+2. complete AND less than 50k words |
