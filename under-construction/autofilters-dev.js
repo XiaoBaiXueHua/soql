@@ -22,8 +22,9 @@ const currentTag = header.querySelector("a.tag"); //the current tag being search
 const errorFlash = document.querySelector("div.flash.error");
 const noResults = function () {
 	const no = header.innerHTML.match(/\n0\s/);
-	//console.log(no && !errorFlash);
-	return (no && !errorFlash);
+	//console.log(`noResults: ${no && !errorFlash}`);
+	//return (no && !errorFlash);
+	return no ? true : false;
 }(); //will allow for the fandom box to be made
 //console.log("is error page?");
 //console.log(errorFlash);
@@ -36,21 +37,21 @@ const fandomName = function () {
 	var raw = document.querySelector("#include_fandom_tags label"); //gets the fandom count from the dropdown on the side
 	console.log("item w/ fandom numbers:");
 	console.log(raw);
-	if (!raw) {return null;};
+	if (!raw) { return null; };
 	raw = raw.innerText;
-	var fandom = raw.replace(remAmbig,"").trim();
+	var fandom = raw.replace(remAmbig, "").trim();
 	//later, maybe have it look at the other top fandoms n see if they're related, either by like an author name, or if there's an "all media types" attached to redeclare the cutoff
 
 	var fandomCount = raw.match(/\(\d+\)/).toString();
-	fandomCount = fandomCount.substring(1, fandomCount.length-1); //chops off parentheses
+	fandomCount = fandomCount.substring(1, fandomCount.length - 1); //chops off parentheses
 	fandomCount = parseInt(fandomCount);
 
 	var tagCount = header.innerText;
-	tagCount = tagCount.match(/\d+,?\d*\sW/).toString().replace(",",""); //get the number, remove the comma
-	tagCount = tagCount.substring(0, tagCount.length-2); //cut off the " W" bit that was used to make sure was Finding the actual fandom count (in case there's a fandom w/numbers in its name)
+	tagCount = tagCount.match(/\d+,?\d*\sW/).toString().replace(",", ""); //get the number, remove the comma
+	tagCount = tagCount.substring(0, tagCount.length - 2); //cut off the " W" bit that was used to make sure was Finding the actual fandom count (in case there's a fandom w/numbers in its name)
 	tagCount = parseInt(tagCount); //now turn it into an integer
 
-	if (!fandom || !fandomCount || !tagCount) {return;}
+	if (!fandom || !fandomCount || !tagCount) { return; }
 
 	return (fandomCount / tagCount * 100 >= fandom_cutoff) ? fandom : null;
 }();
@@ -66,7 +67,7 @@ const tagName = function () {
 
 /* local storage keys */
 function enable(key) {
-	if (key=="advanced-search") {return null};
+	if (key == "advanced-search") { return null };
 	let enabled = true;
 	try {
 		enabled = JSON.parse(localStorage[`enable-${key}`]);
@@ -81,11 +82,11 @@ function enable(key) {
 }
 function filterTypes(name) {
 	console.log(name);
-	var is = name=="fandom" ? true:false;
-	if (is&&!fandomName) {return null;} //
-	var key = `filter-${is?fandomName:name}`;
+	var is = name == "fandom" ? true : false;
+	if (is && !fandomName) { return null; } //
+	var key = `filter-${is ? fandomName : name}`;
 	var filter = localStorage[key] ? localStorage[key] : "";
-	var en = enable(is?cssFanName:name);
+	var en = enable(is ? cssFanName : name);
 	var obj = [name, key, filter, en];
 	return obj;
 }
@@ -100,7 +101,7 @@ function autosave(key, value) {
 function checkbox(name, bool, prefix) {
 	prefix = prefix ? prefix : "enable"; //if not specified, then the prefix will be "enable";
 	const cbox = document.createElement("input");
-	cbox.setAttribute("type","checkbox");
+	cbox.setAttribute("type", "checkbox");
 	cbox.id = `${prefix}-${name}`;
 	cbox.checked = bool;
 	const l = document.createElement("label");
@@ -117,8 +118,8 @@ function checkbox(name, bool, prefix) {
 function box(obj) {
 	console.log("box being made:");
 	console.log(obj);
-	if (!obj) {return null;}; //exit if no fandom
-	var is = (obj[0] == "fandom")?true:false; //thing for checking if this box is a fandom type or not
+	if (!obj) { return null; }; //exit if no fandom
+	var is = (obj[0] == "fandom"); //thing for checking if this box is a fandom type or not
 	var name = obj[0];
 	const box = document.createElement("textarea");
 	box.id = `${name}Filters`;
@@ -130,10 +131,10 @@ function box(obj) {
 	const label = document.createElement("label");
 	label.className = "filter-box-label";
 	var htm = name;
-	htm += is?` <small>(${fandomName})</small>`:"";
+	htm += is ? ` <small>(${fandomName})</small>` : "";
 	label.innerHTML = `${htm}:`;
 	label.setAttribute("for", `${name}Filters`);
-	const chk = checkbox(is?cssFanName:name, obj[3]);
+	const chk = checkbox(is ? cssFanName : name, obj[3]);
 	const els = [label, box, chk];
 	obj.push(els);
 	return obj;
@@ -175,9 +176,9 @@ if (searchdt !== null || searchdd !== null) {
 		for (el of fanEl) {
 			saveDiv.appendChild(el);
 		};
-	} 
+	}
 	/* when a search returns nothing */
-	else if(noResults) {
+	else if (noResults) {
 		//console.log("noResults is true");
 		var html = `Your search returned no results. Would you like to review your filters?`;
 		//p.innerHTML = html;
@@ -186,17 +187,16 @@ if (searchdt !== null || searchdd !== null) {
 	details.append(summary, saveDiv);
 	searchdt.insertAdjacentElement("beforebegin", details);
 } else if (errorFlash) {
-		//const p = document.createElement("p");
-		var html = "Double-check your filters for mistakes.";
-		debuggy(html);
-		var debugDiv = document.querySelector("#error_debug");
-		showAllFilters(debugDiv);
-	} else {console.error("lol idk you dun goof'd i guess")
+	//const p = document.createElement("p");
+	var html = "Double-check your filters for mistakes.";
+	debuggy(html);
+} else {
+	console.error("lol idk you dun goof'd i guess")
 }
 
 
-function debuggy(t="", par=header) {
-	if (form) {form.hidden = true;} //hide the search form on the 0 results page
+function debuggy(t = "", par = header) {
+	if (form) { form.hidden = true; } //hide the search form on the 0 results page
 	const debugDiv = document.createElement("div");
 	debugDiv.id = "error_debug";
 	const p = document.createElement("p");
@@ -207,7 +207,7 @@ function debuggy(t="", par=header) {
 	const reSearch = document.createElement("ul");
 	reSearch.className = "actions";
 	reSearch.id = "debugged-search";
-	if (noResults) {
+	if (noResults && !errorFlash) {
 		const showFilters = document.createElement("a");
 		showFilters.innerHTML = "Show All Filters";
 		showFilters.href = "#";
@@ -217,6 +217,8 @@ function debuggy(t="", par=header) {
 		})
 		//showFilters.setAttribute("onclick", showAllFilters(debugDiv));
 		reSearch.appendChild(showFilters);
+	} else if (errorFlash) {
+		showAllFilters(debugDiv); //will automatically do the debug div on the error flash page
 	}
 	const research = document.createElement("a");
 	research.href = href;
@@ -238,7 +240,7 @@ function showAllFilters(parent) {
 			const div = document.createElement("div");
 			div.id = `${cssId}-div`;
 			const label = document.createElement("label");
-			label.innerHTML = key.replace("filter-","").replace(/-/," ");
+			label.innerHTML = key.replace("filter-", "").replace(/-/, " ");
 			label.setAttribute("for", cssId);
 			const textarea = document.createElement("textarea");
 			textarea.id = cssId;
@@ -370,12 +372,12 @@ if (form) {
 
 /* add filters + temp search to search w/in results box */
 function submission() {
-console.log("real box value:")
-console.log(advSearch.value);
-console.log("global array:");
-console.log(global);
-console.log("fandom array:");
-console.log(fan);
+	console.log("real box value:")
+	console.log(advSearch.value);
+	console.log("global array:");
+	console.log(global);
+	console.log("fandom array:");
+	console.log(fan);
 	var globeSub = document.querySelector("#enable-global").checked ? global[2] : "";
 	var fanSub = "";
 	if (fandomName) {
@@ -393,7 +395,7 @@ console.log(fan);
 	advSearch.value = `${globeSub} ${fanSub} ${tempSub}`;
 	advSearch.value = advSearch.value.trim();
 }
-if (form) {form.addEventListener("submit", submission)};
+if (form) { form.addEventListener("submit", submission) };
 
 /* autosubmit + previous filters drop */
 const search_submit = window.location.search;
@@ -405,11 +407,11 @@ if (search_submit == "") {
 	try {
 		globIsCheck = document.querySelector("#enable-global").checked;
 	} catch (e) {
-		console.log("this is probably the local debug page for the error search ",e);
+		console.log("this is probably the local debug page for the error search ", e);
 	}
 	/* ----------------------------- */
 	//there needs to be both the thing enabled and a value in the thing
-	if(globIsCheck && global[2]) {
+	if (globIsCheck && global[2]) {
 		console.log("global checked && filtered");
 		submission();
 		form.submit();
@@ -418,35 +420,43 @@ if (search_submit == "") {
 		submission();
 		form.submit();
 	};
-} else if (!noResults || !errorFlash) {
-	//const header = document.querySelector("h2.heading");
-	const details = document.createElement("details");
-	details.className = "prev-search";
-	const summary = document.createElement("summary");
-	summary.innerHTML = "<strong>FILTERS:</strong>";
-	details.appendChild(summary);
+} else if (!noResults) {
+	if (errorFlash) {
+		console.log("okay so maybe i DO hate discrete math");
+	} else {
+		//if (!(noResults && !errorFlash) || !noResults) {};
+		console.log(`!noResults: ${!noResults}`);
+		console.log(`!errorFlash: ${!errorFlash}`);
+		//const header = document.querySelector("h2.heading");
+		const details = document.createElement("details");
+		details.className = "prev-search";
+		const summary = document.createElement("summary");
+		summary.innerHTML = "<strong>FILTERS:</strong>";
+		details.appendChild(summary);
 
-	function filterloop(key) {
-		if(localStorage[`filter-${key}`]) {
-			const p = document.createElement("p");
-			p.className = `prev-${key.replaceAll(/\W+/g, "-")}`;
-			p.innerHTML = `<strong>${key.replaceAll(/-/g, " ").trim()} Filters:</strong></br><span>${localStorage[`filter-${key}`]}</span>`;
-			details.appendChild(p);
+		function filterloop(key) {
+			if (localStorage[`filter-${key}`]) {
+				const p = document.createElement("p");
+				p.className = `prev-${key.replaceAll(/\W+/g, "-")}`;
+				p.innerHTML = `<strong>${key.replaceAll(/-/g, " ").trim()} Filters:</strong></br><span>${localStorage[`filter-${key}`]}</span>`;
+				details.appendChild(p);
+			};
 		};
-	};
-	if (tempp[2]) {
-		//this one's different bc the adv search doesn't Actually have a checkbox for its enabling
-		filterloop("advanced-search");
+		if (tempp[2]) {
+			//this one's different bc the adv search doesn't Actually have a checkbox for its enabling
+			filterloop("advanced-search");
+		}
+		if (global[3]) {
+			filterloop("global");
+		}
+		if (fan && fan[3]) {
+			filterloop(fandomName);
+		}
+		header.insertAdjacentElement("afterend", details);
+		console.log("we are now erasing the local storage for the advanced search");
+		localStorage.setItem("filter-advanced-search", "");
 	}
-	if (global[3]) {
-		filterloop("global");
-	}
-	if (fan && fan[3]) {
-		filterloop(fandomName);
-	}
-	header.insertAdjacentElement("afterend", details);
-	console.log("we are now erasing the local storage for the advanced search");
-	localStorage.setItem("filter-advanced-search", "");
+
 }
 
 /* CSS STYLING AT THE END BC IT'S A PICKY BITCH */
