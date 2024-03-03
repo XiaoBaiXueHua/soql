@@ -31,22 +31,13 @@ const filterArray = Object.entries(localStorage);
 
 /* removes local storage on blank tags  */
 const search_submit = window.location.search;
-console.log(`search_submit: ${search_submit}\n!search_submit: ${!search_submit}`);
+//console.log(`search_submit: ${search_submit}\n!search_submit: ${!search_submit}`);
 const currentPath = window.location.pathname.toString();
-const shouldClear = currentPath.match(/tag/);
-console.log(`supposed to clear the advanced search: ${shouldClear}`);
+const shouldClear = currentPath.match(/tags/);
+//console.log(`supposed to clear the advanced search: ${shouldClear}`);
 if (shouldClear && !search_submit) {
 	localStorage.setItem("filter-advanced-search", "");
 }
-
-/*if (search_submit == "") {
-	//if we're in a raw tag, clear the local storage for the temp search
-	localStorage.setItem("filter-advanced-search", ""); 
-	console.log(`checking to make sure that this also resets tempp[2]: ${tempp[2]}`);
-}*/
-
-//console.log(`referrer: ${document.referrer}`);
-//console.log(`path: ${window.location.pathname}`);
 
 /* current fandom checker */
 const works = document.querySelector("#main.works-index");
@@ -355,7 +346,7 @@ function nya() {
 				} else {
 					//otherwise, if supposed to be now excluded, add the "-"; else remove
 					var old_ids = obj.exclude ? ` ${filter_ids} ` : `-${filter_ids} `;
-					filt = filt.replace(old_ids, type).replace("  ", " "); //i forgot. to put in the "filt =". i feel like an idiot
+					filt = filt.replace(old_ids, type).replace(/\s{2,}/g, " "); //i forgot. to put in the "filt =". i feel like an idiot
 					p.innerHTML = `Changed <strong>${tagName}</strong> to ${obj.ing}e.`;
 				}
 			} else {
