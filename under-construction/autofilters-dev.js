@@ -83,7 +83,10 @@ const fandomName = function () {
 	return meetsCutoff ? fandom : null;
 }();
 console.log(savedFandoms);
-const cssFanName = fandomName ? fandomName.replaceAll(/\W+/g, "-") : null;
+function toCss(str) {
+	return str.replaceAll(/\W+/g, "-");
+}
+const cssFanName = fandomName ? toCss(fandomName) : null;
 const tagName = function () {
 	//var tag = document.querySelector("h2.heading a.tag").innerText;
 	var tag = currentTag.innerText.replace(remAmbig, "").trim();
@@ -264,11 +267,11 @@ function debuggy(t = "", par = header) {
 function showAllFilters(parent) {
 	for (const [key, value] of filterArray) {
 		if (key.toString().startsWith("filter-")) {
-			cssId = key.replaceAll(/\W+/g, "-");
+			cssId = toCss(key);
 			const div = document.createElement("div");
 			div.id = `${cssId}-div`;
 			const label = document.createElement("label");
-			label.innerHTML = key.replace("filter-", "").replace(/-/, " ");
+			label.innerHTML = key.replace(/(filter|-)/g, " ").trim();
 			label.setAttribute("for", cssId);
 			const textarea = document.createElement("textarea");
 			textarea.id = cssId;
@@ -322,6 +325,7 @@ function nya() {
 	if (!document.querySelector("#filter_opt")) {
 		const filterOpt = document.createElement("fieldset");
 		filterOpt.id = "filter_opt";
+		/* display ID # & choose where to append the tag */
 		const fil = document.createElement("div");
 		const output = document.createElement("input");
 		output.id = "id_output";
@@ -329,6 +333,31 @@ function nya() {
 		const label = document.createElement("label");
 		label.innerHTML = "filter_ids:";
 		label.setAttribute("for", "id_output");
+		/* selection dropdown */
+		const select = document.createElement("select");
+		const globalOpt = `<option value="filter-global">Global</option>`;
+		if (!fandomName) { //if in a global tag, give the option to pick a fandom for this particular tag
+			select.innerHTML = globalOpt;
+			for (var fandom of savedFandoms) {
+				const option = document.createElement("option");
+				option.innerHTML = fandom;
+				option.setAttribute("value", `filter-${toCss(fandom)}`);
+				select.appendChild(option);
+			}
+		} else {
+			const option = document.createElement("option");
+			option.innerHTML = fandomName;
+			option.setAttribute("value", `filter-${fandomName}`);
+			select.appendChild(option);
+			select.innerHTML += globalOpt;
+		}
+		var targetFilter = select.options[0].value;
+		select.onchange = function() {
+			//console.log(select.value);
+			targetFilter = select.value;
+		}
+
+		/* exclude, include, or remove a tag */
 		const buttonAct = document.createElement("div");
 		buttonAct.id = "tag_actions";
 		const appp = document.createElement("div");
@@ -348,10 +377,26 @@ function nya() {
 		}
 
 		function addFilt(obj) {
+			var filtArr = ["", targetFilter, localStorage[targetFilter]]
+			if (!fandomName) {
+				var els = ["", document.getElementById("globalFilters")];
+				filtArr.push(els);
+				//this one's easy: if in a global tag, then make a simple array of like ["", targetFilter, localStorage[targetFilter]] as filtArr
+				//probably also declare a thing to get the global textbox to change its value
+			} else {
+				filtArr[4] = [""];
+				//in this case, basically the same, except now we should also declare a thing to get the fandom textbox so that we can change its value too 
+
+				//TO-DO IN THE MORNING:
+				//MAKE IT SO THAT WHEN YOU CLICK ON THE BUTTONS, THE CORRECT BOX WILL HAVE ITS VALUE ALTERED. THE LOCAL STORAGE THING ALREADY WORKS AS EXPECTED
+			}
 			//let doubleck = new RegExp(`\\D${id}\\s`, "g");
 			//if fandom-specific, goes into the fandom filter box
-			var filtArr = fandomName ? fan : global;
-			var filt = ` ${filtArr[4][1].value} `; //need the spaces in order to correctly match the values later lol. it'll be trimmed in the end
+			//var filtArr = fandomName ? fan : global;
+			console.log(filtArr, filtArr[4]);
+			console.log(targetFilter);
+			//var filtArr = targetFilter;
+			var filt = ` ${filtArr[2]} `; //need the spaces in order to correctly match the values later lol. it'll be trimmed in the end
 			//var type = ` ${obj.pre}${filter_ids} `;
 			var type = obj.ing;
 			var old_ids = new RegExp(` -?${filter_ids} `);
@@ -378,10 +423,10 @@ function nya() {
 				p.innerHTML = `Now ${obj.ing}ing <strong>${tagName}</strong>.`;
 			}
 			filt = filt.replace(/\s{2,}/g, " ").trim(); //remove extra whitespaces
-			filtArr[4][1].value = filt;
+			//filtArr[4][1].value = filt;
 			filtArr[2] = filt;
 			appp.prepend(p);
-			autosave(filtArr[1], filtArr[2]);
+			autosave(filtArr[1], filtArr[2]); //set the key to the filter value
 		}
 		function tagButtons(obj) {
 			const div = document.createElement("div");
@@ -393,10 +438,11 @@ function nya() {
 				addFilt(obj);
 			})
 		};
-		tagButtons(ex);
-		tagButtons(inc);
-		tagButtons(rem);
-		fil.append(label, output);
+		var ugh = [ex, inc, rem]; //i am lazy and so shall array the various action buttons so that i can loop them instead of doing fucking. tagButtons(thing) every fucking time
+		for (a of ugh) {
+			tagButtons(a);
+		}
+		fil.append(label, output, select);
 		filterOpt.append(fil, buttonAct, appp);
 		navList.parentElement.insertAdjacentElement("afterend", filterOpt);
 	}
