@@ -341,7 +341,7 @@ function nya() {
 			for (var fandom of savedFandoms) {
 				const option = document.createElement("option");
 				option.innerHTML = fandom;
-				option.setAttribute("value", `filter-${toCss(fandom)}`);
+				option.setAttribute("value", `filter-${fandom}`);
 				select.appendChild(option);
 			}
 		} else {
@@ -352,6 +352,9 @@ function nya() {
 			select.innerHTML += globalOpt;
 		}
 		var targetFilter = select.options[0].value;
+		function selectorType() {
+			return (targetFilter=="filter-global") ? "global" : "fandom";
+		};
 		select.onchange = function() {
 			//console.log(select.value);
 			targetFilter = select.value;
@@ -377,23 +380,13 @@ function nya() {
 		}
 
 		function addFilt(obj) {
-			var filtArr = ["", targetFilter, localStorage[targetFilter]]
-			if (!fandomName) {
-				var els = ["", document.getElementById("globalFilters")];
-				filtArr.push(els);
-				//this one's easy: if in a global tag, then make a simple array of like ["", targetFilter, localStorage[targetFilter]] as filtArr
-				//probably also declare a thing to get the global textbox to change its value
-			} else {
-				filtArr[4] = [""];
-				//in this case, basically the same, except now we should also declare a thing to get the fandom textbox so that we can change its value too 
-
-				//TO-DO IN THE MORNING:
-				//MAKE IT SO THAT WHEN YOU CLICK ON THE BUTTONS, THE CORRECT BOX WILL HAVE ITS VALUE ALTERED. THE LOCAL STORAGE THING ALREADY WORKS AS EXPECTED
-			}
+			//console.log(`${selectorType()}Filters`);
+			var filtArr = [selectorType(), targetFilter, localStorage[targetFilter]];
+			var textarea = document.getElementById(`${filtarr[0]}Filters`);
 			//let doubleck = new RegExp(`\\D${id}\\s`, "g");
 			//if fandom-specific, goes into the fandom filter box
 			//var filtArr = fandomName ? fan : global;
-			console.log(filtArr, filtArr[4]);
+			console.log(filtArr);
 			console.log(targetFilter);
 			//var filtArr = targetFilter;
 			var filt = ` ${filtArr[2]} `; //need the spaces in order to correctly match the values later lol. it'll be trimmed in the end
@@ -424,6 +417,9 @@ function nya() {
 			}
 			filt = filt.replace(/\s{2,}/g, " ").trim(); //remove extra whitespaces
 			//filtArr[4][1].value = filt;
+			if (textarea) {
+				textarea.value = filt;
+			}
 			filtArr[2] = filt;
 			appp.prepend(p);
 			autosave(filtArr[1], filtArr[2]); //set the key to the filter value
