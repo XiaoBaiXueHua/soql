@@ -320,8 +320,10 @@ const id = function () {
 }();
 var filter_ids = `filter_ids:${id}`;
 
+
 //click on the id button
 function nya() {
+	const select = document.createElement("select");
 	if (!document.querySelector("#filter_opt")) {
 		const filterOpt = document.createElement("fieldset");
 		filterOpt.id = "filter_opt";
@@ -334,7 +336,6 @@ function nya() {
 		label.innerHTML = "filter_ids:";
 		label.setAttribute("for", "id_output");
 		/* selection dropdown */
-		const select = document.createElement("select");
 		const globalOpt = `<option value="filter-global">Global</option>`;
 		if (!fandomName) { //if in a global tag, give the option to pick a fandom for this particular tag
 			select.innerHTML = globalOpt;
@@ -381,13 +382,14 @@ function nya() {
 
 		function addFilt(obj) {
 			//console.log(`${selectorType()}Filters`);
-			var filtArr = [selectorType(), targetFilter, localStorage[targetFilter]];
-			var textarea = document.getElementById(`${filtarr[0]}Filters`);
+			var filtArr = [selectorType(), targetFilter, localStorage[targetFilter], select.selectedIndex];
+			var textarea = document.getElementById(`${filtArr[0]}Filters`);
+			var curr = select.options[filtArr[3]].text;
 			//let doubleck = new RegExp(`\\D${id}\\s`, "g");
 			//if fandom-specific, goes into the fandom filter box
 			//var filtArr = fandomName ? fan : global;
-			console.log(filtArr);
-			console.log(targetFilter);
+			//console.log(filtArr);
+			//console.log(targetFilter);
 			//var filtArr = targetFilter;
 			var filt = ` ${filtArr[2]} `; //need the spaces in order to correctly match the values later lol. it'll be trimmed in the end
 			//var type = ` ${obj.pre}${filter_ids} `;
@@ -401,19 +403,19 @@ function nya() {
 			if (filt.match(old_ids)) {
 				//...first check if it's being filtered in the Same Way (in or out)
 				if (filt.match(newFilt)) {
-					p.innerHTML = `You are already ${obj.ing}ing <strong>${tagName}</strong>!`
+					p.innerHTML = `You are already ${obj.ing}ing <strong>${tagName}</strong> from <em>${curr}</em>!`
 				} else {
 					filt = filt.replace(old_ids, newFilt); //i forgot. to put in the "filt =". i feel like an idiot
 					/* removal */
 					if(type=="Remov") {
-						p.innerHTML = `${obj.ing}ed <strong>${tagName}</strong>.`
+						p.innerHTML = `${obj.ing}ed <strong>${tagName}</strong> from <em>${curr}</em>.`
 					} else {
-						p.innerHTML = `Changed <strong>${tagName}</strong> to ${obj.ing}e.`;
+						p.innerHTML = `Changed <strong>${tagName}</strong> to ${obj.ing}e in <em>${curr}</em>.`;
 					}
 				}
 			} else {
 				filt += newFilt;
-				p.innerHTML = `Now ${obj.ing}ing <strong>${tagName}</strong>.`;
+				p.innerHTML = `Now ${obj.ing}ing <strong>${tagName}</strong> in <em>${curr}</em>.`;
 			}
 			filt = filt.replace(/\s{2,}/g, " ").trim(); //remove extra whitespaces
 			//filtArr[4][1].value = filt;
@@ -644,6 +646,9 @@ if (form) {
 	  border-top:1px solid ${hoverLine};
 	  border-left:1px solid ${hoverLine};
 	  box-shadow: ${hoverShad};
+	}
+	#filter_opt select{
+		margin-top: 5px;
 	}
 	#tag_actions {
 		width: 100%;
