@@ -228,7 +228,7 @@ if (searchdt !== null || searchdd !== null) {
 	console.error("lol idk you dun goof'd i guess")
 }
 
-
+/* the debugger textboxes */
 function debuggy(t = "", par = header) {
 	if (form) { form.hidden = true; } //hide the search form on the 0 results page
 	const debugDiv = document.createElement("div");
@@ -267,6 +267,7 @@ function debuggy(t = "", par = header) {
 	header.insertAdjacentElement("afterend", p);
 }
 
+/* function for showing all the filters */
 function showAllFilters(parent) {
 	for (const [key, value] of filterArray) {
 		if (key.toString().startsWith("filter-")) {
@@ -299,7 +300,7 @@ const filtButt = document.createElement("li");
 filtButt.id = "get_id_butt";
 filtButt.innerHTML = `<a id="id_butt">Tag ID</a>`;
 
-//id fetcher function
+/* id fetcher function */
 const id = function () {
 	if (document.querySelector("#favorite_tag_tag_id")) {
 		console.log("favorite tag id method")
@@ -324,7 +325,7 @@ const id = function () {
 var filter_ids = `filter_ids:${id}`;
 
 
-//click on the id button
+/* display the filter_ids and actions */
 function nya() {
 	if (!document.querySelector("#filter_opt")) {
 		const select = document.createElement("select");
@@ -456,6 +457,35 @@ if (form) {
 	filtButt.addEventListener("mouseup", nya);
 }
 
+/* banish a particular work from your search results */
+const workList = document.querySelectorAll("li[id^='work']");
+//var nyeh = (!global[3] && !search_submit); //if both the global n the fandom checkmarks are off AND we're not on a search page
+var nyeh = fan ? (!global[3] && !fan[3]) : !global[3]; //have to check if the fandom box exists first before declaring it -_-
+console.log(`!global[3] (&& optional !fan[3]): ${nyeh}`);
+if (nyeh || search_submit) {
+	//if the autofilters are currently disabled or we're already on a search page, do the thing
+	for (const work of workList) {
+		//console.log(work);
+		const work_id = work.id.replace("work_", ""); //get its id num from. well. its id.
+		const klass = work.classList.toString();
+		//const user_id = klass.match(/user-\d+/).toString();
+		const user_id = function () {
+			let id = null;
+			try {
+				id = klass.match(/user-\d+/).toString().replace(/user-/, "");
+			} catch (e) {
+				console.info("oh hey an anon work")
+			}
+			return id;
+		}();
+		const isAnon = id ? false : true;
+		console.log(`work_id: ${work_id}; user_id: ${user_id}`);
+		const banSel = document.createElement("select");
+		const opts = [work_id, isAnon];
+	}
+} 
+
+
 /* add filters + temp search to search w/in results box */
 function submission() {
 	//console.log("real box value:")
@@ -479,7 +509,7 @@ function submission() {
 	//console.log("tempp:");
 	//console.log(tempp);
 	advSearch.value = `${globeSub} ${fanSub} ${tempSub}`;
-	advSearch.value = advSearch.value.trim();
+	advSearch.value = advSearch.value.replace(/\s{2,}/g, " ").trim();
 }
 if (form) { form.addEventListener("submit", submission) };
 
