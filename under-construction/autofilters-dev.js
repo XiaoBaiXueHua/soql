@@ -16,7 +16,17 @@
 /* current fandom checker */
 const works = document.querySelector("#main.works-index");
 const form = document.querySelector("form#work-filters");
+const header = document.querySelector("h2:has(a.tag)");
+//console.log(header);
+const currentTag = header.querySelector("a.tag"); //the current tag being searched 
 const errorFlash = document.querySelector("div.flash.error");
+const noResults = function () {
+	const no = header.innerHTML.match(/\n0\s/);
+	//console.log(no && !errorFlash);
+	return (no && !errorFlash);
+}(); //will allow for the fandom box to be made
+//console.log("is error page?");
+//console.log(errorFlash);
 
 var remAmbig = /\((\w+(\s|&)*|\d+\s?)+\)/g; //removes disambiguators
 const fandomName = function () {
@@ -24,9 +34,7 @@ const fandomName = function () {
 	var raw = document.querySelector("#include_fandom_tags label"); //gets the fandom count from the dropdown on the side
 	console.log("item w/ fandom numbers:");
 	console.log(raw);
-	if (!raw) {
-		return null;
-	};
+	if (!raw) {return null;};
 	raw = raw.innerText;
 	var fandom = raw.replace(remAmbig,"").trim();
 	//later, maybe have it look at the other top fandoms n see if they're related, either by like an author name, or if there's an "all media types" attached to redeclare the cutoff
@@ -35,7 +43,7 @@ const fandomName = function () {
 	fandomCount = fandomCount.substring(1, fandomCount.length-1); //chops off parentheses
 	fandomCount = parseInt(fandomCount);
 
-	var tagCount = document.querySelector("h2:has(a.tag)").innerText;
+	var tagCount = header.innerText;
 	tagCount = tagCount.match(/\d+,?\d*\sW/).toString().replace(",",""); //get the number, remove the comma
 	tagCount = tagCount.substring(0, tagCount.length-2); //cut off the " W" bit that was used to make sure was Finding the actual fandom count (in case there's a fandom w/numbers in its name)
 	tagCount = parseInt(tagCount); //now turn it into an integer
@@ -46,8 +54,11 @@ const fandomName = function () {
 }();
 const cssFanName = fandomName ? fandomName.replaceAll(/\W+/g, "-") : null;
 const tagName = function () {
-	var tag = document.querySelector("h2.heading a.tag").innerText;
-	tag = tag.replace(remAmbig, "").trim();
+	//var tag = document.querySelector("h2.heading a.tag").innerText;
+	var tag = currentTag.innerText.replace(remAmbig, "").trim();
+	//console.log("tagName function querySelector of querySelector testing: ")
+	//console.log(tag);
+	//tag = tag.replace(remAmbig, "").trim();
 	return tag;
 }();
 
@@ -156,42 +167,69 @@ if (searchdt !== null || searchdd !== null) {
 	for (el of globEl) {
 		saveDiv.appendChild(el);
 	};
+	//console.log(`box(fan) || noResults: ${(box(fan) || noResults)}`);
 	const fanEl = box(fan) ? fan[4] : null;
 	if (fanEl) {
 		for (el of fanEl) {
 			saveDiv.appendChild(el);
 		};
+	} 
+	/* when a search returns nothing */
+	else if(noResults) {
+		//console.log("noResults is true");
+		var html = "";
+		//const p = document.createElement("p");
+		debuggy(html);
+		//p.innerHTML = "hi";
+		//header.insertAdjacentElement("afterend", p);
 	};
 	details.append(summary, saveDiv);
 	searchdt.insertAdjacentElement("beforebegin", details);
 } else {
 	if (errorFlash) {
-		const debugDiv = document.createElement("div");
-		debugDiv.id = "error_debug";
-		const p = document.createElement("p");
-		p.innerHTML = "Double-check your filters for mistakes.";
-		const filterArray = Object.entries(localStorage);
-		for (const [key, value] of filterArray) {
-			if (key.toString().startsWith("filter-")) {
-				cssId = key.replaceAll(/\W+/g, "-");
-				const div = document.createElement("div");
-				div.id = `${cssId}-div`;
-				const label = document.createElement("label");
-				label.innerHTML = key.replace("filter-","").replace(/-/," ");
-				label.setAttribute("for", cssId);
-				const textarea = document.createElement("textarea");
-				textarea.id = cssId;
-				textarea.value = value;
-				textarea.addEventListener("keyup", async () => {
-					await autosave(key, textarea.value);
-				});
-				div.append(label, textarea);
-				debugDiv.appendChild(div);
-			}
-		}
-		errorFlash.insertAdjacentElement("afterend", debugDiv);
-		errorFlash.insertAdjacentElement("afterend", p);
+		debuggy("Double-check your filters for mistakes.");
 	} else {console.error("lol idk you dun goof'd i guess")}
+}
+
+function debuggy(t) {
+	if (form) {form.hidden = true;} //hide the search form on the 0 results page
+	const debugDiv = document.createElement("div");
+	debugDiv.id = "error_debug";
+	const p = document.createElement("p");
+	//p.innerHTML = "Double-check your filters for mistakes.";
+	p.innerHTML = t;
+	const filterArray = Object.entries(localStorage);
+	for (const [key, value] of filterArray) {
+		if (key.toString().startsWith("filter-")) {
+			cssId = key.replaceAll(/\W+/g, "-");
+			const div = document.createElement("div");
+			div.id = `${cssId}-div`;
+			const label = document.createElement("label");
+			label.innerHTML = key.replace("filter-","").replace(/-/," ");
+			label.setAttribute("for", cssId);
+			const textarea = document.createElement("textarea");
+			textarea.id = cssId;
+			textarea.value = value;
+			textarea.addEventListener("keyup", async () => {
+				await autosave(key, textarea.value);
+			});
+			div.append(label, textarea);
+			debugDiv.appendChild(div);
+		}
+	}
+	console.log(currentTag);
+	var href = `${currentTag.href}/works`;
+	console.log(href);
+	const research = document.createElement("a");
+	research.href = href;
+	research.innerHTML = "Search Again";
+	//errorFlash.insertAdjacentElement("afterend", debugDiv);
+	//errorFlash.insertAdjacentElement("afterend", p);
+	//header.insertAdjacentHTML("afterend", "<hr>");
+	header.insertAdjacentElement("afterend", research);
+	header.insertAdjacentElement("afterend", debugDiv);
+	header.insertAdjacentElement("afterend", p);
+
 }
 
 const fandomEl = fandomName ? fan[4] : null;
@@ -340,21 +378,28 @@ if (form) {form.addEventListener("submit", submission)};
 /* autosubmit + previous filters drop */
 const search_submit = window.location.search;
 //const search_submit = window.location;
-var debug_error = window.location.toString().match("error");
-console.log(debug_error);
-if (search_submit == "" || debug_error == "error") {
-
+//var debug_error = window.location.toString().match("error");
+//console.log(debug_error);
+if (search_submit == "") {
+	let globIsCheck = false; //by default
+	try {
+		globIsCheck = document.querySelector("#enable-global").checked;
+	} catch (e) {
+		console.log("this is probably the local debug page for the error search ",e);
+	}
 	/* ----------------------------- */
 	//there needs to be both the thing enabled and a value in the thing
-	if(document.querySelector("#enable-global").checked && global[2]) { //aa
+	if(globIsCheck && global[2]) {
+		console.log("global checked && filtered");
 		submission();
 		form.submit();
 	} else if (fan && document.querySelector(`#enable-${cssFanName}`).checked && fan[2]) {
+		console.log("fandom checked && filtered");
 		submission();
 		form.submit();
 	};
-} else {
-	const header = document.querySelector("h2.heading");
+} else if (!noResults || !errorFlash) {
+	//const header = document.querySelector("h2.heading");
 	const details = document.createElement("details");
 	details.className = "prev-search";
 	const summary = document.createElement("summary");
@@ -385,14 +430,41 @@ if (search_submit == "" || debug_error == "error") {
 }
 
 /* CSS STYLING AT THE END BC IT'S A PICKY BITCH */
-var css;
+var css = `
+/* error 0 results debug */
+#error_debug {
+	display: flex;
+	flex-wrap: wrap;
+}
+#error_debug label {
+	font-weight: bold;
+	text-transform: capitalize;
+}
+#error_debug textarea {
+	resize: none;
+	scrollbar-width: thin!important;
+	font-family: monospace;
+}
+#error_debug > div {
+	width: 30%;
+	margin: 10px 1%;
+}
+#error_debug textarea {
+	font-size: 9pt;
+}
+@media only screen and (max-width: 48em) {
+	#error_debug > div {
+		width: 98%;
+	}
+}
+`; //gonna need this for the 0 results page anyway, might as well set it to smth
 if (form) {
 	const optWidth = window.getComputedStyle(document.querySelector("#main ul.user.navigation.actions")).width;
 	const hoverShad = window.getComputedStyle(document.querySelector("form#work-filters fieldset")).boxShadow;
 	const hoverLine = window.getComputedStyle(document.querySelector(".actions input")).borderColor;
 	const optMWidth = window.getComputedStyle(form).width;
 	const borderBottom = window.getComputedStyle(document.querySelector("form#work-filters dt")).borderBottom;
-	css = `
+	css += `
 	#main *:not(a, #id_output, button, .current) {box-sizing: border-box;}
 	#get_id_butt:hover {cursor: pointer;}
 	#id_output {width: max-content;min-width: 0; position: static;}
@@ -493,34 +565,6 @@ if (form) {
 	@media only screen and (max-width: 48em) {
 		.prev-search {margin: 10px 0;}
 		.prev-search p {padding-left: 15px;}
-	}
-	`;
-} else {
-	css = `
-	#error_debug {
-		display: flex;
-		flex-wrap: wrap;
-	}
-	#error_debug label {
-		font-weight: bold;
-		text-transform: capitalize;
-	}
-	#error_debug textarea {
-		resize: none;
-		scrollbar-width: thin!important;
-		font-family: monospace;
-	}
-	#error_debug > div {
-		width: 30%;
-		margin: 10px 1%;
-	}
-	#error_debug textarea {
-		font-size: 9pt;
-	}
-	@media only screen and (max-width: 48em) {
-		#error_debug > div {
-			width: 98%;
-		}
 	}
 	`;
 }
