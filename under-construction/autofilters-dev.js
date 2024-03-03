@@ -8,7 +8,7 @@
 // @match	http*://archiveofourown.org/works?commit=*&tag_id=*
 // @downloadURL	https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/filterscript.js
 // @updateURL	https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/filterscript.js
-// @version	2.0
+// @version	2.0.1
 // @grant	none
 // @run-at	document-end
 // ==/UserScript==
@@ -27,6 +27,8 @@ const noResults = function () {
 }(); //will allow for the fandom box to be made
 //console.log("is error page?");
 //console.log(errorFlash);
+//here's the local storage array
+const filterArray = Object.entries(localStorage);
 
 var remAmbig = /\((\w+(\s|&)*|\d+\s?)+\)/g; //removes disambiguators
 const fandomName = function () {
@@ -177,28 +179,59 @@ if (searchdt !== null || searchdd !== null) {
 	/* when a search returns nothing */
 	else if(noResults) {
 		//console.log("noResults is true");
-		var html = "";
-		//const p = document.createElement("p");
+		var html = `Your search returned no results. Would you like to review your filters?`;
+		//p.innerHTML = html;
 		debuggy(html);
-		//p.innerHTML = "hi";
-		//header.insertAdjacentElement("afterend", p);
 	};
 	details.append(summary, saveDiv);
 	searchdt.insertAdjacentElement("beforebegin", details);
-} else {
-	if (errorFlash) {
-		debuggy("Double-check your filters for mistakes.");
-	} else {console.error("lol idk you dun goof'd i guess")}
+} else if (errorFlash) {
+		//const p = document.createElement("p");
+		var html = "Double-check your filters for mistakes.";
+		debuggy(html);
+		var debugDiv = document.querySelector("#error_debug");
+		showAllFilters(debugDiv);
+	} else {console.error("lol idk you dun goof'd i guess")
 }
 
-function debuggy(t) {
+
+function debuggy(t="", par=header) {
 	if (form) {form.hidden = true;} //hide the search form on the 0 results page
 	const debugDiv = document.createElement("div");
 	debugDiv.id = "error_debug";
 	const p = document.createElement("p");
-	//p.innerHTML = "Double-check your filters for mistakes.";
 	p.innerHTML = t;
-	const filterArray = Object.entries(localStorage);
+	//console.log(currentTag);
+	var href = `${currentTag.href}/works`;
+	//console.log(href);
+	const reSearch = document.createElement("ul");
+	reSearch.className = "actions";
+	reSearch.id = "debugged-search";
+	if (noResults) {
+		const showFilters = document.createElement("a");
+		showFilters.innerHTML = "Show All Filters";
+		showFilters.href = "#";
+		showFilters.addEventListener("click", function () {
+			showAllFilters(debugDiv);
+			showFilters.remove(); //remove self after showing all the filters
+		})
+		//showFilters.setAttribute("onclick", showAllFilters(debugDiv));
+		reSearch.appendChild(showFilters);
+	}
+	const research = document.createElement("a");
+	research.href = href;
+	research.innerHTML = "Search Again";
+	reSearch.appendChild(research);
+	//errorFlash.insertAdjacentElement("afterend", debugDiv);
+	//errorFlash.insertAdjacentElement("afterend", p);
+	//header.insertAdjacentHTML("afterend", "<hr>");
+	//header.insertAdjacentElement("afterend", reSearch);
+	par.insertAdjacentElement("afterend", debugDiv);
+	debugDiv.insertAdjacentElement("afterend", reSearch);
+	header.insertAdjacentElement("afterend", p);
+}
+
+function showAllFilters(parent) {
 	for (const [key, value] of filterArray) {
 		if (key.toString().startsWith("filter-")) {
 			cssId = key.replaceAll(/\W+/g, "-");
@@ -214,22 +247,9 @@ function debuggy(t) {
 				await autosave(key, textarea.value);
 			});
 			div.append(label, textarea);
-			debugDiv.appendChild(div);
+			parent.prepend(div);
 		}
 	}
-	console.log(currentTag);
-	var href = `${currentTag.href}/works`;
-	console.log(href);
-	const research = document.createElement("a");
-	research.href = href;
-	research.innerHTML = "Search Again";
-	//errorFlash.insertAdjacentElement("afterend", debugDiv);
-	//errorFlash.insertAdjacentElement("afterend", p);
-	//header.insertAdjacentHTML("afterend", "<hr>");
-	header.insertAdjacentElement("afterend", research);
-	header.insertAdjacentElement("afterend", debugDiv);
-	header.insertAdjacentElement("afterend", p);
-
 }
 
 const fandomEl = fandomName ? fan[4] : null;
@@ -452,6 +472,17 @@ var css = `
 #error_debug textarea {
 	font-size: 9pt;
 }
+
+#debugged-search {
+	float: none;
+	margin-bottom: 20px;
+	text-align: left;
+}
+#debugged-search a {
+	margin-left: 10px;
+}
+#debugged-search a:first-of-type {margin: 0;}
+
 @media only screen and (max-width: 48em) {
 	#error_debug > div {
 		width: 98%;
