@@ -27,6 +27,17 @@ const noResults = function () {
 //console.log("is error page?");
 //console.log(errorFlash);
 //here's the local storage array
+
+/* keeping the fandoms w/saved filters in an array: */
+var listKey = "saved fandoms";
+var savedFandoms = localStorage[listKey]; //need to keep an array of available fandoms to be able to make a dropdown of options when 
+if(!savedFandoms) {
+	//localStorage.setItem(listKey, []);
+	savedFandoms = [];
+} else {savedFandoms = savedFandoms.split(/,/g);}
+//localStorage saves the list as a string, so to turn it into an array, must use split
+//console.log(savedFandoms);
+
 const filterArray = Object.entries(localStorage);
 
 /* removes local storage on blank tags  */
@@ -64,9 +75,14 @@ const fandomName = function () {
 	tagCount = parseInt(tagCount); //now turn it into an integer
 
 	if (!fandom || !fandomCount || !tagCount) { return; }
-
-	return (fandomCount / tagCount * 100 >= fandom_cutoff) ? fandom : null;
+	var meetsCutoff = (fandomCount / tagCount * 100 >= fandom_cutoff);
+	if (meetsCutoff && savedFandoms.indexOf(fandom) < 0) { //if it qualifies as being part of a fandom & is not yet in the array, add it and then save it to local storage
+		savedFandoms.push(fandom);
+		localStorage[listKey] = savedFandoms;
+	}
+	return meetsCutoff ? fandom : null;
 }();
+console.log(savedFandoms);
 const cssFanName = fandomName ? fandomName.replaceAll(/\W+/g, "-") : null;
 const tagName = function () {
 	//var tag = document.querySelector("h2.heading a.tag").innerText;
@@ -319,41 +335,49 @@ function nya() {
 		appp.id = "append-p";
 
 		const ex = {
-			exclude: true,
-			pre: "-",
+			pre: `-${filter_ids}`,
 			ing: "exclud",
 		}
 		const inc = {
-			exclude: false,
-			pre: "",
+			pre: filter_ids,
 			ing: "includ",
+		}
+		const rem = {
+			pre: "",
+			ing: "Remov"
 		}
 
 		function addFilt(obj) {
-			let doubleck = new RegExp(`\\D${id}\\s\?`, "g");
+			//let doubleck = new RegExp(`\\D${id}\\s`, "g");
 			//if fandom-specific, goes into the fandom filter box
 			var filtArr = fandomName ? fan : global;
 			var filt = ` ${filtArr[4][1].value} `; //need the spaces in order to correctly match the values later lol. it'll be trimmed in the end
-			var type = ` ${obj.pre}${filter_ids} `;
+			//var type = ` ${obj.pre}${filter_ids} `;
+			var type = obj.ing;
+			var old_ids = new RegExp(` -?${filter_ids} `);
+			var newFilt = ` ${obj.pre} `;
 			const p = document.createElement("p");
 			p.className = "appended-tag";
 
 			//if this tag is already being filtered in some way...
-			if (filt.match(doubleck)) {
+			if (filt.match(old_ids)) {
 				//...first check if it's being filtered in the Same Way (in or out)
-				if (filt.match(type)) {
+				if (filt.match(newFilt)) {
 					p.innerHTML = `You are already ${obj.ing}ing <strong>${tagName}</strong>!`
 				} else {
-					//otherwise, if supposed to be now excluded, add the "-"; else remove
-					var old_ids = obj.exclude ? ` ${filter_ids} ` : `-${filter_ids} `;
-					filt = filt.replace(old_ids, type).replace(/\s{2,}/g, " "); //i forgot. to put in the "filt =". i feel like an idiot
-					p.innerHTML = `Changed <strong>${tagName}</strong> to ${obj.ing}e.`;
+					filt = filt.replace(old_ids, newFilt); //i forgot. to put in the "filt =". i feel like an idiot
+					/* removal */
+					if(type=="Remov") {
+						p.innerHTML = `${obj.ing}ed <strong>${tagName}</strong>.`
+					} else {
+						p.innerHTML = `Changed <strong>${tagName}</strong> to ${obj.ing}e.`;
+					}
 				}
 			} else {
-				filt += type;
+				filt += newFilt;
 				p.innerHTML = `Now ${obj.ing}ing <strong>${tagName}</strong>.`;
 			}
-			filt = filt.trim();
+			filt = filt.replace(/\s{2,}/g, " ").trim(); //remove extra whitespaces
 			filtArr[4][1].value = filt;
 			filtArr[2] = filt;
 			appp.prepend(p);
@@ -371,6 +395,7 @@ function nya() {
 		};
 		tagButtons(ex);
 		tagButtons(inc);
+		tagButtons(rem);
 		fil.append(label, output);
 		filterOpt.append(fil, buttonAct, appp);
 		navList.parentElement.insertAdjacentElement("afterend", filterOpt);
@@ -397,7 +422,7 @@ function submission() {
 			fanSub = fan[2] ? fan[2] : ""; //if you don't do this, then it'll submit "undefined" when there's nothing
 		}
 	};
-	var tempSub = tempp[2] ? tempp[2] : ""; //has to also
+	var tempSub = tempp[2] ? tempp[2] : ""; 
 	//console.log("globalSub:");
 	//console.log(globeSub);
 	//console.log("fanSub:");
@@ -581,14 +606,14 @@ if (form) {
 	#tag_actions {
 		width: 100%;
 		margin: 5px 0 0;
-		display: flex;
-		flex-wrap: wrap;
-	}
-	#tag_actions > div {
-		width: 50%;
+		padding-bottom: 5px;
+		display: grid;
+		grid-template-columns: repeat(3, 3fr);
 	}
 	#tag_actions button {
+		display: block;
 		text-transform: capitalize;
+		margin: 0 auto;
 	}
 	#append-p {max-height: 4em; overflow-y: auto; scrollbar-width: thin!important; font-size: 0.9em;}
 	.appended-tag {
