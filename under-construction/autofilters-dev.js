@@ -13,9 +13,7 @@
 // @run-at	document-end
 // ==/UserScript==
 
-/* current fandom checker */
-const works = document.querySelector("#main.works-index");
-const form = document.querySelector("form#work-filters");
+/* various important global vars */
 const header = document.querySelector("h2:has(a.tag)");
 //console.log(header);
 const currentTag = header.querySelector("a.tag"); //the current tag being searched 
@@ -30,6 +28,29 @@ const noResults = function () {
 //console.log(errorFlash);
 //here's the local storage array
 const filterArray = Object.entries(localStorage);
+
+/* removes local storage on blank tags  */
+const search_submit = window.location.search;
+console.log(`search_submit: ${search_submit}\n!search_submit: ${!search_submit}`);
+const currentPath = window.location.pathname.toString();
+const shouldClear = currentPath.match(/tag/);
+console.log(`supposed to clear the advanced search: ${shouldClear}`);
+if (shouldClear && !search_submit) {
+	localStorage.setItem("filter-advanced-search", "");
+}
+
+/*if (search_submit == "") {
+	//if we're in a raw tag, clear the local storage for the temp search
+	localStorage.setItem("filter-advanced-search", ""); 
+	console.log(`checking to make sure that this also resets tempp[2]: ${tempp[2]}`);
+}*/
+
+//console.log(`referrer: ${document.referrer}`);
+//console.log(`path: ${window.location.pathname}`);
+
+/* current fandom checker */
+const works = document.querySelector("#main.works-index");
+const form = document.querySelector("form#work-filters");
 
 var remAmbig = /\((\w+(\s|&)*|\d+\s?)+\)/g; //removes disambiguators
 const fandomName = function () {
@@ -116,8 +137,8 @@ function checkbox(name, bool, prefix) {
 	return span;
 };
 function box(obj) {
-	console.log("box being made:");
-	console.log(obj);
+	//console.log("box being made:");
+	//console.log(obj);
 	if (!obj) { return null; }; //exit if no fandom
 	var is = (obj[0] == "fandom"); //thing for checking if this box is a fandom type or not
 	var name = obj[0];
@@ -372,12 +393,12 @@ if (form) {
 
 /* add filters + temp search to search w/in results box */
 function submission() {
-	console.log("real box value:")
-	console.log(advSearch.value);
-	console.log("global array:");
-	console.log(global);
-	console.log("fandom array:");
-	console.log(fan);
+	//console.log("real box value:")
+	//console.log(advSearch.value);
+	//console.log("global array:");
+	//console.log(global);
+	//console.log("fandom array:");
+	//console.log(fan);
 	var globeSub = document.querySelector("#enable-global").checked ? global[2] : "";
 	var fanSub = "";
 	if (fandomName) {
@@ -385,24 +406,24 @@ function submission() {
 			fanSub = fan[2] ? fan[2] : ""; //if you don't do this, then it'll submit "undefined" when there's nothing
 		}
 	};
-	var tempSub = tempp[2] ? tempp[2] : "";
-	console.log("globalSub:");
-	console.log(globeSub);
-	console.log("fanSub:");
-	console.log(fanSub);
-	console.log("tempp:");
-	console.log(tempp);
+	var tempSub = tempp[2] ? tempp[2] : ""; //has to also
+	//console.log("globalSub:");
+	//console.log(globeSub);
+	//console.log("fanSub:");
+	//console.log(fanSub);
+	//console.log("tempp:");
+	//console.log(tempp);
 	advSearch.value = `${globeSub} ${fanSub} ${tempSub}`;
 	advSearch.value = advSearch.value.trim();
 }
 if (form) { form.addEventListener("submit", submission) };
 
 /* autosubmit + previous filters drop */
-const search_submit = window.location.search;
 //const search_submit = window.location;
 //var debug_error = window.location.toString().match("error");
 //console.log(debug_error);
 if (search_submit == "") {
+	//localStorage.setItem("filter-advanced-search", "");
 	let globIsCheck = false; //by default
 	try {
 		globIsCheck = document.querySelector("#enable-global").checked;
@@ -421,41 +442,35 @@ if (search_submit == "") {
 		form.submit();
 	};
 } else if (!noResults) {
-	if (errorFlash) {
-		console.log("okay so maybe i DO hate discrete math");
-	} else {
-		//if (!(noResults && !errorFlash) || !noResults) {};
-		console.log(`!noResults: ${!noResults}`);
-		console.log(`!errorFlash: ${!errorFlash}`);
-		//const header = document.querySelector("h2.heading");
-		const details = document.createElement("details");
-		details.className = "prev-search";
-		const summary = document.createElement("summary");
-		summary.innerHTML = "<strong>FILTERS:</strong>";
-		details.appendChild(summary);
+	//tempp[2] = fakeSearch.value ? fakeSearch.value : ""; //if there's a value in the fake search (like when going through Pages of search w/in results things), then make sure that the temp search remains in local storage
+	//console.log(`!noResults: ${!noResults}`);
+	const details = document.createElement("details");
+	details.className = "prev-search";
+	const summary = document.createElement("summary");
+	summary.innerHTML = "<strong>FILTERS:</strong>";
+	details.appendChild(summary);
 
-		function filterloop(key) {
-			if (localStorage[`filter-${key}`]) {
-				const p = document.createElement("p");
-				p.className = `prev-${key.replaceAll(/\W+/g, "-")}`;
-				p.innerHTML = `<strong>${key.replaceAll(/-/g, " ").trim()} Filters:</strong></br><span>${localStorage[`filter-${key}`]}</span>`;
-				details.appendChild(p);
-			};
+	function filterloop(key) {
+		if (localStorage[`filter-${key}`]) {
+			const p = document.createElement("p");
+			p.className = `prev-${key.replaceAll(/\W+/g, "-")}`;
+			p.innerHTML = `<strong>${key.replaceAll(/-/g, " ").trim()} Filters:</strong></br><span>${localStorage[`filter-${key}`]}</span>`;
+			details.appendChild(p);
 		};
-		if (tempp[2]) {
-			//this one's different bc the adv search doesn't Actually have a checkbox for its enabling
-			filterloop("advanced-search");
-		}
-		if (global[3]) {
-			filterloop("global");
-		}
-		if (fan && fan[3]) {
-			filterloop(fandomName);
-		}
-		header.insertAdjacentElement("afterend", details);
-		console.log("we are now erasing the local storage for the advanced search");
-		localStorage.setItem("filter-advanced-search", "");
+	};
+	if (tempp[2]) {
+		//this one's different bc the adv search doesn't Actually have a checkbox for its enabling
+		filterloop("advanced-search");
 	}
+	if (global[3]) {
+		filterloop("global");
+	}
+	if (fan && fan[3]) {
+		filterloop(fandomName);
+	}
+	header.insertAdjacentElement("afterend", details);
+	//console.log("we are now erasing the local storage for the advanced search");
+	//localStorage.setItem("filter-advanced-search", fakeSearch.value ? fakeSearch.value : "");
 
 }
 
