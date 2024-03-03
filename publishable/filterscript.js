@@ -308,7 +308,6 @@ function nya() {
 
 		function addFilt(obj) {
 			let doubleck = new RegExp(`\\D${id}\\s\?`, "g");
-
 			var filtArr = fandomName ? fan : global;
 			var filt = ` ${filtArr[4][1].value} `; 
 			var type = ` ${obj.pre}${filter_ids} `;
@@ -411,7 +410,6 @@ if (search_submit == "") {
 		};
 	};
 	if (tempp[2]) {
-
 		filterloop("advanced-search");
 	}
 	if (global[3]) {
