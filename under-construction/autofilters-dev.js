@@ -54,12 +54,12 @@ if (shouldClear && !search_submit) {
 const works = document.querySelector("#main.works-index");
 const form = document.querySelector("form#work-filters");
 
-var remAmbig = /\((\w+(\s|&)*|\d+\s?)+\)/g; //removes disambiguators
+var remAmbig = /\s\((\w+(\s|&)*|\d+\s?)+\)/g; //removes disambiguators
 const fandomName = function () {
 	var fandom_cutoff = 70;
 	var raw = document.querySelector("#include_fandom_tags label"); //gets the fandom count from the dropdown on the side
-	console.log("item w/ fandom numbers:");
-	console.log(raw);
+	//console.log("item w/ fandom numbers:");
+	//console.log(raw);
 	if (!raw) { return null; };
 	raw = raw.innerText;
 	var fandom = raw.replace(remAmbig, "").trim();
@@ -82,7 +82,9 @@ const fandomName = function () {
 	}
 	return meetsCutoff ? fandom : null;
 }();
+console.info(`fandomName: ${fandomName}`);
 console.log(savedFandoms);
+/* function to make css-friendly versions of a name */
 function toCss(str) {
 	return str.replaceAll(/\W+/g, "-");
 }
@@ -112,11 +114,12 @@ function enable(key) {
 	return enabled;
 }
 function filterTypes(name) {
-	console.log(name);
+	//console.log(name);
 	var is = name == "fandom" ? true : false;
-	if (is && !fandomName) { return null; } //
+	if (is && !fandomName) { return null; } //exit from trying to make a fandom box in a global tag
 	var key = `filter-${is ? fandomName : name}`;
-	var filter = localStorage[key] ? localStorage[key] : "";
+	if (!localStorage[key]) {localStorage.setItem(key, "")}; //if there doesn't already exist a filter for this fandom, set it now
+	var filter = localStorage[key];
 	var en = enable(is ? cssFanName : name);
 	var obj = [name, key, filter, en];
 	return obj;
@@ -323,8 +326,8 @@ var filter_ids = `filter_ids:${id}`;
 
 //click on the id button
 function nya() {
-	const select = document.createElement("select");
 	if (!document.querySelector("#filter_opt")) {
+		const select = document.createElement("select");
 		const filterOpt = document.createElement("fieldset");
 		filterOpt.id = "filter_opt";
 		/* display ID # & choose where to append the tag */
@@ -413,6 +416,8 @@ function nya() {
 						p.innerHTML = `Changed <strong>${tagName}</strong> to ${obj.ing}e in <em>${curr}</em>.`;
 					}
 				}
+			} else if(type=="Remov") { //if you're supposed to be removing smth that isn't there, tell them
+				p.innerHTML = `<strong>${tagName}</strong> isn't in your <em>${curr}</em> filters!`;
 			} else {
 				filt += newFilt;
 				p.innerHTML = `Now ${obj.ing}ing <strong>${tagName}</strong> in <em>${curr}</em>.`;
