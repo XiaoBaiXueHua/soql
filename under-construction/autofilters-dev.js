@@ -12,6 +12,23 @@
 // @grant	none
 // @run-at	document-end
 // ==/UserScript==
+/*
+class El {
+	constructor(txt, typ) {
+		this.innerHTML = txt;
+		this.type = typ;
+	}
+}*/
+/*
+function makeEl(str) {
+	return document.createElement(str.toString());
+}
+function makeStrEl(txt, el) {
+	const e = document.createElement(el);
+	e.innerHTML = txt;
+	console.log(e);
+	return e;
+}*/
 
 /* various important global vars */
 const header = document.querySelector("h2:has(a.tag)");
@@ -19,10 +36,11 @@ const header = document.querySelector("h2:has(a.tag)");
 const currentTag = header.querySelector("a.tag"); //the current tag being searched 
 const errorFlash = document.querySelector("div.flash.error");
 const noResults = function () {
-	const no = header.innerHTML.match(/\n0\s/);
+	//const no = header.innerHTML.match(/\n0\s/);
 	//console.log(`noResults: ${no && !errorFlash}`);
 	//return (no && !errorFlash);
-	return no ? true : false;
+	//return no ? true : false;
+	return header.innerHTML.match(/\n0\s/) ? true : false;
 }(); //will allow for the fandom box to be made
 //console.log("is error page?");
 //console.log(errorFlash);
@@ -38,7 +56,7 @@ if(!savedFandoms) {
 //localStorage saves the list as a string, so to turn it into an array, must use split
 //console.log(savedFandoms);
 
-const filterArray = Object.entries(localStorage);
+function filterArray(){return Object.entries(localStorage)};
 
 /* removes local storage on blank tags  */
 const search_submit = window.location.search;
@@ -97,6 +115,24 @@ const tagName = function () {
 	//tag = tag.replace(remAmbig, "").trim();
 	return tag;
 }();
+if (!localStorage[`ids-global`]) {localStorage.setItem("ids-global", "")}; //if there's nothing in the global ids key storage, make it blank
+function emptyStorage(key) {
+	if (!localStorage[key]) {
+		localStorage.setItem(key, "");
+	}
+	console.log(localStorage[key]);
+	return localStorage[key];
+}
+
+var fanIdKey;// = localStorage[`ids-${cssFanName}`];
+function isFandom() { //function for setting all the various vars that only show up if it's a fandom-specific tag. will have to clean up the thing later but for now i'll just leave it as is
+	if (!fandomName) {
+		return; //just exit if there's no fandom
+	}
+	fanIdKey = emptyStorage(`ids-${cssFanName}`);
+}
+isFandom();
+const globIdKey = emptyStorage(`ids-global`);
 
 /* local storage keys */
 function enable(key) {
@@ -138,6 +174,7 @@ function checkbox(name, bool, prefix) {
 	cbox.setAttribute("type", "checkbox");
 	cbox.id = `${prefix}-${name}`;
 	cbox.checked = bool;
+	//const l = makeStrEl(prefix, "label");
 	const l = document.createElement("label");
 	l.setAttribute("for", `${prefix}-${name}`);
 	l.innerHTML = prefix;
@@ -149,6 +186,7 @@ function checkbox(name, bool, prefix) {
 	});
 	return span;
 };
+//function to transform an array. not sure why i had the return at the end since i obviously never set any vars to it
 function box(obj) {
 	//console.log("box being made:");
 	//console.log(obj);
@@ -162,6 +200,7 @@ function box(obj) {
 		obj[2] = box.value;
 		await autosave(obj[1], obj[2]);
 	});
+	//const label = makeStrEl(htm, "label");
 	const label = document.createElement("label");
 	label.className = "filter-box-label";
 	var htm = name;
@@ -269,7 +308,7 @@ function debuggy(t = "", par = header) {
 
 /* function for showing all the filters */
 function showAllFilters(parent) {
-	for (const [key, value] of filterArray) {
+	for (const [key, value] of filterArray()) {
 		if (key.toString().startsWith("filter-")) {
 			cssId = toCss(key);
 			const div = document.createElement("div");
@@ -324,6 +363,16 @@ const id = function () {
 }();
 var filter_ids = `filter_ids:${id}`;
 
+function idKey() {
+	var add = `[${tagName}, ${id}]`;
+	if (fandomName) {
+		fanIdKey += `${fanIdKey?",":""}${add}`;
+		autosave(`ids-${cssFanName}`, fanIdKey);
+	} else {
+		globIdKey += `, ${add}`;
+	}
+	//return [tagName, id];
+}
 
 /* display the filter_ids and actions */
 function nya() {
@@ -384,6 +433,7 @@ function nya() {
 			ing: "Remov"
 		}
 
+		//function for adding the filter to the search values + saved local storage
 		function addFilt(obj) {
 			//console.log(`${selectorType()}Filters`);
 			var filtArr = [selectorType(), targetFilter, localStorage[targetFilter], select.selectedIndex];
@@ -479,11 +529,11 @@ if (nyeh || search_submit) {
 			return id;
 		}();
 		const isAnon = id ? false : true;
-		console.log(`work_id: ${work_id}; user_id: ${user_id}`);
+		//console.log(`work_id: ${work_id}; user_id: ${user_id}`);
 		const banSel = document.createElement("select");
 		const opts = [work_id, isAnon];
 	}
-} 
+}
 
 
 /* add filters + temp search to search w/in results box */
@@ -569,6 +619,42 @@ if (search_submit == "") {
 
 }
 
+/* export saved filters as a json */
+function expy(obj) {
+	//console.log(filterArray());
+	var arr = obj;
+	try {
+		arr = JSON.parse(arr);
+		console.log(arr);
+	} catch (e) {
+		console.error("oops. uhhh", arr, "is a type of ", typeof(arr));
+		//return jason;
+	}
+	//const jason = JSON.stringify(filterArray());
+	//var jason = new Object;
+	var jason = "{"; //opening bracket;
+	for (const [key, value] of arr) {
+		jason += key.toString();
+		console.log(value);
+		expy(value);
+	}
+	/*for (const [key, value] of filterArray()) {
+		//console.log(key, value);
+		Object.defineProperties(jason, {[key]: {
+			value: value,
+			writable: false
+		}})
+	}*/
+	jason += "}"; //closing bracket
+	console.log(jason);
+	jason = JSON.stringify(jason);
+	//console.log(jason);
+	//document.querySelector("body").innerHTML = jason;
+	//return jason;
+	//return JSON.stringify(jason, null, "\t");
+	return jason;
+};
+expy(filterArray());
 /* CSS STYLING AT THE END BC IT'S A PICKY BITCH */
 var css = `
 /* error 0 results debug */
