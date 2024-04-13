@@ -8,7 +8,8 @@
 // @match	http*://archiveofourown.org/works?commit=*&tag_id=*
 // @downloadURL	https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/filterscript.js
 // @updateURL	https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/filterscript.js
-// @version	2.0.1
+// @version	2.1
+// @history 2.1 - added ability to import/export saved filters
 // @grant	none
 // @run-at	document-end
 // ==/UserScript==
@@ -365,12 +366,28 @@ function nya() {
 		filterOpt.id = "filter_opt";
 		/* display ID # & choose where to append the tag */
 		const fil = document.createElement("div");
+		const id_exp = document.createElement("ul"); //make the div w/the id output and the buttons for importing/exporting opts
+		id_exp.className = "actions";
 		const output = document.createElement("input");
 		output.id = "id_output";
 		output.value = id;
 		const label = document.createElement("label");
 		label.innerHTML = "filter_ids:";
 		label.setAttribute("for", "id_output");
+
+		/* import/export buttons */
+		const impDiv = document.createElement("div"); //div for the import process
+		const impButt = document.createElement("li");
+		impButt.innerHTML = `<a href="#">Import</a>`;
+		impButt.addEventListener("click", () => {
+			impsy(impDiv);
+		})
+		const expButt = document.createElement("li");
+		expButt.innerHTML = `<a href="#">Export</a>`;
+		expButt.addEventListener("click", () => {
+			expy(filterArray());
+		});
+
 		/* selection dropdown */
 		const globalOpt = `<option value="filter-global">Global</option>`;
 		if (!fandomName) { //if in a global tag, give the option to pick a fandom for this particular tag
@@ -479,7 +496,8 @@ function nya() {
 		for (a of ugh) {
 			tagButtons(a);
 		}
-		fil.append(label, output, select);
+		id_exp.append(label, output, document.createElement("br"), impButt, expButt, impDiv);
+		fil.append(id_exp, select);
 		filterOpt.append(fil, buttonAct, appp);
 		navList.parentElement.insertAdjacentElement("afterend", filterOpt);
 	}
@@ -609,7 +627,7 @@ const download = (path, filename) => {
 	anchor.download = filename;
 	document.body.appendChild(anchor);
 	anchor.click();
-	document.removeChild(anchor);
+	document.body.removeChild(anchor);
 }
 
 /* export saved filters as a json */
@@ -624,8 +642,6 @@ function expy(obj) {
 			if(obj.indexOf(arr)==obj.length) {
 				console.log("uhh this is the last one");
 			}
-			//console.log(value);
-
 		}
 		//expy(value);
 	}
@@ -633,11 +649,41 @@ function expy(obj) {
 	//downloading as json from https://attacomsian.com/blog/javascript-download-file
 	const blob = new Blob([jason], {type: 'application/json'}); //create blob object
 	const DL_jason = URL.createObjectURL(blob);
-	download(DL_jason, `autofilters_${new Date}.json`); //download the file
+	const saveDate = new Date();
+	download(DL_jason, `autofilters_${saveDate.getFullYear()}_${saveDate.getMonth()}_${saveDate.getDay()}.json`); //download the file
 	URL.revokeObjectURL(DL_jason); //release object url
 	//return jason;
 };
-//expy(filterArray());
+
+/* import saved filters from a string */
+function impsy(div) { //for now just have it read from a specified div
+	div.id = "importDiv";
+	const instructions = document.createElement("p");
+	instructions.innerHTML = "<small>Please paste your exported options into the textbox below. <strong>This will override your current settings.</strong></small>";
+	const tb = document.createElement("textarea");
+	const parseButt = document.createElement("button");
+	parseButt.innerHTML = "Save Imported Settings";
+	parseButt.addEventListener("click", () => {
+		const impSet = tb.value;
+		let parsable = false;
+		try {
+			JSON.parse(impSet);
+			parsable = true;
+		} catch (e) {
+			alert("sorry, this can't be parsed.");
+		}
+		if (parsable) {
+			const obj = Object.entries(JSON.parse(impSet));
+			for (const [key, value] of obj) {
+				localStorage.setItem(key, value);
+			}
+			alert("filters successfully imported.");
+			window.location.reload();
+		}
+	})
+	div.append(instructions, tb, parseButt);
+}
+
 /* CSS STYLING AT THE END BC IT'S A PICKY BITCH */
 var css = `
 /* error 0 results debug */
@@ -680,14 +726,13 @@ var css = `
 `; //gonna need this for the 0 results page anyway, might as well set it to smth
 if (form) {
 	const optWidth = window.getComputedStyle(document.querySelector("#main ul.user.navigation.actions")).width;
-	const hoverShad = window.getComputedStyle(document.querySelector("form#work-filters fieldset")).boxShadow;
-	const hoverLine = window.getComputedStyle(document.querySelector(".actions input")).borderColor;
-	const optMWidth = window.getComputedStyle(form).width;
+	//const optMWidth = window.getComputedStyle(form).width;
 	const borderBottom = window.getComputedStyle(document.querySelector("form#work-filters dt")).borderBottom;
 	css += `
 	#main *:not(a, #id_output, button, .current) {box-sizing: border-box;}
 	#get_id_butt:hover {cursor: pointer;}
 	#id_output {width: max-content;min-width: 0; position: static;}
+	#importDiv {display: block;}
 	#stickyFilters {
 		margin-top: 5px;
 	}
@@ -706,7 +751,7 @@ if (form) {
 	#stickyFilters > div {
 		margin-top: 5px;
 	}
-	#stickyFilters textarea {
+	#stickyFilters textarea, #importDiv textarea {
 		resize: none;
 		scrollbar-width: thin!important;
 		font-family: monospace;
@@ -735,21 +780,27 @@ if (form) {
 	#filter_opt {
 		display: block;
 		float: right;
+		min-width: 30em;
 		max-width: 100%;
 		width: ${parseInt(optWidth)}px;
-		min-width: ${parseInt(optMWidth)}px;
 		margin-top: 5px;
 		margin-right: 5px;
 		text-align: left;
 	}
+	#filter_opt .actions {
+		text-align: left;
+		float: left;
+	}
+	#filter_opt .actions br {display: none;}
 	#filter_opt input {
 		max-width: 33%;
 		border-radius: 0.3em;
 	}
-	#filter_opt label:hover+input {
-	  border-top:1px solid ${hoverLine};
-	  border-left:1px solid ${hoverLine};
-	  box-shadow: ${hoverShad};
+	#filter_opt label {
+		background: none;
+		border: none;
+		padding: 0;
+		font-weight: bold;
 	}
 	#filter_opt select{
 		margin-top: 5px;
@@ -788,6 +839,10 @@ if (form) {
 	@media only screen and (max-width: 48em) {
 		.prev-search {margin: 10px 0;}
 		.prev-search p {padding-left: 15px;}
+		#filter_opt {
+			min-width: 0;
+		}
+		#filter_opt .actions br {display: block;}
 	}
 	`;
 }
