@@ -29,7 +29,7 @@ const noResults = function () {
 /* keeping the fandoms w/saved filters in an array: */
 var listKey = "saved fandoms";
 var savedFandoms = localStorage[listKey]; //need to keep an array of available fandoms to be able to make a dropdown of options when 
-if(!savedFandoms) {
+if (!savedFandoms) {
 	//localStorage.setItem(listKey, []);
 	savedFandoms = [];
 } else {
@@ -42,7 +42,7 @@ if(!savedFandoms) {
 //localStorage saves the list as a string, so to turn it into an array, must use split
 //console.log(savedFandoms);
 
-function filterArray(){return Object.entries(localStorage)};
+function filterArray() { return Object.entries(localStorage) };
 
 /* removes local storage on blank tags  */
 const search_submit = window.location.search;
@@ -105,11 +105,22 @@ const tagName = function () {
 //if (!localStorage[`ids-global`]) {localStorage.setItem("ids-global", "")}; //if there's nothing in the global ids key storage, make it blank
 //if there's nothing 
 function emptyStorage(key) { //function to give you that particular localStorage (n set it to nothing if dne)
-	if (!localStorage[key]) { 
+	if (!localStorage[key]) {
 		localStorage.setItem(key, "");
 	}
 	//console.log(localStorage[key]);
 	return localStorage[key];
+}
+function storJson(item) { //turns local storage item into a json
+	let a;
+	try {
+		a = JSON.parse(item);
+	} catch (e) {
+		//console.debug(e);
+		console.error(`obj that was supposed to become a json: `, item, e);
+		a = [];
+	}
+	return a;
 }
 
 var fanIdStorage; // = localStorage[`ids-${cssFanName}`];
@@ -142,7 +153,7 @@ function filterTypes(name) {
 	var is = name == "fandom" ? true : false;
 	if (is && !fandomName) { return null; } //exit from trying to make a fandom box in a global tag
 	var key = `filter-${is ? fandomName : name}`;
-	if (!localStorage[key]) {localStorage.setItem(key, "")}; //if there doesn't already exist a filter for this fandom, set it now
+	if (!localStorage[key]) { localStorage.setItem(key, "") }; //if there doesn't already exist a filter for this fandom, set it now
 	var filter = localStorage[key];
 	var en = enable(is ? cssFanName : name);
 	var obj = [name, key, filter, en];
@@ -353,12 +364,13 @@ var filter_ids = `filter_ids:${id}`;
 
 function idKey(n = tagName, i = id, k = fandomName ? `ids-${cssFanName}` : "ids-global", s = fandomName ? fanIdStorage : globIdStorage) { //by default, do this w/the current tag's name, id, and fandom. the import process will need to loop through this later, hence the params
 	var add = [n, i];
-	let idsObj; //since by default this will be an empty string, will have to catch the error on the parse
+	/*let idsObj; //since by default this will be an empty string, will have to catch the error on the parse
 	try {
-		idsObj = JSON.parse(s); 
+		idsObj = JSON.parse(s);
 	} catch (e) {
 		idsObj = [];
-	}
+	}*/
+	var idsObj = storJson(s);
 	//idsObj.push(add);
 	if (idsObj.indexOf(add) < 0) {
 		idsObj.push(add); //add it to the object
@@ -379,6 +391,7 @@ function idKey(n = tagName, i = id, k = fandomName ? `ids-${cssFanName}` : "ids-
 function nya() {
 	if (!document.querySelector("#filter_opt")) {
 		const select = document.createElement("select");
+		select.className = "filterSelector"; //should make it a class since it'll probably be used again when working on banishment
 		const filterOpt = document.createElement("fieldset");
 		filterOpt.id = "filter_opt";
 		/* display ID # & choose where to append the tag */
@@ -406,29 +419,30 @@ function nya() {
 		});
 
 		/* selection dropdown */
-		const globalOpt = `<option value="filter-global">Global</option>`;
+		const globalOpt = `<option value="global">Global</option>`;
 		if (!fandomName) { //if in a global tag, give the option to pick a fandom for this particular tag
 			select.innerHTML = globalOpt;
 			for (var fandom of savedFandoms) {
 				const option = document.createElement("option");
 				option.innerHTML = fandom;
-				option.setAttribute("value", `filter-${fandom}`);
+				option.setAttribute("value", fandom);
 				select.appendChild(option);
 			}
 		} else {
 			const option = document.createElement("option");
 			option.innerHTML = fandomName;
-			option.setAttribute("value", `filter-${fandomName}`);
+			//option.setAttribute("value", `filter-${fandomName}`);
+			option.setAttribute("value", fandomName);
 			select.appendChild(option);
 			select.innerHTML += globalOpt;
 		}
 		var targetFilter = select.options[0].value;
 		function selectorType() {
-			return (targetFilter=="filter-global") ? "global" : "fandom";
+			return (targetFilter == "filter-global") ? "global" : "fandom";
 		};
-		select.onchange = function() {
+		select.onchange = function () {
 			//console.log(select.value);
-			targetFilter = select.value;
+			targetFilter = `filter-${select.value}`; //this selector is also used when importing values for ids, since i have yet to optimize that
 		}
 
 		/* exclude, include, or remove a tag */
@@ -479,13 +493,13 @@ function nya() {
 				} else {
 					filt = filt.replace(old_ids, newFilt); //i forgot. to put in the "filt =". i feel like an idiot
 					/* removal */
-					if(type=="Remov") {
+					if (type == "Remov") {
 						p.innerHTML = `${obj.ing}ed <strong>${tagName}</strong> from <em>${curr}</em>.`
 					} else {
 						p.innerHTML = `Changed <strong>${tagName}</strong> to ${obj.ing}e in <em>${curr}</em>.`;
 					}
 				}
-			} else if(type=="Remov") { //if you're supposed to be removing smth that isn't there, tell them
+			} else if (type == "Remov") { //if you're supposed to be removing smth that isn't there, tell them
 				p.innerHTML = `<strong>${tagName}</strong> isn't in your <em>${curr}</em> filters!`;
 			} else {
 				filt += newFilt;
@@ -570,7 +584,7 @@ function submission() {
 			fanSub = fan[2] ? fan[2] : ""; //if you don't do this, then it'll submit "undefined" when there's nothing
 		}
 	};
-	var tempSub = tempp[2] ? tempp[2] : ""; 
+	var tempSub = tempp[2] ? tempp[2] : "";
 	//console.log("globalSub:");
 	//console.log(globeSub);
 	//console.log("fanSub:");
@@ -615,29 +629,40 @@ if (search_submit == "") {
 	details.appendChild(summary);
 
 	function filterloop(key) {
-		var store = emptyStorage(key);
+		var filterStore = emptyStorage(`filter-${key}`);
 		//if (localStorage[`filter-${key}`]) {
-		if (store) {
+		if (filterStore) {
+			var html = filterStore;
+			console.log(`string to replace start: `, html);
+			//console.log(`stored filters for filter-${key}: \n\n${filterStore}`);
+			//console.log("globIdStorage: ", globIdStorage);
 			const p = document.createElement("p");
 			p.className = `prev-${key.replaceAll(/\W+/g, "-")}`;
 			//p.innerHTML = `<strong>${key.replaceAll(/-/g, " ").trim()} Filters:</strong></br><span>${localStorage[`filter-${key}`]}</span>`;
 			const l = document.createElement("strong");
 			l.innerHTML = `${key.replaceAll(/-/g, " ").trim()} Filters:`;
-			const gson = () => {
-				let a;
+			//const gson = storJson(globIdStorage);
+			//console.log("global json, gson:", gson);
+			//console.log("a: ", a);
+			const sp = document.createElement("span");
+			for (const storedId of storJson(globIdStorage)) {
+				//console.log(storedId);
+				const rep = new RegExp(`filter_ids:${storedId[1]} `); //for now, hard code it like this. can make it more sensitive later
+				html = html.replace(rep, `${storedId[0]}, `);
+			}; //global
+			console.log(`html after replacing globally: `, html);
+			if (fandomName) {
+				console.log(`fandomName: true`);
 				try {
-					a = JSON.parse(globIdStorage);
-				} catch (e) {
-					console.error(e);
-					a = [];
-				}
-			};
-			console.log("global json, gson:", gson);
-			for (const storedId of gson) {
-				console.log(storedId);
-				//const rep = new RegExp(`filter_ids:${storedId} `); //for now, hard code it like this. can make it more sensitive later
+					for (const storedId of storJson(fanIdStorage)) {
+						const rep = new RegExp(`filter_ids:${storedId[1]} `); //for now, hard code it like this. can make it more sensitive later
+						html = html.replace(rep, `${storedId[0]}, `);
+					}
+				} catch (e) { console.error("i bet it's not iterable: ", e) }
 			}
-
+			sp.innerHTML = html;
+			p.append(l, document.createElement("br"), sp);
+			//p.innerHTML += html;
 			details.appendChild(p);
 		};
 	};
@@ -676,15 +701,15 @@ function expy(obj) {
 	for (const [key, value] of arr) {
 		if (key.startsWith("filter-") || key.startsWith("enable-")) {
 			jason += `"${key}": "${value.replaceAll(`"`, `\\"`)}", `; //make sure to sanitize the values w/escape chars
-			if(obj.indexOf(arr)==obj.length) {
+			if (obj.indexOf(arr) == obj.length) {
 				console.log("uhh this is the last one");
 			}
 		}
 		//expy(value);
 	}
-	jason = jason.substring(0, jason.length-2) + "}"; //remove last trailing comma + space + closing bracket
+	jason = jason.substring(0, jason.length - 2) + "}"; //remove last trailing comma + space + closing bracket
 	//downloading as json from https://attacomsian.com/blog/javascript-download-file
-	const blob = new Blob([jason], {type: 'application/json'}); //create blob object
+	const blob = new Blob([jason], { type: 'application/json' }); //create blob object
 	const DL_jason = URL.createObjectURL(blob);
 	const saveDate = new Date();
 	download(DL_jason, `autofilters_${saveDate.getFullYear()}_${saveDate.getMonth()}_${saveDate.getDay()}.json`); //download the file
@@ -696,30 +721,51 @@ function expy(obj) {
 function impsy(div) { //for now just have it read from a specified div
 	div.id = "importDiv";
 	const instructions = document.createElement("p");
-	instructions.innerHTML = "<small>Please paste your exported options into the textbox below. <strong>This will override your current settings.</strong></small>";
+	//remember to remove the hard-coding of the import csv checkbox and also remove the hacky version of its import process by Finishing It
+	instructions.innerHTML = `<small>Please paste your exported options into the textbox below. <strong>This will override your current settings.</strong></small> | <input type="checkbox" id="import_csv" checked> <label for="import_csv">import id names from csv</label>`;
 	const tb = document.createElement("textarea");
 	const parseButt = document.createElement("button");
 	parseButt.innerHTML = "Save Imported Settings";
 	parseButt.addEventListener("click", () => {
+		var impCsv = document.querySelector("#import_csv").checked;
 		const impSet = tb.value;
-		let parsable = false;
-		try {
-			JSON.parse(impSet);
-			parsable = true;
-		} catch (e) {
-			alert("sorry, this can't be parsed.");
-		}
-		if (parsable) {
-			const obj = Object.entries(JSON.parse(impSet));
-			for (const [key, value] of obj) {
-				localStorage.setItem(key, value);
+		if (impCsv) {
+			//console.log("textbox value:\n", impSet, "split by newlines: ", impSet.split("\n"));
+			const obj = function () {
+				var j = [];
+				for (const tag of impSet.split("\n")) {
+					j.push(tag.split(/,/g));
+				}
+				return j;
+			}();
+			//console.log(JSON.stringify(obj));
+			var key = `ids-${toCss(document.querySelector("#filter_opt .filterSelector").options[0].value)}`;
+			//console.log(`save key: ${key}\n`, `save obj (not yet stringified):`, obj);
+			autosave(key, JSON.stringify(obj));
+			//autosave()
+		} else {
+			let parsable = false;
+			try {
+				JSON.parse(impSet);
+				parsable = true;
+			} catch (e) {
+				alert("sorry, this can't be parsed.");
 			}
-			alert("filters successfully imported.");
-			window.location.reload();
+			if (parsable) {
+				const obj = Object.entries(JSON.parse(impSet));
+				for (const [key, value] of obj) {
+					localStorage.setItem(key, value);
+				}
+				alert("filters successfully imported.");
+				window.location.reload();
+			}
 		}
+
 	})
 	div.append(instructions, tb, parseButt);
 }
+
+//nya(); //automatically open the id thing for debugger purposes
 
 /* CSS STYLING AT THE END BC IT'S A PICKY BITCH */
 var css = `
