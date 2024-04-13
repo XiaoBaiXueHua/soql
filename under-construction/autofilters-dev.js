@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name	ao3 sticky filters
+// @name	ao3 sticky filters DEVELOPER
 // @namespace	https://sincerelyandyourstruly.neocities.org
 // @author	白雪花
 // @description	rewriting thE saved filters script from https://greasyfork.org/en/scripts/3578-ao3-saved-filters, as well as adding in features made possible by flamebyrd's tag id bookmarklet (https://random.fangirling.net/scripts/ao3_tag_id)
@@ -20,10 +20,6 @@ const header = document.querySelector("h2:has(a.tag)");
 const currentTag = header.querySelector("a.tag"); //the current tag being searched 
 const errorFlash = document.querySelector("div.flash.error");
 const noResults = function () {
-	//const no = header.innerHTML.match(/\n0\s/);
-	//console.log(`noResults: ${no && !errorFlash}`);
-	//return (no && !errorFlash);
-	//return no ? true : false;
 	return header.innerHTML.match(/\n0\s/) ? true : false;
 }(); //will allow for the fandom box to be made
 //console.log("is error page?");
@@ -36,7 +32,13 @@ var savedFandoms = localStorage[listKey]; //need to keep an array of available f
 if(!savedFandoms) {
 	//localStorage.setItem(listKey, []);
 	savedFandoms = [];
-} else {savedFandoms = savedFandoms.split(/,/g);}
+} else {
+	try {
+		savedFandoms = JSON.parse(savedFandoms);
+	} catch (e) {
+		savedFandoms = savedFandoms.split(/,/g);
+	}
+}
 //localStorage saves the list as a string, so to turn it into an array, must use split
 //console.log(savedFandoms);
 
@@ -80,7 +82,8 @@ const fandomName = function () {
 	var meetsCutoff = (fandomCount / tagCount * 100 >= fandom_cutoff);
 	if (meetsCutoff && savedFandoms.indexOf(fandom) < 0) { //if it qualifies as being part of a fandom & is not yet in the array, add it and then save it to local storage
 		savedFandoms.push(fandom);
-		localStorage[listKey] = savedFandoms;
+		//localStorage[listKey] = JSON.stringify(savedFandoms);
+		autosave(listKey, JSON.stringify(savedFandoms));
 	}
 	return meetsCutoff ? fandom : null;
 }();
@@ -99,24 +102,25 @@ const tagName = function () {
 	//tag = tag.replace(remAmbig, "").trim();
 	return tag;
 }();
-if (!localStorage[`ids-global`]) {localStorage.setItem("ids-global", "")}; //if there's nothing in the global ids key storage, make it blank
-function emptyStorage(key) {
-	if (!localStorage[key]) {
+//if (!localStorage[`ids-global`]) {localStorage.setItem("ids-global", "")}; //if there's nothing in the global ids key storage, make it blank
+//if there's nothing 
+function emptyStorage(key) { //function to give you that particular localStorage (n set it to nothing if dne)
+	if (!localStorage[key]) { 
 		localStorage.setItem(key, "");
 	}
-	console.log(localStorage[key]);
+	//console.log(localStorage[key]);
 	return localStorage[key];
 }
 
-var fanIdKey;// = localStorage[`ids-${cssFanName}`];
+var fanIdStorage; // = localStorage[`ids-${cssFanName}`];
 function isFandom() { //function for setting all the various vars that only show up if it's a fandom-specific tag. will have to clean up the thing later but for now i'll just leave it as is
 	if (!fandomName) {
 		return; //just exit if there's no fandom
 	}
-	fanIdKey = emptyStorage(`ids-${cssFanName}`);
+	fanIdStorage = emptyStorage(`ids-${cssFanName}`);
 }
 isFandom();
-const globIdKey = emptyStorage(`ids-global`);
+var globIdStorage = emptyStorage(`ids-global`);
 
 /* local storage keys */
 function enable(key) {
@@ -323,7 +327,7 @@ const filtButt = document.createElement("li");
 filtButt.id = "get_id_butt";
 filtButt.innerHTML = `<a id="id_butt">Tag ID</a>`;
 
-/* id fetcher function */
+/* id fetcher function, by flamebyrd */
 const id = function () {
 	if (document.querySelector("#favorite_tag_tag_id")) {
 		console.log("favorite tag id method")
@@ -347,16 +351,29 @@ const id = function () {
 }();
 var filter_ids = `filter_ids:${id}`;
 
-function idKey() {
-	var add = `[${tagName}, ${id}]`;
-	if (fandomName) {
-		fanIdKey += `${fanIdKey?",":""}${add}`;
-		autosave(`ids-${cssFanName}`, fanIdKey);
-	} else {
-		globIdKey += `, ${add}`;
+function idKey(n = tagName, i = id, k = fandomName ? `ids-${cssFanName}` : "ids-global", s = fandomName ? fanIdStorage : globIdStorage) { //by default, do this w/the current tag's name, id, and fandom. the import process will need to loop through this later, hence the params
+	var add = [n, i];
+	let idsObj; //since by default this will be an empty string, will have to catch the error on the parse
+	try {
+		idsObj = JSON.parse(s); 
+	} catch (e) {
+		idsObj = [];
 	}
-	//return [tagName, id];
+	//idsObj.push(add);
+	if (idsObj.indexOf(add) < 0) {
+		idsObj.push(add); //add it to the object
+		autosave(k, JSON.stringify(idsObj)); //and then save it
+	}
+	console.log(s);
+	/*var storedIds = [];
+	storedIds.push(["rape/non-con","Warning","Global","19"], ["not rated","Rating","Global","9"]);
+	localStorage.setItem("ids-global", JSON.stringify(storedIds)); //naruhodo. gotta json stringify them so that they get saved correctly.
+	console.log(localStorage["ids-global"]);
+	console.log(JSON.parse(localStorage["ids-global"]));*/
 }
+
+//idKey();
+
 
 /* display the filter_ids and actions */
 function nya() {
@@ -435,6 +452,7 @@ function nya() {
 
 		//function for adding the filter to the search values + saved local storage
 		function addFilt(obj) {
+			idKey(); //first 
 			//console.log(`${selectorType()}Filters`);
 			var filtArr = [selectorType(), targetFilter, localStorage[targetFilter], select.selectedIndex];
 			var textarea = document.getElementById(`${filtArr[0]}Filters`);
@@ -597,10 +615,29 @@ if (search_submit == "") {
 	details.appendChild(summary);
 
 	function filterloop(key) {
-		if (localStorage[`filter-${key}`]) {
+		var store = emptyStorage(key);
+		//if (localStorage[`filter-${key}`]) {
+		if (store) {
 			const p = document.createElement("p");
 			p.className = `prev-${key.replaceAll(/\W+/g, "-")}`;
-			p.innerHTML = `<strong>${key.replaceAll(/-/g, " ").trim()} Filters:</strong></br><span>${localStorage[`filter-${key}`]}</span>`;
+			//p.innerHTML = `<strong>${key.replaceAll(/-/g, " ").trim()} Filters:</strong></br><span>${localStorage[`filter-${key}`]}</span>`;
+			const l = document.createElement("strong");
+			l.innerHTML = `${key.replaceAll(/-/g, " ").trim()} Filters:`;
+			const gson = () => {
+				let a;
+				try {
+					a = JSON.parse(globIdStorage);
+				} catch (e) {
+					console.error(e);
+					a = [];
+				}
+			};
+			console.log("global json, gson:", gson);
+			for (const storedId of gson) {
+				console.log(storedId);
+				//const rep = new RegExp(`filter_ids:${storedId} `); //for now, hard code it like this. can make it more sensitive later
+			}
+
 			details.appendChild(p);
 		};
 	};
