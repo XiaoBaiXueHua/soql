@@ -16,26 +16,38 @@
 
 /* various important global vars */
 const header = document.querySelector("h2:has(a.tag)");
+//console.log(header);
 const currentTag = header.querySelector("a.tag"); //the current tag being searched 
 const errorFlash = document.querySelector("div.flash.error");
 const noResults = function () {
+	//const no = header.innerHTML.match(/\n0\s/);
+	//console.log(`noResults: ${no && !errorFlash}`);
+	//return (no && !errorFlash);
+	//return no ? true : false;
 	return header.innerHTML.match(/\n0\s/) ? true : false;
 }(); //will allow for the fandom box to be made
+//console.log("is error page?");
+//console.log(errorFlash);
+//here's the local storage array
 
 /* keeping the fandoms w/saved filters in an array: */
 var listKey = "saved fandoms";
 var savedFandoms = localStorage[listKey]; //need to keep an array of available fandoms to be able to make a dropdown of options when 
 if(!savedFandoms) {
+	//localStorage.setItem(listKey, []);
 	savedFandoms = [];
 } else {savedFandoms = savedFandoms.split(/,/g);}
 //localStorage saves the list as a string, so to turn it into an array, must use split
+//console.log(savedFandoms);
 
 function filterArray(){return Object.entries(localStorage)};
 
 /* removes local storage on blank tags  */
 const search_submit = window.location.search;
+//console.log(`search_submit: ${search_submit}\n!search_submit: ${!search_submit}`);
 const currentPath = window.location.pathname.toString();
 const shouldClear = currentPath.match(/tags/);
+//console.log(`supposed to clear the advanced search: ${shouldClear}`);
 if (shouldClear && !search_submit) {
 	localStorage.setItem("filter-advanced-search", "");
 }
@@ -48,6 +60,8 @@ var remAmbig = /\s\((\w+(\s|&)*|\d+\s?)+\)/g; //removes disambiguators
 const fandomName = function () {
 	var fandom_cutoff = 70;
 	var raw = document.querySelector("#include_fandom_tags label"); //gets the fandom count from the dropdown on the side
+	//console.log("item w/ fandom numbers:");
+	//console.log(raw);
 	if (!raw) { return null; };
 	raw = raw.innerText;
 	var fandom = raw.replace(remAmbig, "").trim();
@@ -72,14 +86,17 @@ const fandomName = function () {
 }();
 console.info(`fandomName: ${fandomName}`);
 console.log(savedFandoms);
-
 /* function to make css-friendly versions of a name */
 function toCss(str) {
 	return str.replaceAll(/\W+/g, "-");
 }
 const cssFanName = fandomName ? toCss(fandomName) : null;
 const tagName = function () {
+	//var tag = document.querySelector("h2.heading a.tag").innerText;
 	var tag = currentTag.innerText.replace(remAmbig, "").trim();
+	//console.log("tagName function querySelector of querySelector testing: ")
+	//console.log(tag);
+	//tag = tag.replace(remAmbig, "").trim();
 	return tag;
 }();
 if (!localStorage[`ids-global`]) {localStorage.setItem("ids-global", "")}; //if there's nothing in the global ids key storage, make it blank
@@ -91,7 +108,7 @@ function emptyStorage(key) {
 	return localStorage[key];
 }
 
-var fanIdKey;
+var fanIdKey;// = localStorage[`ids-${cssFanName}`];
 function isFandom() { //function for setting all the various vars that only show up if it's a fandom-specific tag. will have to clean up the thing later but for now i'll just leave it as is
 	if (!fandomName) {
 		return; //just exit if there's no fandom
@@ -117,6 +134,7 @@ function enable(key) {
 	return enabled;
 }
 function filterTypes(name) {
+	//console.log(name);
 	var is = name == "fandom" ? true : false;
 	if (is && !fandomName) { return null; } //exit from trying to make a fandom box in a global tag
 	var key = `filter-${is ? fandomName : name}`;
@@ -140,6 +158,7 @@ function checkbox(name, bool, prefix) {
 	cbox.setAttribute("type", "checkbox");
 	cbox.id = `${prefix}-${name}`;
 	cbox.checked = bool;
+	//const l = makeStrEl(prefix, "label");
 	const l = document.createElement("label");
 	l.setAttribute("for", `${prefix}-${name}`);
 	l.innerHTML = prefix;
@@ -153,6 +172,8 @@ function checkbox(name, bool, prefix) {
 };
 //function to transform an array. not sure why i had the return at the end since i obviously never set any vars to it
 function box(obj) {
+	//console.log("box being made:");
+	//console.log(obj);
 	if (!obj) { return null; }; //exit if no fandom
 	var is = (obj[0] == "fandom"); //thing for checking if this box is a fandom type or not
 	var name = obj[0];
@@ -163,6 +184,7 @@ function box(obj) {
 		obj[2] = box.value;
 		await autosave(obj[1], obj[2]);
 	});
+	//const label = makeStrEl(htm, "label");
 	const label = document.createElement("label");
 	label.className = "filter-box-label";
 	var htm = name;
@@ -205,6 +227,7 @@ if (searchdt !== null || searchdd !== null) {
 	for (el of globEl) {
 		saveDiv.appendChild(el);
 	};
+	//console.log(`box(fan) || noResults: ${(box(fan) || noResults)}`);
 	const fanEl = box(fan) ? fan[4] : null;
 	if (fanEl) {
 		for (el of fanEl) {
@@ -213,12 +236,15 @@ if (searchdt !== null || searchdd !== null) {
 	}
 	/* when a search returns nothing */
 	else if (noResults) {
+		//console.log("noResults is true");
 		var html = `Your search returned no results. Would you like to review your filters?`;
+		//p.innerHTML = html;
 		debuggy(html);
 	};
 	details.append(summary, saveDiv);
 	searchdt.insertAdjacentElement("beforebegin", details);
 } else if (errorFlash) {
+	//const p = document.createElement("p");
 	var html = "Double-check your filters for mistakes.";
 	debuggy(html);
 } else {
@@ -232,7 +258,9 @@ function debuggy(t = "", par = header) {
 	debugDiv.id = "error_debug";
 	const p = document.createElement("p");
 	p.innerHTML = t;
+	//console.log(currentTag);
 	var href = `${currentTag.href}/works`;
+	//console.log(href);
 	const reSearch = document.createElement("ul");
 	reSearch.className = "actions";
 	reSearch.id = "debugged-search";
@@ -244,6 +272,7 @@ function debuggy(t = "", par = header) {
 			showAllFilters(debugDiv);
 			showFilters.remove(); //remove self after showing all the filters
 		})
+		//showFilters.setAttribute("onclick", showAllFilters(debugDiv));
 		reSearch.appendChild(showFilters);
 	} else if (errorFlash) {
 		showAllFilters(debugDiv); //will automatically do the debug div on the error flash page
@@ -252,6 +281,10 @@ function debuggy(t = "", par = header) {
 	research.href = href;
 	research.innerHTML = "Search Again";
 	reSearch.appendChild(research);
+	//errorFlash.insertAdjacentElement("afterend", debugDiv);
+	//errorFlash.insertAdjacentElement("afterend", p);
+	//header.insertAdjacentHTML("afterend", "<hr>");
+	//header.insertAdjacentElement("afterend", reSearch);
 	par.insertAdjacentElement("afterend", debugDiv);
 	debugDiv.insertAdjacentElement("afterend", reSearch);
 	header.insertAdjacentElement("afterend", p);
@@ -308,7 +341,7 @@ const id = function () {
 		console.log("subscribable id method");
 		return document.querySelector("#subscription_subscribable_id").value;
 	} else {
-		if (!errorFlash) {console.error("can't find tag id :C");};
+		//if (!errorFlash) {alert("can't find tag id :C");};
 		return null;
 	};
 }();
@@ -322,6 +355,7 @@ function idKey() {
 	} else {
 		globIdKey += `, ${add}`;
 	}
+	//return [tagName, id];
 }
 
 /* display the filter_ids and actions */
@@ -376,6 +410,7 @@ function nya() {
 			return (targetFilter=="filter-global") ? "global" : "fandom";
 		};
 		select.onchange = function() {
+			//console.log(select.value);
 			targetFilter = select.value;
 		}
 
@@ -400,11 +435,18 @@ function nya() {
 
 		//function for adding the filter to the search values + saved local storage
 		function addFilt(obj) {
+			//console.log(`${selectorType()}Filters`);
 			var filtArr = [selectorType(), targetFilter, localStorage[targetFilter], select.selectedIndex];
 			var textarea = document.getElementById(`${filtArr[0]}Filters`);
 			var curr = select.options[filtArr[3]].text;
+			//let doubleck = new RegExp(`\\D${id}\\s`, "g");
 			//if fandom-specific, goes into the fandom filter box
+			//var filtArr = fandomName ? fan : global;
+			//console.log(filtArr);
+			//console.log(targetFilter);
+			//var filtArr = targetFilter;
 			var filt = ` ${filtArr[2]} `; //need the spaces in order to correctly match the values later lol. it'll be trimmed in the end
+			//var type = ` ${obj.pre}${filter_ids} `;
 			var type = obj.ing;
 			var old_ids = new RegExp(` -?${filter_ids} `);
 			var newFilt = ` ${obj.pre} `;
@@ -432,6 +474,7 @@ function nya() {
 				p.innerHTML = `Now ${obj.ing}ing <strong>${tagName}</strong> in <em>${curr}</em>.`;
 			}
 			filt = filt.replace(/\s{2,}/g, " ").trim(); //remove extra whitespaces
+			//filtArr[4][1].value = filt;
 			if (textarea) {
 				textarea.value = filt;
 			}
@@ -465,8 +508,43 @@ if (form) {
 	filtButt.addEventListener("mouseup", nya);
 }
 
+/* banish a particular work from your search results */
+const workList = document.querySelectorAll("li[id^='work']");
+//var nyeh = (!global[3] && !search_submit); //if both the global n the fandom checkmarks are off AND we're not on a search page
+var nyeh = fan ? (!global[3] && !fan[3]) : !global[3]; //have to check if the fandom box exists first before declaring it -_-
+console.log(`!global[3] (&& optional !fan[3]): ${nyeh}`);
+if (nyeh || search_submit) {
+	//if the autofilters are currently disabled or we're already on a search page, do the thing
+	for (const work of workList) {
+		//console.log(work);
+		const work_id = work.id.replace("work_", ""); //get its id num from. well. its id.
+		const klass = work.classList.toString();
+		//const user_id = klass.match(/user-\d+/).toString();
+		const user_id = function () {
+			let id = null;
+			try {
+				id = klass.match(/user-\d+/).toString().replace(/user-/, "");
+			} catch (e) {
+				console.info("oh hey an anon work")
+			}
+			return id;
+		}();
+		const isAnon = id ? false : true;
+		//console.log(`work_id: ${work_id}; user_id: ${user_id}`);
+		const banSel = document.createElement("select");
+		const opts = [work_id, isAnon, user_id];
+	}
+}
+
+
 /* add filters + temp search to search w/in results box */
 function submission() {
+	//console.log("real box value:")
+	//console.log(advSearch.value);
+	//console.log("global array:");
+	//console.log(global);
+	//console.log("fandom array:");
+	//console.log(fan);
 	var globeSub = document.querySelector("#enable-global").checked ? global[2] : "";
 	var fanSub = "";
 	if (fandomName) {
@@ -475,12 +553,21 @@ function submission() {
 		}
 	};
 	var tempSub = tempp[2] ? tempp[2] : ""; 
+	//console.log("globalSub:");
+	//console.log(globeSub);
+	//console.log("fanSub:");
+	//console.log(fanSub);
+	//console.log("tempp:");
+	//console.log(tempp);
 	advSearch.value = `${globeSub} ${fanSub} ${tempSub}`;
 	advSearch.value = advSearch.value.replace(/\s{2,}/g, " ").trim();
 }
 if (form) { form.addEventListener("submit", submission) };
 
 /* autosubmit + previous filters drop */
+//const search_submit = window.location;
+//var debug_error = window.location.toString().match("error");
+//console.log(debug_error);
 if (search_submit == "") {
 	//localStorage.setItem("filter-advanced-search", "");
 	let globIsCheck = false; //by default
@@ -501,6 +588,8 @@ if (search_submit == "") {
 		form.submit();
 	};
 } else if (!noResults) {
+	//tempp[2] = fakeSearch.value ? fakeSearch.value : ""; //if there's a value in the fake search (like when going through Pages of search w/in results things), then make sure that the temp search remains in local storage
+	//console.log(`!noResults: ${!noResults}`);
 	const details = document.createElement("details");
 	details.className = "prev-search";
 	const summary = document.createElement("summary");
@@ -526,6 +615,8 @@ if (search_submit == "") {
 		filterloop(fandomName);
 	}
 	header.insertAdjacentElement("afterend", details);
+	//console.log("we are now erasing the local storage for the advanced search");
+	//localStorage.setItem("filter-advanced-search", fakeSearch.value ? fakeSearch.value : "");
 
 }
 
@@ -542,6 +633,7 @@ const download = (path, filename) => {
 /* export saved filters as a json */
 function expy(obj) {
 	console.info("now executing expy on", obj);
+	//console.log(filterArray());
 	var arr = obj;
 	var jason = "{"; //opening bracket;
 	for (const [key, value] of arr) {
@@ -551,6 +643,7 @@ function expy(obj) {
 				console.log("uhh this is the last one");
 			}
 		}
+		//expy(value);
 	}
 	jason = jason.substring(0, jason.length-2) + "}"; //remove last trailing comma + space + closing bracket
 	//downloading as json from https://attacomsian.com/blog/javascript-download-file
@@ -633,6 +726,7 @@ var css = `
 `; //gonna need this for the 0 results page anyway, might as well set it to smth
 if (form) {
 	const optWidth = window.getComputedStyle(document.querySelector("#main ul.user.navigation.actions")).width;
+	//const optMWidth = window.getComputedStyle(form).width;
 	const borderBottom = window.getComputedStyle(document.querySelector("form#work-filters dt")).borderBottom;
 	css += `
 	#main *:not(a, #id_output, button, .current) {box-sizing: border-box;}
