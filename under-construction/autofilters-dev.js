@@ -12,23 +12,6 @@
 // @grant	none
 // @run-at	document-end
 // ==/UserScript==
-/*
-class El {
-	constructor(txt, typ) {
-		this.innerHTML = txt;
-		this.type = typ;
-	}
-}*/
-/*
-function makeEl(str) {
-	return document.createElement(str.toString());
-}
-function makeStrEl(txt, el) {
-	const e = document.createElement(el);
-	e.innerHTML = txt;
-	console.log(e);
-	return e;
-}*/
 
 /* various important global vars */
 const header = document.querySelector("h2:has(a.tag)");
@@ -531,7 +514,7 @@ if (nyeh || search_submit) {
 		const isAnon = id ? false : true;
 		//console.log(`work_id: ${work_id}; user_id: ${user_id}`);
 		const banSel = document.createElement("select");
-		const opts = [work_id, isAnon];
+		const opts = [work_id, isAnon, user_id];
 	}
 }
 
@@ -619,42 +602,42 @@ if (search_submit == "") {
 
 }
 
+//from https://attacomsian.com/blog/javascript-download-file
+const download = (path, filename) => {
+	const anchor = document.createElement("a");
+	anchor.href = path;
+	anchor.download = filename;
+	document.body.appendChild(anchor);
+	anchor.click();
+	document.removeChild(anchor);
+}
+
 /* export saved filters as a json */
 function expy(obj) {
+	console.info("now executing expy on", obj);
 	//console.log(filterArray());
 	var arr = obj;
-	try {
-		arr = JSON.parse(arr);
-		console.log(arr);
-	} catch (e) {
-		console.error("oops. uhhh", arr, "is a type of ", typeof(arr));
-		//return jason;
-	}
-	//const jason = JSON.stringify(filterArray());
-	//var jason = new Object;
 	var jason = "{"; //opening bracket;
 	for (const [key, value] of arr) {
-		jason += key.toString();
-		console.log(value);
-		expy(value);
+		if (key.startsWith("filter-") || key.startsWith("enable-")) {
+			jason += `"${key}": "${value.replaceAll(`"`, `\\"`)}", `; //make sure to sanitize the values w/escape chars
+			if(obj.indexOf(arr)==obj.length) {
+				console.log("uhh this is the last one");
+			}
+			//console.log(value);
+
+		}
+		//expy(value);
 	}
-	/*for (const [key, value] of filterArray()) {
-		//console.log(key, value);
-		Object.defineProperties(jason, {[key]: {
-			value: value,
-			writable: false
-		}})
-	}*/
-	jason += "}"; //closing bracket
-	console.log(jason);
-	jason = JSON.stringify(jason);
-	//console.log(jason);
-	//document.querySelector("body").innerHTML = jason;
+	jason = jason.substring(0, jason.length-2) + "}"; //remove last trailing comma + space + closing bracket
+	//downloading as json from https://attacomsian.com/blog/javascript-download-file
+	const blob = new Blob([jason], {type: 'application/json'}); //create blob object
+	const DL_jason = URL.createObjectURL(blob);
+	download(DL_jason, `autofilters_${new Date}.json`); //download the file
+	URL.revokeObjectURL(DL_jason); //release object url
 	//return jason;
-	//return JSON.stringify(jason, null, "\t");
-	return jason;
 };
-expy(filterArray());
+//expy(filterArray());
 /* CSS STYLING AT THE END BC IT'S A PICKY BITCH */
 var css = `
 /* error 0 results debug */
