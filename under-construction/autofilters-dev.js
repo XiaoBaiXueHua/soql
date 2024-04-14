@@ -364,34 +364,26 @@ var filter_ids = `filter_ids:${id}`;
 
 function idKey(n = tagName, i = id, k = fandomName ? `ids-${cssFanName}` : "ids-global", s = fandomName ? fanIdStorage : globIdStorage) { //by default, do this w/the current tag's name, id, and fandom. the import process will need to loop through this later, hence the params
 	var add = [n, i];
-	/*let idsObj; //since by default this will be an empty string, will have to catch the error on the parse
-	try {
-		idsObj = JSON.parse(s);
-	} catch (e) {
-		idsObj = [];
-	}*/
 	var idsObj = storJson(s);
-	//idsObj.push(add);
-	if (idsObj.indexOf(add) < 0) {
+	if (s.search(JSON.stringify(add)) < 0) { //js can't match objects w/in arrays to my knowledge, so this was the best i could do lol
 		idsObj.push(add); //add it to the object
+		s = JSON.stringify(idsObj);
 		autosave(k, JSON.stringify(idsObj)); //and then save it
 	}
-	console.log(s);
-	/*var storedIds = [];
-	storedIds.push(["rape/non-con","Warning","Global","19"], ["not rated","Rating","Global","9"]);
-	localStorage.setItem("ids-global", JSON.stringify(storedIds)); //naruhodo. gotta json stringify them so that they get saved correctly.
-	console.log(localStorage["ids-global"]);
-	console.log(JSON.parse(localStorage["ids-global"]));*/
+	//console.log(s);
 }
 
-//idKey();
+//the id filter selector should be made into a class tbh, but since idk how to execute that correctly rn, it'll just be global vars 
+const select = document.createElement("select");
+select.className = "filterSelector"; //should make it a class since it'll probably be used again when working on banishment
+function currentSel() {
+	return select.value;
+}
 
 
 /* display the filter_ids and actions */
 function nya() {
 	if (!document.querySelector("#filter_opt")) {
-		const select = document.createElement("select");
-		select.className = "filterSelector"; //should make it a class since it'll probably be used again when working on banishment
 		const filterOpt = document.createElement("fieldset");
 		filterOpt.id = "filter_opt";
 		/* display ID # & choose where to append the tag */
@@ -408,12 +400,12 @@ function nya() {
 		/* import/export buttons */
 		const impDiv = document.createElement("div"); //div for the import process
 		const impButt = document.createElement("li");
-		impButt.innerHTML = `<a href="#">Import</a>`;
+		impButt.innerHTML = `<a>Import</a>`;
 		impButt.addEventListener("click", () => {
 			impsy(impDiv);
 		})
 		const expButt = document.createElement("li");
-		expButt.innerHTML = `<a href="#">Export</a>`;
+		expButt.innerHTML = `<a>Export</a>`;
 		expButt.addEventListener("click", () => {
 			expy(filterArray());
 		});
@@ -436,14 +428,16 @@ function nya() {
 			select.appendChild(option);
 			select.innerHTML += globalOpt;
 		}
-		var targetFilter = select.options[0].value;
+		//var targetFilter = select.options[0].value;
+		//var targetFilter = `filter-${currentSel()}`;
 		function selectorType() {
-			return (targetFilter == "filter-global") ? "global" : "fandom";
+			//console.log(`current targetFilter: `, targetFilter, ` and current selection: ${currentSel()}`);
+			return (`filter-${currentSel()}`== "filter-global") ? "global" : "fandom";
 		};
-		select.onchange = function () {
+		/*select.onchange = function () {
 			//console.log(select.value);
 			targetFilter = `filter-${select.value}`; //this selector is also used when importing values for ids, since i have yet to optimize that
-		}
+		}*/
 
 		/* exclude, include, or remove a tag */
 		const buttonAct = document.createElement("div");
@@ -468,7 +462,7 @@ function nya() {
 		function addFilt(obj) {
 			idKey(); //first 
 			//console.log(`${selectorType()}Filters`);
-			var filtArr = [selectorType(), targetFilter, localStorage[targetFilter], select.selectedIndex];
+			var filtArr = [selectorType(), currentSel(), localStorage[`filter-${currentSel()}`], select.selectedIndex];
 			var textarea = document.getElementById(`${filtArr[0]}Filters`);
 			var curr = select.options[filtArr[3]].text;
 			//let doubleck = new RegExp(`\\D${id}\\s`, "g");
@@ -739,7 +733,7 @@ function impsy(div) { //for now just have it read from a specified div
 				return j;
 			}();
 			//console.log(JSON.stringify(obj));
-			var key = `ids-${toCss(document.querySelector("#filter_opt .filterSelector").options[0].value)}`;
+			var key = `ids-${toCss(currentSel())}`;
 			//console.log(`save key: ${key}\n`, `save obj (not yet stringified):`, obj);
 			autosave(key, JSON.stringify(obj));
 			//autosave()
