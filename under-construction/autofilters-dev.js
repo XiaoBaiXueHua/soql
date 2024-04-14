@@ -462,7 +462,7 @@ function nya() {
 		function addFilt(obj) {
 			idKey(); //first 
 			//console.log(`${selectorType()}Filters`);
-			var filtArr = [selectorType(), currentSel(), localStorage[`filter-${currentSel()}`], select.selectedIndex];
+			var filtArr = [selectorType(), `filter-${currentSel()}`, localStorage[`filter-${currentSel()}`], select.selectedIndex];
 			var textarea = document.getElementById(`${filtArr[0]}Filters`);
 			var curr = select.options[filtArr[3]].text;
 			//let doubleck = new RegExp(`\\D${id}\\s`, "g");
@@ -627,7 +627,6 @@ if (search_submit == "") {
 		//if (localStorage[`filter-${key}`]) {
 		if (filterStore) {
 			var html = filterStore;
-			console.log(`string to replace start: `, html);
 			//console.log(`stored filters for filter-${key}: \n\n${filterStore}`);
 			//console.log("globIdStorage: ", globIdStorage);
 			const p = document.createElement("p");
@@ -639,21 +638,6 @@ if (search_submit == "") {
 			//console.log("global json, gson:", gson);
 			//console.log("a: ", a);
 			const sp = document.createElement("span");
-			for (const storedId of storJson(globIdStorage)) {
-				//console.log(storedId);
-				const rep = new RegExp(`filter_ids:${storedId[1]} `); //for now, hard code it like this. can make it more sensitive later
-				html = html.replace(rep, `${storedId[0]}, `);
-			}; //global
-			console.log(`html after replacing globally: `, html);
-			if (fandomName) {
-				console.log(`fandomName: true`);
-				try {
-					for (const storedId of storJson(fanIdStorage)) {
-						const rep = new RegExp(`filter_ids:${storedId[1]} `); //for now, hard code it like this. can make it more sensitive later
-						html = html.replace(rep, `${storedId[0]}, `);
-					}
-				} catch (e) { console.error("i bet it's not iterable: ", e) }
-			}
 			sp.innerHTML = html;
 			p.append(l, document.createElement("br"), sp);
 			//p.innerHTML += html;
@@ -670,6 +654,24 @@ if (search_submit == "") {
 	if (fan && fan[3]) {
 		filterloop(fandomName);
 	}
+	details.innerHTML = function() {
+		var html = details.innerHTML; //start off as is
+		function yikes(obj) {
+			try {for (const storedId of storJson(obj)) {
+				const rep = new RegExp(`filter_ids:${storedId[1]} `, "g"); //for now, hard code it like this. can make it more sensitive later
+			html = html.replaceAll(rep, `${storedId[0]}, `);
+			}} catch (e) {
+				console.error("i bet it's not iterable: ", e);
+			}
+		}
+		console.log(`string to replace start: `, html);
+		yikes(globIdStorage);//global
+		console.log(`html after replacing globally: `, html);
+		if (fandomName) {
+			yikes(fanIdStorage);
+		}
+		return html; //then return it replaced
+	}();
 	header.insertAdjacentElement("afterend", details);
 	//console.log("we are now erasing the local storage for the advanced search");
 	//localStorage.setItem("filter-advanced-search", fakeSearch.value ? fakeSearch.value : "");
