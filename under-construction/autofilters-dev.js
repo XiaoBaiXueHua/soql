@@ -215,6 +215,52 @@ function box(obj) {
 box(global);
 const globEl = global[4];
 
+/* now for the tag id fetcher */
+
+/* the function to add the tag ids n stuff */
+//gotta make these first for nya
+const navList = document.querySelector("#main ul.user.navigation");
+const filtButt = document.createElement("li");
+filtButt.id = "get_id_butt";
+filtButt.innerHTML = `<a id="id_butt">Tag ID</a>`;
+
+/* id fetcher function, by flamebyrd */
+const id = function () {
+	if (document.querySelector("#favorite_tag_tag_id")) {
+		console.log("favorite tag id method")
+		return document.querySelector("#favorite_tag_tag_id").value;
+	} else if (document.querySelector("a.rss")) {
+		console.log("rss feed method");
+		var href = document.querySelector("a.rss");
+		href = href.getAttribute("href");
+		href = href.match(/\d+/);
+		return href;
+	} else if (document.querySelector("#include_freeform_tags input:first-of-type")) {
+		console.log("first freeform tag method");
+		return document.querySelector("#include_freeform_tags input:first-of-type").value;
+	} else if (document.querySelector("#subscription_subscribable_id")) {
+		console.log("subscribable id method");
+		return document.querySelector("#subscription_subscribable_id").value;
+	} else {
+		//if (!errorFlash) {alert("can't find tag id :C");};
+		return null;
+	};
+}();
+var filter_ids = `filter_ids:${id}`;
+
+function idKey(n = tagName, i = id, k = fandomName ? `ids-${cssFanName}` : "ids-global", s = fandomName ? fanIdStorage : globIdStorage) { //by default, do this w/the current tag's name, id, and fandom. the import process will need to loop through this later, hence the params
+	var add = [n, i];
+	let str = new RegExp(`\\["${n}","${i}"\\]`);
+	var idsObj = storJson(s);
+	// console.log(`idsObj: `, idsObj, `the thing to add: ${str} to ${JSON.stringify(idsObj)}`, `does it match the stored string? :`, s.match(str));
+	if (s.match(str) <= 0) { //js can't match objects w/in arrays to my knowledge, so this was the best i could do lol
+		idsObj.push(add); //add it to the object
+		s = JSON.stringify(idsObj);
+		autosave(k, JSON.stringify(idsObj)); //and then save it
+	}
+	//console.log(s);
+}
+
 /* now to deal w/the currently-existing form */
 const searchdt = document.querySelector("dt.search:not(.autocomplete)");
 const searchdd = document.querySelector("dd.search:not(.autocomplete");
@@ -222,6 +268,7 @@ const advSearch = document.querySelector("#work_search_query");
 
 //if there's one there will obvs be the other, but just so that they don't feel left out, using "or"
 if (searchdt !== null || searchdd !== null) {
+	idKey(); //first, just save the tag id in local storage. save me the time
 	advSearch.hidden = true;
 	const fakeSearch = document.createElement("input");
 	fakeSearch.id = "fakeSearch";
@@ -329,49 +376,6 @@ function showAllFilters(parent) {
 
 const fandomEl = fandomName ? fan[4] : null;
 
-/* now for the tag id fetcher */
-
-/* the function to add the tag ids n stuff */
-//gotta make these first for nya
-const navList = document.querySelector("#main ul.user.navigation");
-const filtButt = document.createElement("li");
-filtButt.id = "get_id_butt";
-filtButt.innerHTML = `<a id="id_butt">Tag ID</a>`;
-
-/* id fetcher function, by flamebyrd */
-const id = function () {
-	if (document.querySelector("#favorite_tag_tag_id")) {
-		console.log("favorite tag id method")
-		return document.querySelector("#favorite_tag_tag_id").value;
-	} else if (document.querySelector("a.rss")) {
-		console.log("rss feed method");
-		var href = document.querySelector("a.rss");
-		href = href.getAttribute("href");
-		href = href.match(/\d+/);
-		return href;
-	} else if (document.querySelector("#include_freeform_tags input:first-of-type")) {
-		console.log("first freeform tag method");
-		return document.querySelector("#include_freeform_tags input:first-of-type").value;
-	} else if (document.querySelector("#subscription_subscribable_id")) {
-		console.log("subscribable id method");
-		return document.querySelector("#subscription_subscribable_id").value;
-	} else {
-		//if (!errorFlash) {alert("can't find tag id :C");};
-		return null;
-	};
-}();
-var filter_ids = `filter_ids:${id}`;
-
-function idKey(n = tagName, i = id, k = fandomName ? `ids-${cssFanName}` : "ids-global", s = fandomName ? fanIdStorage : globIdStorage) { //by default, do this w/the current tag's name, id, and fandom. the import process will need to loop through this later, hence the params
-	var add = [n, i];
-	var idsObj = storJson(s);
-	if (s.search(JSON.stringify(add)) < 0) { //js can't match objects w/in arrays to my knowledge, so this was the best i could do lol
-		idsObj.push(add); //add it to the object
-		s = JSON.stringify(idsObj);
-		autosave(k, JSON.stringify(idsObj)); //and then save it
-	}
-	//console.log(s);
-}
 
 //the id filter selector should be made into a class tbh, but since idk how to execute that correctly rn, it'll just be global vars 
 const select = document.createElement("select");
@@ -460,7 +464,6 @@ function nya() {
 
 		//function for adding the filter to the search values + saved local storage
 		function addFilt(obj) {
-			idKey(); //first 
 			//console.log(`${selectorType()}Filters`);
 			var filtArr = [selectorType(), `filter-${currentSel()}`, localStorage[`filter-${currentSel()}`], select.selectedIndex];
 			var textarea = document.getElementById(`${filtArr[0]}Filters`);
@@ -626,7 +629,7 @@ if (search_submit == "") {
 		var filterStore = emptyStorage(`filter-${key}`);
 		//if (localStorage[`filter-${key}`]) {
 		if (filterStore) {
-			var html = filterStore;
+			var html = filterStore + " "; //add in the extra space for matching the last in the string
 			//console.log(`stored filters for filter-${key}: \n\n${filterStore}`);
 			//console.log("globIdStorage: ", globIdStorage);
 			const p = document.createElement("p");
@@ -657,20 +660,22 @@ if (search_submit == "") {
 	details.innerHTML = function() {
 		var html = details.innerHTML; //start off as is
 		function yikes(obj) {
-			try {for (const storedId of storJson(obj)) {
+			try {
+				for (const storedId of storJson(obj)) {
 				const rep = new RegExp(`filter_ids:${storedId[1]} `, "g"); //for now, hard code it like this. can make it more sensitive later
-			html = html.replaceAll(rep, `${storedId[0]}, `);
+				// console.log(`regexp: ${rep}`);
+				html = html.replaceAll(rep, `${storedId[0]}, `);
 			}} catch (e) {
 				console.error("i bet it's not iterable: ", e);
 			}
 		}
-		console.log(`string to replace start: `, html);
+		// console.log(`string to replace start: `, html);
 		yikes(globIdStorage);//global
-		console.log(`html after replacing globally: `, html);
+		// console.log(`html after replacing globally: `, html);
 		if (fandomName) {
 			yikes(fanIdStorage);
 		}
-		return html; //then return it replaced
+		return html.trim(); //then return it replaced
 	}();
 	header.insertAdjacentElement("afterend", details);
 	//console.log("we are now erasing the local storage for the advanced search");
