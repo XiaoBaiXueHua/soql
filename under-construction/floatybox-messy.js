@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         floaty review box mod
-// @namespace    https://sincerelyandyourstruly.neocities.org
+// @namespace    saxamaphone
 // @version      1.0
 // @description  Adds a floaty review box. modified from [https://ravenel.tumblr.com/post/156555172141/i-saw-this-post-by-astropixie-about-how-itd-be]
 // @author       白雪花
@@ -11,7 +11,21 @@
 // @exclude     https://archiveofourown.org/works/search?*
 // @grant        none
 // ==/UserScript==
-'use strict';
+
+// word count bit rewritten from Flamebyrd, http://random.fangirling.net/fun/ao3/
+
+const ch_head = document.querySelector(".chapter.preface.group");
+var word_count = document.querySelector("#workskin div.userstuff.module");
+if (ch_head) {
+    const color = window.getComputedStyle(document.querySelector("h3.title a")).color;
+    const style = document.createElement("style");
+    style.innerHTML = `.wordcount {font-size: 1.1em; color: ${color}; text-align: center; margin-top: 5px; font-family: Georgia, serif;}`;
+    document.querySelector("head").appendChild(style);
+    word_count = word_count.innerText.trim().split(/\S+/g).length.toLocaleString(); //won't work on cn n stuff but eh
+    const title = document.querySelector("h3.title");
+    title.insertAdjacentHTML("afterend", `<p class="wordcount">(${word_count} words)</p>`);
+}
+
 //inspired by/modeled after https://ravenel.tumblr.com/post/156555172141/i-saw-this-post-by-astropixie-about-how-itd-be
 //the localStorage parts are snipped from/modeled after https://greasyfork.org/en/scripts/395902-ao3-floating-comment-box
 
@@ -83,7 +97,10 @@ var floatyBoxStyle = `
 		position: fixed;
 		top: 2vh;
 		left: 2vw;
-		z-index: 999;
+        z-index: 999;
+        background-color: white;
+        padding: 10px 5px;
+        border: 1px solid black;
 	}
 }
 `
