@@ -4,7 +4,7 @@
 // @version      1.0
 // @description  Shows the chapter number of a comment in one's AO3 inbox.
 // @author       小白雪花
-// @match        https://archiveofourown.org/users/*/inbox
+// @match        https://archiveofourown.org/users/*/inbox**
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=archiveofourown.org
 // @downloadURL	https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/inbox-chapters.js
 // @updateURL	https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/inbox-chapters.js
