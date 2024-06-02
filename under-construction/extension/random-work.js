@@ -54,6 +54,11 @@ function rand(ub, lb=0) {
 function randWork(el) {
 	// should return a random work on the page (called "el" here bc when fetching pages, they get chucked into a div upon return so that we can use querySelector in it)
 	const works = el.querySelectorAll(`ol.work.index.group li.work`);
+	if (!works) {
+		alert("there were no works on that page. sorry.");
+	} else {
+		const work = works[rand(20)];
+	}
 }
 
 async function fetchPage(url) {
