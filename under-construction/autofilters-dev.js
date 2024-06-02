@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name	ao3 sticky filters
+// @name	ao3 sticky filters DEVELOPER
 // @namespace	https://sincerelyandyourstruly.neocities.org
 // @author	白雪花
 // @description	rewriting thE saved filters script from https://greasyfork.org/en/scripts/3578-ao3-saved-filters, as well as adding in features made possible by flamebyrd's tag id bookmarklet (https://random.fangirling.net/scripts/ao3_tag_id)
@@ -20,10 +20,6 @@ const header = document.querySelector("h2:has(a.tag)");
 const currentTag = header.querySelector("a.tag"); //the current tag being searched 
 const errorFlash = document.querySelector("div.flash.error");
 const noResults = function () {
-	//const no = header.innerHTML.match(/\n0\s/);
-	//console.log(`noResults: ${no && !errorFlash}`);
-	//return (no && !errorFlash);
-	//return no ? true : false;
 	return header.innerHTML.match(/\n0\s/) ? true : false;
 }(); //will allow for the fandom box to be made
 //console.log("is error page?");
@@ -33,14 +29,20 @@ const noResults = function () {
 /* keeping the fandoms w/saved filters in an array: */
 var listKey = "saved fandoms";
 var savedFandoms = localStorage[listKey]; //need to keep an array of available fandoms to be able to make a dropdown of options when 
-if(!savedFandoms) {
+if (!savedFandoms) {
 	//localStorage.setItem(listKey, []);
 	savedFandoms = [];
-} else {savedFandoms = savedFandoms.split(/,/g);}
+} else {
+	try {
+		savedFandoms = JSON.parse(savedFandoms);
+	} catch (e) {
+		savedFandoms = savedFandoms.split(/,/g);
+	}
+}
 //localStorage saves the list as a string, so to turn it into an array, must use split
 //console.log(savedFandoms);
 
-function filterArray(){return Object.entries(localStorage)};
+function filterArray() { return Object.entries(localStorage) };
 
 /* removes local storage on blank tags  */
 const search_submit = window.location.search;
@@ -80,7 +82,8 @@ const fandomName = function () {
 	var meetsCutoff = (fandomCount / tagCount * 100 >= fandom_cutoff);
 	if (meetsCutoff && savedFandoms.indexOf(fandom) < 0) { //if it qualifies as being part of a fandom & is not yet in the array, add it and then save it to local storage
 		savedFandoms.push(fandom);
-		localStorage[listKey] = savedFandoms;
+		//localStorage[listKey] = JSON.stringify(savedFandoms);
+		autosave(listKey, JSON.stringify(savedFandoms));
 	}
 	return meetsCutoff ? fandom : null;
 }();
@@ -99,24 +102,36 @@ const tagName = function () {
 	//tag = tag.replace(remAmbig, "").trim();
 	return tag;
 }();
-if (!localStorage[`ids-global`]) {localStorage.setItem("ids-global", "")}; //if there's nothing in the global ids key storage, make it blank
-function emptyStorage(key) {
+//if (!localStorage[`ids-global`]) {localStorage.setItem("ids-global", "")}; //if there's nothing in the global ids key storage, make it blank
+//if there's nothing 
+function emptyStorage(key) { //function to give you that particular localStorage (n set it to nothing if dne)
 	if (!localStorage[key]) {
 		localStorage.setItem(key, "");
 	}
-	console.log(localStorage[key]);
+	//console.log(localStorage[key]);
 	return localStorage[key];
 }
+function storJson(item) { //turns local storage item into a json
+	let a;
+	try {
+		a = JSON.parse(item);
+	} catch (e) {
+		//console.debug(e);
+		console.error(`obj that was supposed to become a json: `, item, e);
+		a = [];
+	}
+	return a;
+}
 
-var fanIdKey;// = localStorage[`ids-${cssFanName}`];
+var fanIdStorage; // = localStorage[`ids-${cssFanName}`];
 function isFandom() { //function for setting all the various vars that only show up if it's a fandom-specific tag. will have to clean up the thing later but for now i'll just leave it as is
 	if (!fandomName) {
 		return; //just exit if there's no fandom
 	}
-	fanIdKey = emptyStorage(`ids-${cssFanName}`);
+	fanIdStorage = emptyStorage(`ids-${cssFanName}`);
 }
 isFandom();
-const globIdKey = emptyStorage(`ids-global`);
+var globIdStorage = emptyStorage(`ids-global`);
 
 /* local storage keys */
 function enable(key) {
@@ -138,7 +153,7 @@ function filterTypes(name) {
 	var is = name == "fandom" ? true : false;
 	if (is && !fandomName) { return null; } //exit from trying to make a fandom box in a global tag
 	var key = `filter-${is ? fandomName : name}`;
-	if (!localStorage[key]) {localStorage.setItem(key, "")}; //if there doesn't already exist a filter for this fandom, set it now
+	if (!localStorage[key]) { localStorage.setItem(key, "") }; //if there doesn't already exist a filter for this fandom, set it now
 	var filter = localStorage[key];
 	var en = enable(is ? cssFanName : name);
 	var obj = [name, key, filter, en];
@@ -200,6 +215,52 @@ function box(obj) {
 box(global);
 const globEl = global[4];
 
+/* now for the tag id fetcher */
+
+/* the function to add the tag ids n stuff */
+//gotta make these first for nya
+const navList = document.querySelector("#main ul.user.navigation");
+const filtButt = document.createElement("li");
+filtButt.id = "get_id_butt";
+filtButt.innerHTML = `<a id="id_butt">Tag ID</a>`;
+
+/* id fetcher function, by flamebyrd */
+const id = function () {
+	if (document.querySelector("#favorite_tag_tag_id")) {
+		console.log("favorite tag id method")
+		return document.querySelector("#favorite_tag_tag_id").value;
+	} else if (document.querySelector("a.rss")) {
+		console.log("rss feed method");
+		var href = document.querySelector("a.rss");
+		href = href.getAttribute("href");
+		href = href.match(/\d+/);
+		return href;
+	} else if (document.querySelector("#include_freeform_tags input:first-of-type")) {
+		console.log("first freeform tag method");
+		return document.querySelector("#include_freeform_tags input:first-of-type").value;
+	} else if (document.querySelector("#subscription_subscribable_id")) {
+		console.log("subscribable id method");
+		return document.querySelector("#subscription_subscribable_id").value;
+	} else {
+		//if (!errorFlash) {alert("can't find tag id :C");};
+		return null;
+	};
+}();
+var filter_ids = `filter_ids:${id}`;
+
+function idKey(n = tagName, i = id, k = fandomName ? `ids-${cssFanName}` : "ids-global", s = fandomName ? fanIdStorage : globIdStorage) { //by default, do this w/the current tag's name, id, and fandom. the import process will need to loop through this later, hence the params
+	var add = [n, i];
+	let str = new RegExp(`\\["${n}","${i}"\\]`);
+	var idsObj = storJson(s);
+	// console.log(`idsObj: `, idsObj, `the thing to add: ${str} to ${JSON.stringify(idsObj)}`, `does it match the stored string? :`, s.match(str));
+	if (s.match(str) <= 0) { //js can't match objects w/in arrays to my knowledge, so this was the best i could do lol
+		idsObj.push(add); //add it to the object
+		s = JSON.stringify(idsObj);
+		autosave(k, JSON.stringify(idsObj)); //and then save it
+	}
+	//console.log(s);
+}
+
 /* now to deal w/the currently-existing form */
 const searchdt = document.querySelector("dt.search:not(.autocomplete)");
 const searchdd = document.querySelector("dd.search:not(.autocomplete");
@@ -207,6 +268,7 @@ const advSearch = document.querySelector("#work_search_query");
 
 //if there's one there will obvs be the other, but just so that they don't feel left out, using "or"
 if (searchdt !== null || searchdd !== null) {
+	idKey(); //first, just save the tag id in local storage. save me the time
 	advSearch.hidden = true;
 	const fakeSearch = document.createElement("input");
 	fakeSearch.id = "fakeSearch";
@@ -314,54 +376,18 @@ function showAllFilters(parent) {
 
 const fandomEl = fandomName ? fan[4] : null;
 
-/* now for the tag id fetcher */
 
-/* the function to add the tag ids n stuff */
-//gotta make these first for nya
-const navList = document.querySelector("#main ul.user.navigation");
-const filtButt = document.createElement("li");
-filtButt.id = "get_id_butt";
-filtButt.innerHTML = `<a id="id_butt">Tag ID</a>`;
-
-/* id fetcher function */
-const id = function () {
-	if (document.querySelector("#favorite_tag_tag_id")) {
-		console.log("favorite tag id method")
-		return document.querySelector("#favorite_tag_tag_id").value;
-	} else if (document.querySelector("a.rss")) {
-		console.log("rss feed method");
-		var href = document.querySelector("a.rss");
-		href = href.getAttribute("href");
-		href = href.match(/\d+/);
-		return href;
-	} else if (document.querySelector("#include_freeform_tags input:first-of-type")) {
-		console.log("first freeform tag method");
-		return document.querySelector("#include_freeform_tags input:first-of-type").value;
-	} else if (document.querySelector("#subscription_subscribable_id")) {
-		console.log("subscribable id method");
-		return document.querySelector("#subscription_subscribable_id").value;
-	} else {
-		//if (!errorFlash) {alert("can't find tag id :C");};
-		return null;
-	};
-}();
-var filter_ids = `filter_ids:${id}`;
-
-function idKey() {
-	var add = `[${tagName}, ${id}]`;
-	if (fandomName) {
-		fanIdKey += `${fanIdKey?",":""}${add}`;
-		autosave(`ids-${cssFanName}`, fanIdKey);
-	} else {
-		globIdKey += `, ${add}`;
-	}
-	//return [tagName, id];
+//the id filter selector should be made into a class tbh, but since idk how to execute that correctly rn, it'll just be global vars 
+const select = document.createElement("select");
+select.className = "filterSelector"; //should make it a class since it'll probably be used again when working on banishment
+function currentSel() {
+	return select.value;
 }
+
 
 /* display the filter_ids and actions */
 function nya() {
 	if (!document.querySelector("#filter_opt")) {
-		const select = document.createElement("select");
 		const filterOpt = document.createElement("fieldset");
 		filterOpt.id = "filter_opt";
 		/* display ID # & choose where to append the tag */
@@ -378,41 +404,44 @@ function nya() {
 		/* import/export buttons */
 		const impDiv = document.createElement("div"); //div for the import process
 		const impButt = document.createElement("li");
-		impButt.innerHTML = `<a href="#">Import</a>`;
+		impButt.innerHTML = `<a>Import</a>`;
 		impButt.addEventListener("click", () => {
 			impsy(impDiv);
 		})
 		const expButt = document.createElement("li");
-		expButt.innerHTML = `<a href="#">Export</a>`;
+		expButt.innerHTML = `<a>Export</a>`;
 		expButt.addEventListener("click", () => {
 			expy(filterArray());
 		});
 
 		/* selection dropdown */
-		const globalOpt = `<option value="filter-global">Global</option>`;
+		const globalOpt = `<option value="global">Global</option>`;
 		if (!fandomName) { //if in a global tag, give the option to pick a fandom for this particular tag
 			select.innerHTML = globalOpt;
 			for (var fandom of savedFandoms) {
 				const option = document.createElement("option");
 				option.innerHTML = fandom;
-				option.setAttribute("value", `filter-${fandom}`);
+				option.setAttribute("value", fandom);
 				select.appendChild(option);
 			}
 		} else {
 			const option = document.createElement("option");
 			option.innerHTML = fandomName;
-			option.setAttribute("value", `filter-${fandomName}`);
+			//option.setAttribute("value", `filter-${fandomName}`);
+			option.setAttribute("value", fandomName);
 			select.appendChild(option);
 			select.innerHTML += globalOpt;
 		}
-		var targetFilter = select.options[0].value;
+		//var targetFilter = select.options[0].value;
+		//var targetFilter = `filter-${currentSel()}`;
 		function selectorType() {
-			return (targetFilter=="filter-global") ? "global" : "fandom";
+			//console.log(`current targetFilter: `, targetFilter, ` and current selection: ${currentSel()}`);
+			return (`filter-${currentSel()}`== "filter-global") ? "global" : "fandom";
 		};
-		select.onchange = function() {
+		/*select.onchange = function () {
 			//console.log(select.value);
-			targetFilter = select.value;
-		}
+			targetFilter = `filter-${select.value}`; //this selector is also used when importing values for ids, since i have yet to optimize that
+		}*/
 
 		/* exclude, include, or remove a tag */
 		const buttonAct = document.createElement("div");
@@ -436,7 +465,7 @@ function nya() {
 		//function for adding the filter to the search values + saved local storage
 		function addFilt(obj) {
 			//console.log(`${selectorType()}Filters`);
-			var filtArr = [selectorType(), targetFilter, localStorage[targetFilter], select.selectedIndex];
+			var filtArr = [selectorType(), `filter-${currentSel()}`, localStorage[`filter-${currentSel()}`], select.selectedIndex];
 			var textarea = document.getElementById(`${filtArr[0]}Filters`);
 			var curr = select.options[filtArr[3]].text;
 			//let doubleck = new RegExp(`\\D${id}\\s`, "g");
@@ -461,13 +490,13 @@ function nya() {
 				} else {
 					filt = filt.replace(old_ids, newFilt); //i forgot. to put in the "filt =". i feel like an idiot
 					/* removal */
-					if(type=="Remov") {
+					if (type == "Remov") {
 						p.innerHTML = `${obj.ing}ed <strong>${tagName}</strong> from <em>${curr}</em>.`
 					} else {
 						p.innerHTML = `Changed <strong>${tagName}</strong> to ${obj.ing}e in <em>${curr}</em>.`;
 					}
 				}
-			} else if(type=="Remov") { //if you're supposed to be removing smth that isn't there, tell them
+			} else if (type == "Remov") { //if you're supposed to be removing smth that isn't there, tell them
 				p.innerHTML = `<strong>${tagName}</strong> isn't in your <em>${curr}</em> filters!`;
 			} else {
 				filt += newFilt;
@@ -552,7 +581,7 @@ function submission() {
 			fanSub = fan[2] ? fan[2] : ""; //if you don't do this, then it'll submit "undefined" when there's nothing
 		}
 	};
-	var tempSub = tempp[2] ? tempp[2] : ""; 
+	var tempSub = tempp[2] ? tempp[2] : "";
 	//console.log("globalSub:");
 	//console.log(globeSub);
 	//console.log("fanSub:");
@@ -597,10 +626,24 @@ if (search_submit == "") {
 	details.appendChild(summary);
 
 	function filterloop(key) {
-		if (localStorage[`filter-${key}`]) {
+		var filterStore = emptyStorage(`filter-${key}`);
+		//if (localStorage[`filter-${key}`]) {
+		if (filterStore) {
+			var html = filterStore + " "; //add in the extra space for matching the last in the string
+			//console.log(`stored filters for filter-${key}: \n\n${filterStore}`);
+			//console.log("globIdStorage: ", globIdStorage);
 			const p = document.createElement("p");
 			p.className = `prev-${key.replaceAll(/\W+/g, "-")}`;
-			p.innerHTML = `<strong>${key.replaceAll(/-/g, " ").trim()} Filters:</strong></br><span>${localStorage[`filter-${key}`]}</span>`;
+			//p.innerHTML = `<strong>${key.replaceAll(/-/g, " ").trim()} Filters:</strong></br><span>${localStorage[`filter-${key}`]}</span>`;
+			const l = document.createElement("strong");
+			l.innerHTML = `${key.replaceAll(/-/g, " ").trim()} Filters:`;
+			//const gson = storJson(globIdStorage);
+			//console.log("global json, gson:", gson);
+			//console.log("a: ", a);
+			const sp = document.createElement("span");
+			sp.innerHTML = html;
+			p.append(l, document.createElement("br"), sp);
+			//p.innerHTML += html;
 			details.appendChild(p);
 		};
 	};
@@ -614,6 +657,26 @@ if (search_submit == "") {
 	if (fan && fan[3]) {
 		filterloop(fandomName);
 	}
+	details.innerHTML = function() {
+		var html = details.innerHTML; //start off as is
+		function yikes(obj) {
+			try {
+				for (const storedId of storJson(obj)) {
+				const rep = new RegExp(`filter_ids:${storedId[1]} `, "g"); //for now, hard code it like this. can make it more sensitive later
+				// console.log(`regexp: ${rep}`);
+				html = html.replaceAll(rep, `${storedId[0]}, `);
+			}} catch (e) {
+				console.error("i bet it's not iterable: ", e);
+			}
+		}
+		// console.log(`string to replace start: `, html);
+		yikes(globIdStorage);//global
+		// console.log(`html after replacing globally: `, html);
+		if (fandomName) {
+			yikes(fanIdStorage);
+		}
+		return html.trim(); //then return it replaced
+	}();
 	header.insertAdjacentElement("afterend", details);
 	//console.log("we are now erasing the local storage for the advanced search");
 	//localStorage.setItem("filter-advanced-search", fakeSearch.value ? fakeSearch.value : "");
@@ -639,15 +702,15 @@ function expy(obj) {
 	for (const [key, value] of arr) {
 		if (key.startsWith("filter-") || key.startsWith("enable-")) {
 			jason += `"${key}": "${value.replaceAll(`"`, `\\"`)}", `; //make sure to sanitize the values w/escape chars
-			if(obj.indexOf(arr)==obj.length) {
+			if (obj.indexOf(arr) == obj.length) {
 				console.log("uhh this is the last one");
 			}
 		}
 		//expy(value);
 	}
-	jason = jason.substring(0, jason.length-2) + "}"; //remove last trailing comma + space + closing bracket
+	jason = jason.substring(0, jason.length - 2) + "}"; //remove last trailing comma + space + closing bracket
 	//downloading as json from https://attacomsian.com/blog/javascript-download-file
-	const blob = new Blob([jason], {type: 'application/json'}); //create blob object
+	const blob = new Blob([jason], { type: 'application/json' }); //create blob object
 	const DL_jason = URL.createObjectURL(blob);
 	const saveDate = new Date();
 	download(DL_jason, `autofilters_${saveDate.getFullYear()}_${saveDate.getMonth()}_${saveDate.getDay()}.json`); //download the file
@@ -659,30 +722,51 @@ function expy(obj) {
 function impsy(div) { //for now just have it read from a specified div
 	div.id = "importDiv";
 	const instructions = document.createElement("p");
-	instructions.innerHTML = "<small>Please paste your exported options into the textbox below. <strong>This will override your current settings.</strong></small>";
+	//remember to remove the hard-coding of the import csv checkbox and also remove the hacky version of its import process by Finishing It
+	instructions.innerHTML = `<small>Please paste your exported options into the textbox below. <strong>This will override your current settings.</strong></small> | <input type="checkbox" id="import_csv" checked> <label for="import_csv">import id names from csv</label>`;
 	const tb = document.createElement("textarea");
 	const parseButt = document.createElement("button");
 	parseButt.innerHTML = "Save Imported Settings";
 	parseButt.addEventListener("click", () => {
+		var impCsv = document.querySelector("#import_csv").checked;
 		const impSet = tb.value;
-		let parsable = false;
-		try {
-			JSON.parse(impSet);
-			parsable = true;
-		} catch (e) {
-			alert("sorry, this can't be parsed.");
-		}
-		if (parsable) {
-			const obj = Object.entries(JSON.parse(impSet));
-			for (const [key, value] of obj) {
-				localStorage.setItem(key, value);
+		if (impCsv) {
+			//console.log("textbox value:\n", impSet, "split by newlines: ", impSet.split("\n"));
+			const obj = function () {
+				var j = [];
+				for (const tag of impSet.split("\n")) {
+					j.push(tag.split(/,/g));
+				}
+				return j;
+			}();
+			//console.log(JSON.stringify(obj));
+			var key = `ids-${toCss(currentSel())}`;
+			//console.log(`save key: ${key}\n`, `save obj (not yet stringified):`, obj);
+			autosave(key, JSON.stringify(obj));
+			//autosave()
+		} else {
+			let parsable = false;
+			try {
+				JSON.parse(impSet);
+				parsable = true;
+			} catch (e) {
+				alert("sorry, this can't be parsed.");
 			}
-			alert("filters successfully imported.");
-			window.location.reload();
+			if (parsable) {
+				const obj = Object.entries(JSON.parse(impSet));
+				for (const [key, value] of obj) {
+					localStorage.setItem(key, value);
+				}
+				alert("filters successfully imported.");
+				window.location.reload();
+			}
 		}
+
 	})
 	div.append(instructions, tb, parseButt);
 }
+
+//nya(); //automatically open the id thing for debugger purposes
 
 /* CSS STYLING AT THE END BC IT'S A PICKY BITCH */
 var css = `

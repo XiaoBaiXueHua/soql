@@ -290,7 +290,7 @@ const filtButt = document.createElement("li");
 filtButt.id = "get_id_butt";
 filtButt.innerHTML = `<a id="id_butt">Tag ID</a>`;
 
-/* id fetcher function */
+/* id fetcher function, by flamebyrd */
 const id = function () {
 	if (document.querySelector("#favorite_tag_tag_id")) {
 		console.log("favorite tag id method")
@@ -313,16 +313,6 @@ const id = function () {
 	};
 }();
 var filter_ids = `filter_ids:${id}`;
-
-function idKey() {
-	var add = `[${tagName}, ${id}]`;
-	if (fandomName) {
-		fanIdKey += `${fanIdKey?",":""}${add}`;
-		autosave(`ids-${cssFanName}`, fanIdKey);
-	} else {
-		globIdKey += `, ${add}`;
-	}
-}
 
 /* display the filter_ids and actions */
 function nya() {

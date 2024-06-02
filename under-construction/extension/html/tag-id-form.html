@@ -1,0 +1,42 @@
+<!-- this is the form to be injected into the ao3 search pages when you hit the tag id button -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="utf-8">
+</head>
+
+<body>
+	<fieldset id="filter_opt">
+		<div>
+			<ul class="actions">
+				<label for="id_output">filter_ids:</label>
+				<input id="id_output">
+				<br>
+				<li><a>Import</a></li>
+				<li><a>Export</a></li>
+			</ul>
+			<select class="filterSelector">
+				<!-- then in here should come the options generated via js -->
+			</select>
+			<div id="importDiv">
+				<p>
+					<small>
+						Please paste your exported options into the textbox below. <strong>This will override your current settings.</strong> | <input id="import_csv" type="checkbox"> <label for="import_csv">import id names from csv</label>
+					</small>
+				</p>
+				<textarea></textarea>
+				<button>Save Imported Settings</button>
+			</div>
+		</div>
+		<div id="tag_actions">
+			<div><button>Exclude Tag</button></div>
+			<div><button>Include Tag</button></div>
+			<div><button>Remove Tag</button></div>
+			<div><button>Save ID</button></div>
+		</div>
+		<div id="append-p"></div>
+	</fieldset>
+</body>
+
+</html>

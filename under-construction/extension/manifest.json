@@ -1,0 +1,26 @@
+{
+	"manifest_version": 2,
+	"name": "Slice of Quality Life",
+	"version": "1.0",
+
+	"description": "Various tweaks, additions, and functionalities for AO3.",
+	"homepage_url": "https://github.com/XiaoBaiXueHua/soql",
+
+	"icons": {
+		"48": "https://sincerelyandyourstruly.neocities.org/images/emotes/VentiFlowers.png"
+	},
+	"permissions": ["activeTab"],
+	
+	"browser_action": {
+		"default_icon": "https://sincerelyandyourstruly.neocities.org/images/emotes/VentiFlowers.png",
+		"default_title": "AO3 SoQL",
+		"default_popup": "html/opts.html"
+	},
+
+	"content_scripts": [
+		{
+			"matches": ["*://archiveofourown.org/tags/*/works*", "*://archiveofourown.org/works?work_search*", "*://archiveofourown.org/works?commit=*&tag_id=*"],
+			"js": ["scripts/autofilters.js"]
+		}
+	]
+}
