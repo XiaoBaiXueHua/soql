@@ -17,13 +17,13 @@
 const ch_head = document.querySelector(".chapter.preface.group");
 var word_count = document.querySelector("#workskin div.userstuff.module");
 if (ch_head) {
-    const color = window.getComputedStyle(document.querySelector("h3.title a")).color;
-    const style = document.createElement("style");
-    style.innerHTML = `.wordcount {font-size: 1.1em; color: ${color}; text-align: center; margin-top: 5px; font-family: Georgia, serif;}`;
-    document.querySelector("head").appendChild(style);
-    word_count = word_count.innerText.trim().split(/\S+/g).length.toLocaleString(); //won't work on cn n stuff but eh
-    const title = document.querySelector("h3.title");
-    title.insertAdjacentHTML("afterend", `<p class="wordcount">(${word_count} words)</p>`);
+	const color = window.getComputedStyle(document.querySelector("h3.title a")).color;
+	const style = document.createElement("style");
+	style.innerHTML = `.wordcount {font-size: 1.1em; color: ${color}; text-align: center; margin-top: 5px; font-family: Georgia, serif;}`;
+	document.querySelector("head").appendChild(style);
+	word_count = word_count.innerText.trim().split(/\S+/g).length.toLocaleString(); //won't work on cn n stuff but eh
+	const title = document.querySelector("h3.title");
+	title.insertAdjacentHTML("afterend", `<p class="wordcount">(${word_count} words)</p>`);
 }
 
 //inspired by/modeled after https://ravenel.tumblr.com/post/156555172141/i-saw-this-post-by-astropixie-about-how-itd-be
@@ -191,9 +191,9 @@ boxButton.addEventListener("click", function floatybox() {
 		//add the marked up selection to the textbox
 		tBox.value += markup;
 		await localStorage.setItem(newURL, tBox.value);
-			var newCount = 10000 - document.getElementById("commentBox").value.length;
-			document.getElementById("charCounter").innerHTML = `Characters left:&nbsp;${newCount}`;
-        realBox.value = commentBox.value;
+		var newCount = 10000 - document.getElementById("commentBox").value.length;
+		document.getElementById("charCounter").innerHTML = `Characters left:&nbsp;${newCount}`;
+		realBox.value = commentBox.value;
 	});
 	ins.innerHTML = "Insert Selection";
 	otherButtons.appendChild(ins);
@@ -228,6 +228,6 @@ boxButton.addEventListener("click", function floatybox() {
 	//when you click on the real comment box, the floaty one goes away, since this one currently doesn't have an x lmao
 	//as things are right now, if for w/e reason you're typing more stuff into the real comment box n then close the tab/refresh the page, that progress doesn't get saved c':
 	realBox.addEventListener("click", async () => {
-		document.getElementById("floaty-root").hidden=true;
+		document.getElementById("floaty-root").hidden = true;
 	});
 });
