@@ -1,0 +1,26 @@
+ul.statistics {
+  display: flex;
+  flex-direction: column;
+}
+ul.statistics li.fandom {
+  width: 100%;
+}
+
+#reorderFandoms {
+  display: grid;
+  grid-template-columns: repeat(3, 3fr);
+}
+#reorderFandoms > div {
+  display: grid;
+  grid-template-columns: 5fr 2fr;
+  margin: 5px;
+}
+#reorderFandoms > div:nth-of-type(even) {
+  background-color: lightgrey;
+}
+#reorderFandoms label:hover {
+  font-weight: bold;
+}
+#reorderFandoms input {
+  max-width: 4em;
+}/*# sourceMappingURL=reorder-stats-fandoms.css.map */
