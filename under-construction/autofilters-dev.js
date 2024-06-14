@@ -355,8 +355,8 @@ function debuggy(t = "", par = header) {
 /* function for showing all the filters */
 function showAllFilters(parent) {
 	for (const [key, value] of filterArray()) {
-		if (key.toString().startsWith("filter-")) {
-			cssId = toCss(key);
+		if (key.toString().startsWith("filter-") && value) {
+			const cssId = toCss(key);
 			const div = document.createElement("div");
 			div.id = `${cssId}-div`;
 			const label = document.createElement("label");
@@ -436,7 +436,7 @@ function nya() {
 		//var targetFilter = `filter-${currentSel()}`;
 		function selectorType() {
 			//console.log(`current targetFilter: `, targetFilter, ` and current selection: ${currentSel()}`);
-			return (`filter-${currentSel()}`== "filter-global") ? "global" : "fandom";
+			return (`filter-${currentSel()}` == "filter-global") ? "global" : "fandom";
 		};
 		/*select.onchange = function () {
 			//console.log(select.value);
@@ -657,15 +657,16 @@ if (search_submit == "") {
 	if (fan && fan[3]) {
 		filterloop(fandomName);
 	}
-	details.innerHTML = function() {
+	details.innerHTML = function () {
 		var html = details.innerHTML; //start off as is
 		function yikes(obj) {
 			try {
 				for (const storedId of storJson(obj)) {
-				const rep = new RegExp(`filter_ids:${storedId[1]} `, "g"); //for now, hard code it like this. can make it more sensitive later
-				// console.log(`regexp: ${rep}`);
-				html = html.replaceAll(rep, `${storedId[0]}, `);
-			}} catch (e) {
+					const rep = new RegExp(`\\b${storedId[1]}\\b`, "g"); //for now, hard code it like this. can make it more sensitive later
+					// console.log(`regexp: ${rep}`);
+					html = html.replaceAll(rep, `${storedId[0]}, `);
+				}
+			} catch (e) {
 				console.error("i bet it's not iterable: ", e);
 			}
 		}
@@ -765,6 +766,43 @@ function impsy(div) { //for now just have it read from a specified div
 	})
 	div.append(instructions, tb, parseButt);
 }
+
+
+
+
+function optimizeFilters() {
+	const filterArray = Object.entries(localStorage);
+	for (const [key, value] of filterArray) {
+		if (key.search(/^filter-/) >= 0 && value) {
+			console.log(`key: ${key}; value: \n`, value);
+			const filts = value.split(/\s(?=[-fcrul])/g); // split along spaces followed by -, f, c, or r
+			const keepSame = new Array();
+			const excls = new Array();
+			let newFilter = "";
+			for (const filter of filts) {
+				if (filter.search(/^-filter_ids:/) >= 0) {
+					excls.push(filter.replace("-filter_ids:", ""));
+				} else {
+					keepSame.push(filter);
+				}
+			}
+			for (const f of keepSame) { newFilter += `${f} `; }
+			if (excls.length > 0) {
+				newFilter += "-filter_ids:("; // open the parentheses
+				for (var i = 0; i < excls.length; i++) {
+					newFilter += excls[i]; // add the number
+					if (i < excls.length - 1) { newFilter += " || "; }
+				}
+				newFilter += ")"; // now close the parentheses
+			}
+			console.log(`newFilter for ${key}:\n`, newFilter);
+			//console.log(`array of ids to filter out: `, excls, `\narray to keep the same: `, keepSame);
+			localStorage.setItem(key, newFilter);
+		}
+	}
+}
+
+// optimizeFilters();
 
 //nya(); //automatically open the id thing for debugger purposes
 
