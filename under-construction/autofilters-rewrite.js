@@ -183,11 +183,14 @@ class filterObj {
 	constructor(fandom) {
 		this.fullName = fandom;
 		this.name = fandom.replace(filterObj.disambiguator, "");
-		this.cssName = this.name.replace(/\W/g, "-");
+		this.cssName = this.name.replace(/\W+/g, "-");
 		this.filters = storJson(emptyStorage(`ids-${this.cssName}`));
 		this.enabled = storJson(emptyStorage(`enable-${this.name}`)) ? storJson(emptyStorage(`enable-${this.name}`)) : true; // if it's been kept in local storage, then keep that; otherwise, by default it's turned on
 	}
 	static disambiguator = /\s\((\w+(\s|&)*|\d+\s?)+\)/g; //removes disambiguators
+	textbox() {
+		const box = dom.pp("", "textarea", false, {id: this.fullName !== "global" ? "fandom" : this.fullName});
+	}
 }
 
 /* various important global vars */
