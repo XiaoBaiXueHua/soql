@@ -187,14 +187,14 @@ class filterObj {
 		this.fullName = fandom;
 		this.name = fandom.replace(filterObj.disambiguator, "");
 		this.cssName = this.name.replace(/\W+/g, "-");
-		this.filters = function () {
+		this.filters = function () { // has sub-objects "include", "exclude", and "complex"
 			// storJson(emptyStorage(`filter-${this.name}`))
 			let filterObj;
 			try {
 				filterObj = JSON.parse(localStorage[this.name].filters);
 			} catch (e) {
 				console.error("it seems you haven't used the updated version of the script yet. now turning filters into a js object.");
-				var filterStr = localStorage[`filter-${this.name}`].replace(/s+/g, " ") + " ";
+				var filterStr = localStorage[`filter-${this.name}`].replace(/s{2,}/g, " ") + " ";
 				const query = new Array();
 				const rules = new Array();
 				var lastColon = 0;
@@ -203,43 +203,86 @@ class filterObj {
 					const char = filterStr[j];
 					// if we're done with our parentheses and we're at a space...
 					if ((numParentheses == 0 && char == " ") || j == filterStr.length - 1) { // if there are no parentheses && we're currently on a space, OR we've finished the string...
-						rules.push(filterStr.substring(lastColon+1, j).trim()); // push the substring to the rules
+						rules.push(filterStr.substring(lastColon + 1, j).trim()); // push the substring to the rules
 						lastColon = j;
 					}
 					if (char == ":" && numParentheses == 0) {
-						query.push(filterStr.substring(lastColon, j));
+						query.push(filterStr.substring(lastColon, j).trim()); // if we're at a colon & have no parentheses, then pass the current subscring onto the queries
 						lastColon = j;
 					} else if (char == "(") {
 						numParentheses++;
 					} else if (char == ")") {
 						numParentheses--;
 					}
-
-					
-
 				}
 				console.log(`query array: `, query, `\nrules array: `, rules);
-				filterObj = function () {
-					this.include = {};
-					this.exclude = {};
+				const incl = new Array(), excl = new Array(), otherQueries = new Array();
+				if (query.length == rules.length) {
+					for (var i = 0; i < query.length; i++) {
+						query[i].startsWith("-") ? excl.push([query[i], rules[i]]) : incl.push([query[i], rules[i]]);
+					}
+				} else {
+					// make arrays of the three types of queries: include, exclude, and complex
+					for (var i = 0; i < query.length || i < rules.length; i++) { // because the rules would be longer than the queries in this case
+						try {
+							if (rules[currRule].search(":") >= 0) {
+								// if it's a complex query
+								otherQueries.push(rules[currRule]);
+								currRule++;
+							}
+						} catch (e) {
+							console.log("we have gone past the number of rules.");
+						}
+						if (i < query.length) {
+							query[i].startsWith("-") ? excl.push([query[i], rules[currRule]]) : incl.push([query[i], rules[currRule]]);
+						}
+						currRule++;
+					}
+				}
+				console.log(`include array: `, incl, `\nexcl array: `, excl, `\nand other queries array: `, otherQueries);
+				filterObj = {
+					include: incl,
+					exclude: excl,
+					complex: otherQueries
 				}
 			}
+			return filterObj;
 		}(); // this is the array of filters that actually gets used
 		this.ids = storJson(emptyStorage(`ids-${this.cssName}`)); // this is just the array of ids and their names specific to this particular fandom
 		this.enabled = localStorage[`enable-${this.cssName}`] ? storJson(localStorage[`enable-${this.cssName}`]) : true; // bc local storage stores things as strings, we can just check to make sure the local storage obj exists w/o worrying abt stuff. anyway if it doesn't exist default is true
+		this.type = (fandom !== "global") ? fandom : "fandom";
 	}
 	static disambiguator = /\s\((\w+(\s|&)*|\d+\s?)+\)/g; //removes disambiguators
 
-	strToObj(str) {
-
-	}
-
 	textbox() {
-		const box = dom.pp("", "textarea", false, {id: this.fullName !== "global" ? "fandom" : this.fullName});
+		const box = dom.pp("", "textarea", false, { id: `${this.type}Filters` });
 	}
 
-	filterText() {
+	filterText(decode = false) {
 		// turns the filters object into the text that the ao3 advanced search can parse
+		const ids = this.ids;
+		const inc = this.filters.include, ex = this.filters.exclude, comp = this.filters.complex;
+		let str = ""; // initialize the string
+		for (var [key, value] of inc) {
+			if (decode) {
+				switch (key) {
+					case "filter_ids": {
+						for (const [name, number] of ids) {
+							value = value.replaceAll(new RegExp(`\\b${number}\\b`, "g"), name);
+						}
+						break;
+					}
+				}
+			}
+			str += `${key}:${value} `;
+		}
+		for (var [key, value] of ex) {
+			str += `${key}:${value} `;
+		}
+		for (const query of comp) {
+			str += `${query} `;
+		}
+		return str.trim();
 	}
 }
 
@@ -265,9 +308,9 @@ const isFandom = function () { // will return a boolean while also setting other
 	raw = raw.innerText; // still need this for other things down the line
 	var fandom = raw.replace(filterObj.disambiguator, "").trim(); // fandom name
 	var fandomCount = raw.match(/\(\d+\)/).toString(); // better hope you're not in a fandom where the only disambiguator is a year
-	fandomCount = parseInt(fandomCount.substring(1, fandomCount.length-1)); // cuts off the parentheses and parses it as an integer
+	fandomCount = parseInt(fandomCount.substring(1, fandomCount.length - 1)); // cuts off the parentheses and parses it as an integer
 
-	var tagCount = parseInt(header.innerText.match(/(\d{1,3},?)+\sW/).toString().replace(",","")); // fortunately, parseInt will get rid of the letters and repeat stuff for us
+	var tagCount = parseInt(header.innerText.match(/(\d{1,3},?)+\sW/).toString().replace(",", "")); // fortunately, parseInt will get rid of the letters and repeat stuff for us
 	if (!fandom || !fandomCount || !tagCount) return false; // if there's neither a fandom count nor a tag count, then we're not in a fandom
 	var meetsCutoff = (fandomCount / tagCount * 100 >= fandom_cutoff);
 	if (meetsCutoff && savedFandoms.indexOf(fandom) < 0) { //if it qualifies as being part of a fandom & is not yet in the array, add it and then save it to local storage
