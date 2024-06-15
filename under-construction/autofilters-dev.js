@@ -694,7 +694,7 @@ if (search_submit == "") {
 				for (const storedId of storJson(obj)) {
 					const rep = new RegExp(`\\b${storedId[1]}\\b`, "g"); //for now, hard code it like this. can make it more sensitive later
 					// console.log(`regexp: ${rep}`);
-					html = html.replaceAll(rep, `${storedId[0]}, `);
+					html = html.replaceAll(rep, `${storedId[0]}`);
 				}
 			} catch (e) {
 				console.error("i bet it's not iterable: ", e);
@@ -798,9 +798,25 @@ function impsy(div) { //for now just have it read from a specified div
 }
 
 
+class filterObj {
+	constructor(fandom) {
+		this.fullName = fandom;
+		this.name = fandom.replace(filterObj.disambiguator, "");
+		this.cssName = this.name.replace(/\W+/g, "-");
+		this.filters = storJson(emptyStorage(`ids-${this.cssName}`));
+		this.enabled = storJson(emptyStorage(`enable-${this.name}`)) ? storJson(emptyStorage(`enable-${this.name}`)) : true; // if it's been kept in local storage, then keep that; otherwise, by default it's turned on
+	}
+	static disambiguator = /\s\((\w+(\s|&)*|\d+\s?)+\)/g; //removes disambiguators
+}
 
 
 function optimizeFilters() {
+	const savedFandoms = JSON.parse(localStorage["saved fandoms"]);
+	var fandObj = new Array();
+	for (const fan of savedFandoms) {
+		fandObj.push(new filterObj(fan));
+	}
+	console.log(fandObj);
 	const filterArray = Object.entries(localStorage);
 	for (const [key, value] of filterArray) {
 		if (key.search(/^filter-/) >= 0 && value) {
@@ -825,14 +841,21 @@ function optimizeFilters() {
 				}
 				newFilter += ")"; // now close the parentheses
 			}
-			console.log(`newFilter for ${key}:\n`, newFilter);
+			// console.log(`newFilter for ${key}:\n`, newFilter);
 			//console.log(`array of ids to filter out: `, excls, `\narray to keep the same: `, keepSame);
 			localStorage.setItem(key, newFilter);
+		}
+		// now do some stuff to basically consolidate some of the filter stuff into one object per fandom
+		for (const fand of JSON.parse(localStorage[listKey])) {
+			let regex = new RegExp(`$\\(${fand}|${toCss(fand)}\\)`);
+			if (key.search(regex) >=0) {
+				console.log(fand);
+			}
 		}
 	}
 }
 
-// optimizeFilters();
+optimizeFilters();
 
 //nya(); //automatically open the id thing for debugger purposes
 

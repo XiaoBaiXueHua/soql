@@ -156,6 +156,9 @@ class filter_id {
 			};
 		}();
 	}
+	get(this) {
+		return [this.tagName, this.id];
+	}
 }
 
 function emptyStorage(key) { //function to give you that particular localStorage (n set it to nothing if dne)
@@ -184,12 +187,59 @@ class filterObj {
 		this.fullName = fandom;
 		this.name = fandom.replace(filterObj.disambiguator, "");
 		this.cssName = this.name.replace(/\W+/g, "-");
-		this.filters = storJson(emptyStorage(`ids-${this.cssName}`));
-		this.enabled = storJson(emptyStorage(`enable-${this.name}`)) ? storJson(emptyStorage(`enable-${this.name}`)) : true; // if it's been kept in local storage, then keep that; otherwise, by default it's turned on
+		this.filters = function () {
+			// storJson(emptyStorage(`filter-${this.name}`))
+			let filterObj;
+			try {
+				filterObj = JSON.parse(localStorage[this.name].filters);
+			} catch (e) {
+				console.error("it seems you haven't used the updated version of the script yet. now turning filters into a js object.");
+				var filterStr = localStorage[`filter-${this.name}`].replace(/s+/g, " ") + " ";
+				const query = new Array();
+				const rules = new Array();
+				var lastColon = 0;
+				var numParentheses = 0; // track how many parentheses deep we are currently
+				for (var j = 0; j < filterStr.length; j++) {
+					const char = filterStr[j];
+					// if we're done with our parentheses and we're at a space...
+					if ((numParentheses == 0 && char == " ") || j == filterStr.length - 1) { // if there are no parentheses && we're currently on a space, OR we've finished the string...
+						rules.push(filterStr.substring(lastColon+1, j).trim()); // push the substring to the rules
+						lastColon = j;
+					}
+					if (char == ":" && numParentheses == 0) {
+						query.push(filterStr.substring(lastColon, j));
+						lastColon = j;
+					} else if (char == "(") {
+						numParentheses++;
+					} else if (char == ")") {
+						numParentheses--;
+					}
+
+					
+
+				}
+				console.log(`query array: `, query, `\nrules array: `, rules);
+				filterObj = function () {
+					this.include = {};
+					this.exclude = {};
+				}
+			}
+		}(); // this is the array of filters that actually gets used
+		this.ids = storJson(emptyStorage(`ids-${this.cssName}`)); // this is just the array of ids and their names specific to this particular fandom
+		this.enabled = localStorage[`enable-${this.cssName}`] ? storJson(localStorage[`enable-${this.cssName}`]) : true; // bc local storage stores things as strings, we can just check to make sure the local storage obj exists w/o worrying abt stuff. anyway if it doesn't exist default is true
 	}
 	static disambiguator = /\s\((\w+(\s|&)*|\d+\s?)+\)/g; //removes disambiguators
+
+	strToObj(str) {
+
+	}
+
 	textbox() {
 		const box = dom.pp("", "textarea", false, {id: this.fullName !== "global" ? "fandom" : this.fullName});
+	}
+
+	filterText() {
+		// turns the filters object into the text that the ao3 advanced search can parse
 	}
 }
 
@@ -212,9 +262,9 @@ const isFandom = function () { // will return a boolean while also setting other
 	const fandom_cutoff = 70; // 70% of fics belonging to a particular tag is the cutoff for it counting as specific to that fandom
 	var raw = document.querySelector("#include_fandom_tags label"); // gets the fandom count from the dropdown on the side
 	if (!raw) return false; // if there's nothing there, then we're probably on an error page and so abort
-	// raw = raw.innerText; // still need this for other things down the line
+	raw = raw.innerText; // still need this for other things down the line
 	var fandom = raw.replace(filterObj.disambiguator, "").trim(); // fandom name
-	var fandomCount = raw.innerText.match(/\(\d+\)/).toString(); // better hope you're not in a fandom where the only disambiguator is a year
+	var fandomCount = raw.match(/\(\d+\)/).toString(); // better hope you're not in a fandom where the only disambiguator is a year
 	fandomCount = parseInt(fandomCount.substring(1, fandomCount.length-1)); // cuts off the parentheses and parses it as an integer
 
 	var tagCount = parseInt(header.innerText.match(/(\d{1,3},?)+\sW/).toString().replace(",","")); // fortunately, parseInt will get rid of the letters and repeat stuff for us
