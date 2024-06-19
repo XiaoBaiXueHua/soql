@@ -805,9 +805,9 @@ class filterObj {
 		this.cssName = this.name.replace(/\W+/g, "-");
 		this.filters = function () { // has sub-objects "include", "exclude", and "complex"
 			// storJson(emptyStorage(`filter-${this.name}`))
-			let filterObj;
+			let filterJson;
 			try {
-				filterObj = JSON.parse(localStorage[this.name].filters);
+				filterJson = JSON.parse(localStorage[this.name].filters);
 			} catch (e) {
 				console.error("it seems you haven't used the updated version of the script yet. now turning filters into a js object.");
 				var filterStr = localStorage[`filter-${this.name}`].replace(/s{2,}/g, " ") + " ";
@@ -819,6 +819,31 @@ class filterObj {
 					const char = filterStr[j];
 					// if we're done with our parentheses and we're at a space...
 					if ((numParentheses == 0 && char == " ") || j == filterStr.length - 1) { // if there are no parentheses && we're currently on a space, OR we've finished the string...
+						var rule = filterStr.substring(lastColon + 1, j).trim();
+						if (rule.startsWith("(")) {
+							// if the rule starts w/a parentheses, then that means we're working w/a grouping and should thus chop off the parentheses and turn the groupings into an array
+							let ruleArr; // array to hold the rules
+							rule = rule.substring(1, rule.length - 1); // chops off parentheses
+							if (rule.search("(") >= 0) {
+								// if there are still parentheses left, then that means we have sub-groupings, so we have to iterate through the string.
+								var numP2 = 0;
+								var lastRule = 0;
+								for (var l = 0; l < rule.length; l++) {
+									const subChar = rule[l];
+									if (subChar == "(") {
+										numP2++;
+									} else if (subChar == ")") {
+										numP2--;
+									} else if ((subChar == " " && numP2 == 0) || l == rule.length - 1) {
+										console.log(`new rule string: ${rule.substring(lastRule, l)}`);
+										lastRule = l;
+									}
+								}
+							} else {
+								// otherwise, we can just split at the " || "
+								ruleArr = rule.split(/\s+\|\|\s+/g);
+							}
+						}
 						rules.push(filterStr.substring(lastColon + 1, j).trim()); // push the substring to the rules
 						lastColon = j;
 					}
@@ -856,13 +881,14 @@ class filterObj {
 					}
 				}
 				console.log(`include array: `, incl, `\nexcl array: `, excl, `\nand other queries array: `, otherQueries);
-				filterObj = {
+				// filterObj = this.strToObj(localStorage[`filter-${this.name}`].replace(/s{2,}/g, " ") + " ");
+				filterJson = {
 					include: incl,
 					exclude: excl,
 					complex: otherQueries
-				}
+				};
 			}
-			return filterObj;
+			return filterJson;
 		}(); // this is the array of filters that actually gets used
 		this.ids = storJson(emptyStorage(`ids-${this.cssName}`)); // this is just the array of ids and their names specific to this particular fandom
 		this.enabled = localStorage[`enable-${this.cssName}`] ? storJson(localStorage[`enable-${this.cssName}`]) : true; // bc local storage stores things as strings, we can just check to make sure the local storage obj exists w/o worrying abt stuff. anyway if it doesn't exist default is true
@@ -873,6 +899,85 @@ class filterObj {
 	textbox() {
 		const box = dom.pp("", "textarea", false, { id: `${this.type}Filters` });
 	}
+
+	// strToObj(filterStr) {
+	// 	// var filterStr = localStorage[`filter-${this.name}`].replace(/s{2,}/g, " ") + " ";
+	// 	const query = new Array();
+	// 	const rules = new Array();
+	// 	var lastColon = 0;
+	// 	var numParentheses = 0; // track how many parentheses deep we are currently
+	// 	for (var j = 0; j < filterStr.length; j++) {
+	// 		const char = filterStr[j];
+	// 		// if we're done with our parentheses and we're at a space...
+	// 		if ((numParentheses == 0 && char == " ") || j == filterStr.length - 1) { // if there are no parentheses && we're currently on a space, OR we've finished the string...
+	// 			var rule = filterStr.substring(lastColon + 1, j).trim();
+	// 			if (rule.startsWith("(")) {
+	// 				// if the rule starts w/a parentheses, then that means we're working w/a grouping and should thus chop off the parentheses and turn the groupings into an array
+	// 				let ruleArr; // array to hold the rules
+	// 				rule = rule.substring(1, rule.length - 1); // chops off parentheses
+	// 				if (rule.search("(") >= 0) {
+	// 					// if there are still parentheses left, then that means we have sub-groupings, so we have to iterate through the string.
+	// 					var numP2 = 0;
+	// 					var lastRule = 0;
+	// 					for (var l = 0; l < rule.length; l++) {
+	// 						const subChar = rule[l];
+	// 						if (subChar == "(") {
+	// 							numP2++;
+	// 						} else if (subChar == ")") {
+	// 							numP2--;
+	// 						} else if ((subChar == " " && numP2 == 0) || l == rule.length - 1) {
+	// 							console.log(`new rule string: ${rule.substring(lastRule, l)}`);
+	// 							lastRule = l;
+	// 						}
+	// 					}
+	// 				} else {
+	// 					// otherwise, we can just split at the " || "
+	// 					ruleArr = rule.split(/\s+\|\|\s+/g);
+	// 				}
+	// 			}
+	// 			rules.push(filterStr.substring(lastColon + 1, j).trim()); // push the substring to the rules
+	// 			lastColon = j;
+	// 		}
+	// 		if (char == ":" && numParentheses == 0) {
+	// 			query.push(filterStr.substring(lastColon, j).trim()); // if we're at a colon & have no parentheses, then pass the current subscring onto the queries
+	// 			lastColon = j;
+	// 		} else if (char == "(") {
+	// 			numParentheses++;
+	// 		} else if (char == ")") {
+	// 			numParentheses--;
+	// 		}
+	// 	}
+	// 	console.log(`query array: `, query, `\nrules array: `, rules);
+	// 	const incl = new Array(), excl = new Array(), otherQueries = new Array();
+	// 	if (query.length == rules.length) {
+	// 		for (var i = 0; i < query.length; i++) {
+	// 			query[i].startsWith("-") ? excl.push([query[i], rules[i]]) : incl.push([query[i], rules[i]]);
+	// 		}
+	// 	} else {
+	// 		// make arrays of the three types of queries: include, exclude, and complex
+	// 		for (var i = 0; i < query.length || i < rules.length; i++) { // because the rules would be longer than the queries in this case
+	// 			try {
+	// 				if (rules[currRule].search(":") >= 0) {
+	// 					// if it's a complex query
+	// 					otherQueries.push(rules[currRule]);
+	// 					currRule++;
+	// 				}
+	// 			} catch (e) {
+	// 				console.log("we have gone past the number of rules.");
+	// 			}
+	// 			if (i < query.length) {
+	// 				query[i].startsWith("-") ? excl.push([query[i], rules[currRule]]) : incl.push([query[i], rules[currRule]]);
+	// 			}
+	// 			currRule++;
+	// 		}
+	// 	}
+	// 	console.log(`include array: `, incl, `\nexcl array: `, excl, `\nand other queries array: `, otherQueries);
+	// 	return {
+	// 		include: incl,
+	// 		exclude: excl,
+	// 		complex: otherQueries
+	// 	};
+	// }
 
 	filterText(decode = false) {
 		// turns the filters object into the text that the ao3 advanced search can parse
@@ -901,7 +1006,6 @@ class filterObj {
 		return str.trim();
 	}
 }
-
 
 function optimizeFilters() {
 	const savedFandoms = JSON.parse(localStorage["saved fandoms"]);
@@ -952,7 +1056,7 @@ function optimizeFilters() {
 
 let today = new Date();
 console.log(`today's date: ${today.getDate()}`);
-if (today.getDate() == 1) {
+if (today.getDate() == 1) { // on the first of every month, clear out localStorage entries that are empty
 	for (const [key, value] of Object.entries(localStorage)) {
 		if (value == "") {
 			localStorage.removeItem(key);
