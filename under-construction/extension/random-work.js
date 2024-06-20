@@ -27,7 +27,7 @@ const currPath = currURL.pathname, currSearch = currURL.search; // return string
 const currPg = function () {
 	var pgMatch = currSearch.match(/page=\d+/);
 	if (pgMatch.length > 0) {
-		return parseInt(pgMatch[0].replace("page=", "")); // cut off the "page=" bit of the first match in the array
+		return parseInt(pgMatch[0].replace(/\D/g, "")); // cut off the "page=" bit of the first match in the array
 	} else {
 		return 1; // if there aren't any matches, then we must be on the first page
 	}

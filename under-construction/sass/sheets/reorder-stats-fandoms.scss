@@ -1,0 +1,32 @@
+ul.statistics {
+	display: flex;
+	flex-direction: column;
+	
+	li.fandom {
+	  width: 100%;
+	}
+  }
+  
+  #reorderFandoms {
+	display: grid;
+	grid-template-columns: repeat(3, 3fr);
+	
+	> div {
+	  display: grid;
+	  grid-template-columns: 5fr 2fr;
+	  margin: 5px;
+	  
+	  &:nth-of-type(even) {
+		background-color: lightgrey; // will probably have to change this to js computed color picker
+	  }
+	}
+	
+	label {
+	  &:hover {
+		font-weight: bold;
+	  }
+	}
+	input {
+	  max-width: 4em;
+	}
+  }
