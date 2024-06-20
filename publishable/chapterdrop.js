@@ -89,7 +89,7 @@ async function fetchNav(id) {
 function css() {
 	const root = `
 :root {
-	--background-color: ${window.getComputedStyle(document.querySelector(".work.blurb")).backgroundColor};
+	--background-color: ${window.getComputedStyle(document.querySelector(".blurb")).backgroundColor};
 }` // this is a separate variable so that i don't have to be always checking to make sure i'm not overwriting the root when copy-pasting lol
 	const stylesheet = `
 .chapterDrop {
