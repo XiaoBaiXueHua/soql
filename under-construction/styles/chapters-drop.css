@@ -1,3 +1,7 @@
+.own .chapterDrop {
+  --background-color: var(--own-color);
+}
+
 .chapterDrop {
   display: block;
   width: 100%;

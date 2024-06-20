@@ -72,12 +72,28 @@ async function fetchNav(id) {
 	}
 }
 
+
 function css() {
+	const bgColor = window.getComputedStyle(document.body).backgroundColor;
+	const ownColor = function () {
+		let c = bgColor;
+		try {
+			c = window.getComputedStyle(document.querySelector(".own.work.blurb")).backgroundColor;
+		} catch (e) { 
+			console.log("none of these works are yours.");
+		}
+		return c;
+	}()
 	const root = `
 :root {
-	--background-color: ${window.getComputedStyle(document.querySelector(".blurb")).backgroundColor /* matches the color to the current work blurb color. will have to tweak it so that it changes on one's own works */};
+	--background-color: ${bgColor};
+	--own-color: ${ownColor};
 }` // this is a separate variable so that i don't have to be always checking to make sure i'm not overwriting the root when copy-pasting lol
 	const stylesheet = `
+.own .chapterDrop {
+  --background-color: var(--own-color);
+}
+
 .chapterDrop {
   display: block;
   width: 100%;
@@ -127,8 +143,8 @@ function css() {
 .chapterDrop ol > details[open] summary::before {
   content: "Hide ";
 }`;
-const style = document.createElement("style");
-style.innerText = root + stylesheet;
-document.querySelector("head").appendChild(style);
+	const style = document.createElement("style");
+	style.innerText = root + stylesheet;
+	document.querySelector("head").appendChild(style);
 }
 showChapters();

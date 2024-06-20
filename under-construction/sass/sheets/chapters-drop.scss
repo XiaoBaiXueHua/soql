@@ -1,5 +1,10 @@
 @use "sass:selector";
 @use "../fragments/mixins";
+.own {
+	.chapterDrop {
+		--background-color: var(--own-color);
+	}
+}
 .chapterDrop {
 	display: block;
 	// float: left;
