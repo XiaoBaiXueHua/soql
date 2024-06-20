@@ -1,0 +1,11 @@
+@mixin outline($outline-color: black) {
+    text-shadow:
+        -1px -1px $outline-color,
+        1px -1px $outline-color,
+        -1px 1px $outline-color,
+        1px 1px $outline-color,
+        0 -1px $outline-color,
+        0 1px $outline-color,
+        -1px 0 $outline-color,
+        1px 0 $outline-color;
+}

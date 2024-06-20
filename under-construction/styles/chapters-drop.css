@@ -1,0 +1,48 @@
+.chapterDrop {
+  display: block;
+  width: 100%;
+  margin: 0.5em auto;
+}
+.chapterDrop::before {
+  content: "";
+  display: block;
+  clear: both;
+  border-bottom: 1px solid;
+  margin-bottom: 0.5em;
+}
+.chapterDrop[open] {
+  margin-bottom: 1em;
+}
+.chapterDrop ol li {
+  display: list-item;
+  list-style: none;
+}
+.chapterDrop ol li::before {
+  content: attr(chapter-number) ". ";
+  display: inline-table;
+  padding-right: 0.5em;
+  width: 2em;
+  text-align: right;
+}
+.chapterDrop ol li .datetime {
+  position: relative;
+  top: 0;
+  float: right;
+}
+.chapterDrop ol > details summary {
+  position: sticky;
+  top: 0;
+  background-color: var(--background-color);
+  text-shadow: -1px -1px var(--background-color), 1px -1px var(--background-color), -1px 1px var(--background-color), 1px 1px var(--background-color), 0 -1px var(--background-color), 0 1px var(--background-color), -1px 0 var(--background-color), 1px 0 var(--background-color);
+  z-index: 1;
+}
+.chapterDrop ol > details summary::before {
+  content: "Show ";
+}
+.chapterDrop ol > details[open] summary {
+  padding-left: 25%;
+  transition: 0.5s;
+}
+.chapterDrop ol > details[open] summary::before {
+  content: "Hide ";
+}/*# sourceMappingURL=chapters-drop.css.map */

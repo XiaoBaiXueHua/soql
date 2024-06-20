@@ -1,3 +1,16 @@
+// ==UserScript==
+// @name         AO3 Chapter Drop-Downs
+// @namespace    https://sincerelyandyourstruly.neocities.org
+// @version      1.0
+// @description  Shows a details drop-down underneath the stats of a work blurb on every page that shows works or bookmarks.
+// @author       白雪花
+// @match        https?://archiveofourown.org**
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=archiveofourown.org
+// @downloadURL	https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/chapterdrop.js
+// @updateURL	https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/chapterdrop.js
+// @grant        none
+// ==/UserScript==
+
 function showChapters() {
 	const works = document.querySelectorAll(`li[id^="work_"], li[id^="bookmark_"]`);
 	// bc i'm too lazy to figure out the exact regex to make this work wherever there are works and bookmarks listed, just make it check if there Are works being listed on the current page. and if there aren't, then don't do anything
