@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         floaty review box mod
 // @namespace    saxamaphone
-// @version      1.0
+// @version      1.0.1
 // @description  Adds a floaty review box. modified from [https://ravenel.tumblr.com/post/156555172141/i-saw-this-post-by-astropixie-about-how-itd-be]
 // @author       白雪花
 // @match        https://archiveofourown.org/works/*
@@ -10,20 +10,23 @@
 // @exclude     *://archiveofourown.org/works/new*
 // @exclude     https://archiveofourown.org/works/search?*
 // @grant        none
+// @history      1.0.1 - word counter now works on multichapters showing the full work
 // ==/UserScript==
 
 // word count bit rewritten from Flamebyrd, http://random.fangirling.net/fun/ao3/
 
-const ch_head = document.querySelector(".chapter.preface.group");
-var word_count = document.querySelector("#workskin div.userstuff.module");
-if (ch_head) {
-	const color = window.getComputedStyle(document.querySelector("h3.title a")).color;
+const chaps = document.querySelectorAll(`div[id^="chapter-"]`); // gets the chapter divs. could have also just done ".chapter" but for some reason i'm suddenly paranoid abt someone deciding to use the chapter class w/in their work. so anyway
+if (chaps.length > 0) { // so, like, don't bother if we're in a oneshot
+	for (const ch of chaps) { // now works on multichapters!
+		const word_count = ch.querySelector(`div.userstuff.module`).innerText.trim().split(/\s+/g).length.toLocaleString();
+		const ch_head = ch.querySelector("h3.title");
+		ch_head.insertAdjacentHTML("afterend", `<p class="wordcount">(${word_count} words)</p>`);
+	}
+	// now for styling
 	const style = document.createElement("style");
-	style.innerHTML = `.wordcount {font-size: 1.1em; color: ${color}; text-align: center; margin-top: 5px; font-family: Georgia, serif;}`;
+	style.innerHTML = `.wordcount {font-size: 1.1em; text-align: center; margin-top: 5px; font-family: Georgia, serif;}`;
 	document.querySelector("head").appendChild(style);
-	word_count = word_count.innerText.trim().split(/\S+/g).length.toLocaleString(); //won't work on cn n stuff but eh
-	const title = document.querySelector("h3.title");
-	title.insertAdjacentHTML("afterend", `<p class="wordcount">(${word_count} words)</p>`);
+
 }
 
 //inspired by/modeled after https://ravenel.tumblr.com/post/156555172141/i-saw-this-post-by-astropixie-about-how-itd-be
@@ -93,14 +96,11 @@ var floatyBoxStyle = `
 	#floaty-root textarea {
 		max-height: 8em;
 	}
-	#floaty_review_box {
+	#floaty_review_box { /* this is the floaty review box button */
 		position: fixed;
 		top: 2vh;
 		left: 2vw;
         z-index: 999;
-        background-color: white;
-        padding: 10px 5px;
-        border: 1px solid black;
 	}
 }
 `
