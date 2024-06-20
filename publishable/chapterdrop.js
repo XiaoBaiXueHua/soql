@@ -5,6 +5,7 @@
 // @description  Shows a details drop-down underneath the stats of a work blurb on every page that shows works or bookmarks.
 // @author       白雪花
 // @match        https?://archiveofourown.org**
+// @exclude      https://archiveofourown.org/works/*/bookmarks
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=archiveofourown.org
 // @downloadURL	https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/chapterdrop.js
 // @updateURL	https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/chapterdrop.js
@@ -88,7 +89,7 @@ async function fetchNav(id) {
 function css() {
 	const root = `
 :root {
-	--background-color: ${window.getComputedStyle(document.body).backgroundColor};
+	--background-color: ${window.getComputedStyle(document.querySelector(".work.blurb")).backgroundColor};
 }` // this is a separate variable so that i don't have to be always checking to make sure i'm not overwriting the root when copy-pasting lol
 	const stylesheet = `
 .chapterDrop {
