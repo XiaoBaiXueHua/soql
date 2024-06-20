@@ -101,6 +101,7 @@ function css() {
   display: block;
   clear: both;
   border-bottom: 1px solid;
+  padding-top: 0.5em;
   margin-bottom: 0.5em;
 }
 .chapterDrop[open] {
