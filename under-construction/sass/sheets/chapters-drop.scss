@@ -56,6 +56,7 @@
 				background-color: var(--background-color); // this gets declared via js
 				@include mixins.outline($outline-color: var(--background-color));
 				z-index: 1; // makes it also cover the floating datetime spans
+				transition-duration: 0.5s; // this is what makes the padding transition back smooth instead of jarring
 				&::before {
 					content: "Show ";
 				}
