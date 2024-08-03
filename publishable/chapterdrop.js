@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         AO3 Chapter Drop-Downs
 // @namespace    https://sincerelyandyourstruly.neocities.org
-// @version      1.0
+// @version      1.0.1
 // @description  Shows a details drop-down underneath the stats of a work blurb on every page that shows works or bookmarks.
 // @author       白雪花
 // @match        https://archiveofourown.org/**
