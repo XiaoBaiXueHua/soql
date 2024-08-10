@@ -1,10 +1,11 @@
 // ==UserScript==
 // @name         AO3 Chapter Drop-Downs
 // @namespace    https://sincerelyandyourstruly.neocities.org
-// @version      1.0
+// @version      1.0.1
 // @description  Shows a details drop-down underneath the stats of a work blurb on every page that shows works or bookmarks.
 // @author       白雪花
-// @match        https?://archiveofourown.org**
+// @match        https://archiveofourown.org/**
+// @exclude      https://archiveofourown.org/works/*/bookmarks
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=archiveofourown.org
 // @downloadURL	https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/chapterdrop.js
 // @updateURL	https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/chapterdrop.js
@@ -38,7 +39,7 @@ function showChapters() {
 						subDrop.appendChild(subSummary);
 						for (var i = 0; i < numChapters; i++) {
 							const ch = chs[i];
-							ch.setAttribute("chapter-number", i+1);
+							ch.setAttribute("chapter-number", i + 1);
 							const link = ch.querySelector("a");
 							//const date = ch.querySelector("span.datetime");
 							//link.innerHTML = removeNumber(link.innerHTML);
@@ -86,11 +87,26 @@ async function fetchNav(id) {
 }
 
 function css() {
+	const bgColor = window.getComputedStyle(document.body).backgroundColor;
+	const ownColor = function () {
+		let c = bgColor;
+		try {
+			c = window.getComputedStyle(document.querySelector(".own.work.blurb")).backgroundColor;
+		} catch (e) { 
+			console.log("none of these works are yours.");
+		}
+		return c;
+	}()
 	const root = `
 :root {
-	--background-color: ${window.getComputedStyle(document.body).backgroundColor};
+	--background-color: ${bgColor};
+	--own-color: ${ownColor};
 }` // this is a separate variable so that i don't have to be always checking to make sure i'm not overwriting the root when copy-pasting lol
 	const stylesheet = `
+.own .chapterDrop {
+  --background-color: var(--own-color);
+}
+
 .chapterDrop {
   display: block;
   width: 100%;
@@ -129,6 +145,7 @@ function css() {
   background-color: var(--background-color);
   text-shadow: -1px -1px var(--background-color), 1px -1px var(--background-color), -1px 1px var(--background-color), 1px 1px var(--background-color), 0 -1px var(--background-color), 0 1px var(--background-color), -1px 0 var(--background-color), 1px 0 var(--background-color);
   z-index: 1;
+  transition-duration: 0.5s;
 }
 .chapterDrop ol > details summary::before {
   content: "Show ";
@@ -140,8 +157,8 @@ function css() {
 .chapterDrop ol > details[open] summary::before {
   content: "Hide ";
 }`;
-const style = document.createElement("style");
-style.innerText = root + stylesheet;
-document.querySelector("head").appendChild(style);
+	const style = document.createElement("style");
+	style.innerText = root + stylesheet;
+	document.querySelector("head").appendChild(style);
 }
 showChapters();

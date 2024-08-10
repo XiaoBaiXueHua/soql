@@ -1,3 +1,7 @@
+.own .chapterDrop {
+  --background-color: var(--own-color);
+}
+
 .chapterDrop {
   display: block;
   width: 100%;
@@ -36,6 +40,7 @@
   background-color: var(--background-color);
   text-shadow: -1px -1px var(--background-color), 1px -1px var(--background-color), -1px 1px var(--background-color), 1px 1px var(--background-color), 0 -1px var(--background-color), 0 1px var(--background-color), -1px 0 var(--background-color), 1px 0 var(--background-color);
   z-index: 1;
+  transition-duration: 0.5s;
 }
 .chapterDrop ol > details summary::before {
   content: "Show ";
