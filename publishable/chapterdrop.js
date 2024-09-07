@@ -15,8 +15,10 @@
 function showChapters() {
 	const works = document.querySelectorAll(`li[id^="work_"], li[id^="bookmark_"]`);
 	// bc i'm too lazy to figure out the exact regex to make this work wherever there are works and bookmarks listed, just make it check if there Are works being listed on the current page. and if there aren't, then don't do anything
+	console.debug(`works: `, works);
 	if (works.length > 0) {
 		for (const work of works) {
+			console.debug(`class list: `, work.classList, `\nincludes "own": ${work.classList.includes("own")}`);
 			const chStr = work.querySelector("dd.chapters a"); // only get the multichapters
 			if (chStr) {
 				// const workId = work.id.match(/\d+/)[0]; // this doesn't work on bookmarks
@@ -24,6 +26,7 @@ function showChapters() {
 				const workId = workLink.match(/\d+/)[0];
 				// console.log(workId);
 				fetchNav(workId).then(function (chs) { // returns array of list items
+					console.debug(`chs: `, chs);
 					const numChapters = chs.length;
 					if (numChapters > 0) {
 						//console.log(chs);
@@ -87,16 +90,16 @@ async function fetchNav(id) {
 }
 
 function css() {
-	const bgColor = window.getComputedStyle(document.body).backgroundColor;
-	const ownColor = function () {
-		let c = bgColor;
-		try {
-			c = window.getComputedStyle(document.querySelector(".own.work.blurb")).backgroundColor;
-		} catch (e) { 
-			console.log("none of these works are yours.");
-		}
-		return c;
-	}()
+	// const bgColor = window.getComputedStyle(document.body).backgroundColor;
+	// const ownColor = function () {
+	// 	let c = bgColor;
+	// 	try {
+	// 		c = window.getComputedStyle(document.querySelector(".own.work.blurb")).backgroundColor;
+	// 	} catch (e) { 
+	// 		console.log("none of these works are yours.");
+	// 	}
+	// 	return c;
+	// }()
 // 	const root = `
 // :root {
 // 	--background-color: ${bgColor};
