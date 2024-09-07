@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         AO3 Chapter Drop-Downs
 // @namespace    https://sincerelyandyourstruly.neocities.org
-// @version      1.0.1
+// @version      1.0.2
 // @description  Shows a details drop-down underneath the stats of a work blurb on every page that shows works or bookmarks.
 // @author       白雪花
 // @match        https://archiveofourown.org/**
@@ -97,16 +97,12 @@ function css() {
 		}
 		return c;
 	}()
-	const root = `
-:root {
-	--background-color: ${bgColor};
-	--own-color: ${ownColor};
-}` // this is a separate variable so that i don't have to be always checking to make sure i'm not overwriting the root when copy-pasting lol
+// 	const root = `
+// :root {
+// 	--background-color: ${bgColor};
+// 	--own-color: ${ownColor};
+// }` // this is a separate variable so that i don't have to be always checking to make sure i'm not overwriting the root when copy-pasting lol
 	const stylesheet = `
-.own .chapterDrop {
-  --background-color: var(--own-color);
-}
-
 .chapterDrop {
   display: block;
   width: 100%;
@@ -142,8 +138,7 @@ function css() {
 .chapterDrop ol > details summary {
   position: sticky;
   top: 0;
-  background-color: var(--background-color);
-  text-shadow: -1px -1px var(--background-color), 1px -1px var(--background-color), -1px 1px var(--background-color), 1px 1px var(--background-color), 0 -1px var(--background-color), 0 1px var(--background-color), -1px 0 var(--background-color), 1px 0 var(--background-color);
+  background-color: inherit;
   z-index: 1;
   transition-duration: 0.5s;
 }
@@ -158,7 +153,8 @@ function css() {
   content: "Hide ";
 }`;
 	const style = document.createElement("style");
-	style.innerText = root + stylesheet;
+	// style.innerText = root + stylesheet;
+	style.innerText = stylesheet;
 	document.querySelector("head").appendChild(style);
 }
 showChapters();
