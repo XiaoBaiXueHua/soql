@@ -25,12 +25,12 @@ const noResults = function () {
 /* keeping the fandoms w/saved filters in an array: */
 var listKey = "saved fandoms";
 var savedFandoms = localStorage[listKey]; //need to keep an array of available fandoms to be able to make a dropdown of options when 
-if(!savedFandoms) {
+if (!savedFandoms) {
 	savedFandoms = [];
-} else {savedFandoms = savedFandoms.split(/,/g);}
+} else { savedFandoms = savedFandoms.split(/,/g); }
 //localStorage saves the list as a string, so to turn it into an array, must use split
 
-function filterArray(){return Object.entries(localStorage)};
+function filterArray() { return Object.entries(localStorage) };
 
 /* removes local storage on blank tags  */
 const search_submit = window.location.search;
@@ -82,7 +82,7 @@ const tagName = function () {
 	var tag = currentTag.innerText.replace(remAmbig, "").trim();
 	return tag;
 }();
-if (!localStorage[`ids-global`]) {localStorage.setItem("ids-global", "")}; //if there's nothing in the global ids key storage, make it blank
+if (!localStorage[`ids-global`]) { localStorage.setItem("ids-global", "") }; //if there's nothing in the global ids key storage, make it blank
 function emptyStorage(key) {
 	if (!localStorage[key]) {
 		localStorage.setItem(key, "");
@@ -120,7 +120,7 @@ function filterTypes(name) {
 	var is = name == "fandom" ? true : false;
 	if (is && !fandomName) { return null; } //exit from trying to make a fandom box in a global tag
 	var key = `filter-${is ? fandomName : name}`;
-	if (!localStorage[key]) {localStorage.setItem(key, "")}; //if there doesn't already exist a filter for this fandom, set it now
+	if (!localStorage[key]) { localStorage.setItem(key, "") }; //if there doesn't already exist a filter for this fandom, set it now
 	var filter = localStorage[key];
 	var en = enable(is ? cssFanName : name);
 	var obj = [name, key, filter, en];
@@ -308,7 +308,7 @@ const id = function () {
 		console.log("subscribable id method");
 		return document.querySelector("#subscription_subscribable_id").value;
 	} else {
-		if (!errorFlash) {console.error("can't find tag id :C");};
+		if (!errorFlash) { console.error("can't find tag id :C"); };
 		return null;
 	};
 }();
@@ -363,9 +363,9 @@ function nya() {
 		}
 		var targetFilter = select.options[0].value;
 		function selectorType() {
-			return (targetFilter=="filter-global") ? "global" : "fandom";
+			return (targetFilter == "filter-global") ? "global" : "fandom";
 		};
-		select.onchange = function() {
+		select.onchange = function () {
 			targetFilter = select.value;
 		}
 
@@ -409,13 +409,13 @@ function nya() {
 				} else {
 					filt = filt.replace(old_ids, newFilt); //i forgot. to put in the "filt =". i feel like an idiot
 					/* removal */
-					if(type=="Remov") {
+					if (type == "Remov") {
 						p.innerHTML = `${obj.ing}ed <strong>${tagName}</strong> from <em>${curr}</em>.`
 					} else {
 						p.innerHTML = `Changed <strong>${tagName}</strong> to ${obj.ing}e in <em>${curr}</em>.`;
 					}
 				}
-			} else if(type=="Remov") { //if you're supposed to be removing smth that isn't there, tell them
+			} else if (type == "Remov") { //if you're supposed to be removing smth that isn't there, tell them
 				p.innerHTML = `<strong>${tagName}</strong> isn't in your <em>${curr}</em> filters!`;
 			} else {
 				filt += newFilt;
@@ -464,7 +464,7 @@ function submission() {
 			fanSub = fan[2] ? fan[2] : ""; //if you don't do this, then it'll submit "undefined" when there's nothing
 		}
 	};
-	var tempSub = tempp[2] ? tempp[2] : ""; 
+	var tempSub = tempp[2] ? tempp[2] : "";
 	advSearch.value = `${globeSub} ${fanSub} ${tempSub}`;
 	advSearch.value = advSearch.value.replace(/\s{2,}/g, " ").trim();
 }
@@ -537,14 +537,14 @@ function expy(obj) {
 	for (const [key, value] of arr) {
 		if (key.startsWith("filter-") || key.startsWith("enable-")) {
 			jason += `"${key}": "${value.replaceAll(`"`, `\\"`)}", `; //make sure to sanitize the values w/escape chars
-			if(obj.indexOf(arr)==obj.length) {
+			if (obj.indexOf(arr) == obj.length) {
 				console.log("uhh this is the last one");
 			}
 		}
 	}
-	jason = jason.substring(0, jason.length-2) + "}"; //remove last trailing comma + space + closing bracket
+	jason = jason.substring(0, jason.length - 2) + "}"; //remove last trailing comma + space + closing bracket
 	//downloading as json from https://attacomsian.com/blog/javascript-download-file
-	const blob = new Blob([jason], {type: 'application/json'}); //create blob object
+	const blob = new Blob([jason], { type: 'application/json' }); //create blob object
 	const DL_jason = URL.createObjectURL(blob);
 	const saveDate = new Date();
 	download(DL_jason, `autofilters_${saveDate.getFullYear()}_${saveDate.getMonth()}_${saveDate.getDay()}.json`); //download the file

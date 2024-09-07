@@ -156,9 +156,9 @@ class filter_id {
 			};
 		}();
 	}
-	get(this) {
-		return [this.tagName, this.id];
-	}
+	// get(this) {
+	// 	return [this.tagName, this.id];
+	// }
 }
 
 function emptyStorage(key) { //function to give you that particular localStorage (n set it to nothing if dne)
@@ -182,6 +182,7 @@ function autosave(key, value) {
 	localStorage.setItem(key, value);
 }
 
+// the filterObj class 
 class filterObj {
 	constructor(fandom) {
 		this.fullName = fandom;
@@ -189,19 +190,18 @@ class filterObj {
 		this.cssName = this.name.replace(/\W+/g, "-");
 		this.filters = function () { // has sub-objects "include", "exclude", and "complex"
 			// storJson(emptyStorage(`filter-${this.name}`))
-			let filterObj;
+			let obj;
 			try {
-				filterObj = JSON.parse(localStorage[this.name].filters);
+				obj = JSON.parse(localStorage[this.name].filters);
 			} catch (e) {
 				console.error("it seems you haven't used the updated version of the script yet. now turning filters into a js object.");
-
-				filterObj = this.strToObj(localStorage[`filter-${this.name}`].replace(/s{2,}/g, " ") + " ");
+				obj = filterObj.strToObj(localStorage[`filter-${this.name}`].replace(/s{2,}/g, " ") + " ");
 			}
-			return filterObj;
+			return obj;
 		}(); // this is the array of filters that actually gets used
 		this.ids = storJson(emptyStorage(`ids-${this.cssName}`)); // this is just the array of ids and their names specific to this particular fandom
 		this.enabled = localStorage[`enable-${this.cssName}`] ? storJson(localStorage[`enable-${this.cssName}`]) : true; // bc local storage stores things as strings, we can just check to make sure the local storage obj exists w/o worrying abt stuff. anyway if it doesn't exist default is true
-		this.type = (fandom !== "global") ? "fandom" : fandom;
+		this.type = (fandom !== "global") ? "fandom" : fandom; // generalizes everything that isn't "global" to "fandom"
 	}
 	static disambiguator = /\s\((\w+(\s|&)*|\d+\s?)+\)/g; //removes disambiguators
 
@@ -209,7 +209,8 @@ class filterObj {
 		const box = dom.pp("", "textarea", false, { id: `${this.type}Filters` });
 	}
 
-	strToObj(filterStr) {
+	// this turns the plain strings of the first version into objects. important for when people upgrade from prev to current
+	static strToObj(filterStr) {
 		// var filterStr = localStorage[`filter-${this.name}`].replace(/s{2,}/g, " ") + " ";
 		const query = new Array();
 		const rules = new Array();
