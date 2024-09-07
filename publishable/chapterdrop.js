@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         AO3 Chapter Drop-Downs
 // @namespace    https://sincerelyandyourstruly.neocities.org
-// @version      1.0.2
+// @version      1.0.3
 // @description  Shows a details drop-down underneath the stats of a work blurb on every page that shows works or bookmarks.
 // @author       白雪花
 // @match        https://archiveofourown.org/**
@@ -18,7 +18,8 @@ function showChapters() {
 	console.debug(`works: `, works);
 	if (works.length > 0) {
 		for (const work of works) {
-			console.debug(`class list: `, work.classList, `\nincludes "own": ${work.classList.includes("own")}`);
+			console.debug(`class list: `, work.classList);
+			console.debug(`includes "own": ${work.classList.includes("own")}`)
 			const chStr = work.querySelector("dd.chapters a"); // only get the multichapters
 			if (chStr) {
 				// const workId = work.id.match(/\d+/)[0]; // this doesn't work on bookmarks
@@ -84,7 +85,7 @@ async function fetchNav(id) {
 			const chs = tmpDiv.querySelectorAll("ol.chapter li");
 			return chs;
 		} catch (e) {
-
+			console.error(`whadda hell.`);
 		}
 	}
 }
