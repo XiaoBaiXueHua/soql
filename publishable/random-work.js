@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Random Work
 // @namespace    https://sincerelyandyourstruly.neocities.org
-// @version      1.0
+// @version      1.1
 // @description  Redirects to a random work on an ao3 page
 // @author       白雪花
 // @match        *://*.archiveofourown.org/works?*
@@ -12,9 +12,10 @@
 // @match        *://*.archiveofourown.org/tags/*/works**
 // @match        *://*.archiveofourown.org/users/*/readings*show=to-read*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=archiveofourown.org
-// @downloadURL	https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/random-work.js
-// @updateURL	https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/random-work.js
+// @downloadURL	 https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/random-work.js
+// @updateURL	 https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/random-work.js
 // @grant        none
+// @history      fixed a bug that made it so that the random works were pulled only from the marked for later list. whoopsies.
 // ==/UserScript==
 
 const button = document.createElement("li"); // since it goes inside a ul.actions thing, it's just easier to make it a list item tbh
@@ -58,11 +59,12 @@ async function loadRand(pgNum) {
 	} else {
 		console.log(`to fetch: page ${pgNum}`);
 	}
-	const newURL = `${window.location.pathname}?page=${pgNum}&show=to-read`; // relative paths babeyyyy
+	const newURL = `${window.location.pathname}${window.location.search.replace(/page=\d+/, `page=${pgNum}`)}`; // relative paths babeyyyy
 	console.log(`new url: ${newURL}`);
 	const request = await fetch(newURL);
 	if (request.ok) {
 		const txt = await request.text();
+		// need to do this so that we can query selector our blurbs
 		const tmpDiv = document.createElement("div");
 		tmpDiv.innerHTML = txt;
 		const blurbs = document.querySelectorAll(".blurb");
