@@ -1,8 +1,25 @@
+// ==UserScript==
+// @name         AO3 Chapter Drop-Downs
+// @namespace    https://sincerelyandyourstruly.neocities.org
+// @version      1.0.3
+// @description  Shows a details drop-down underneath the stats of a work blurb on every page that shows works or bookmarks.
+// @author       白雪花
+// @match        https://archiveofourown.org/**
+// @exclude      https://archiveofourown.org/works/*/bookmarks
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=archiveofourown.org
+// @downloadURL	https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/chapterdrop.js
+// @updateURL	https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/chapterdrop.js
+// @grant        none
+// ==/UserScript==
+
 function showChapters() {
 	const works = document.querySelectorAll(`li[id^="work_"], li[id^="bookmark_"]`);
 	// bc i'm too lazy to figure out the exact regex to make this work wherever there are works and bookmarks listed, just make it check if there Are works being listed on the current page. and if there aren't, then don't do anything
+	console.debug(`works: `, works);
 	if (works.length > 0) {
 		for (const work of works) {
+			console.debug(`class list: `, work.classList);
+			console.debug(`includes "own": ${work.classList.includes("own")}`)
 			const chStr = work.querySelector("dd.chapters a"); // only get the multichapters
 			if (chStr) {
 				// const workId = work.id.match(/\d+/)[0]; // this doesn't work on bookmarks
@@ -10,6 +27,7 @@ function showChapters() {
 				const workId = workLink.match(/\d+/)[0];
 				// console.log(workId);
 				fetchNav(workId).then(function (chs) { // returns array of list items
+					console.debug(`chs: `, chs);
 					const numChapters = chs.length;
 					if (numChapters > 0) {
 						//console.log(chs);
@@ -25,7 +43,7 @@ function showChapters() {
 						subDrop.appendChild(subSummary);
 						for (var i = 0; i < numChapters; i++) {
 							const ch = chs[i];
-							ch.setAttribute("chapter-number", i+1);
+							ch.setAttribute("chapter-number", i + 1);
 							const link = ch.querySelector("a");
 							//const date = ch.querySelector("span.datetime");
 							//link.innerHTML = removeNumber(link.innerHTML);
@@ -67,33 +85,28 @@ async function fetchNav(id) {
 			const chs = tmpDiv.querySelectorAll("ol.chapter li");
 			return chs;
 		} catch (e) {
-
+			console.error(`whadda hell.`);
 		}
 	}
 }
 
-
 function css() {
-	const bgColor = window.getComputedStyle(document.body).backgroundColor;
-	const ownColor = function () {
-		let c = bgColor;
-		try {
-			c = window.getComputedStyle(document.querySelector(".own.work.blurb")).backgroundColor;
-		} catch (e) { 
-			console.log("none of these works are yours.");
-		}
-		return c;
-	}()
-	const root = `
-:root {
-	--background-color: ${bgColor};
-	--own-color: ${ownColor};
-}` // this is a separate variable so that i don't have to be always checking to make sure i'm not overwriting the root when copy-pasting lol
+	// const bgColor = window.getComputedStyle(document.body).backgroundColor;
+	// const ownColor = function () {
+	// 	let c = bgColor;
+	// 	try {
+	// 		c = window.getComputedStyle(document.querySelector(".own.work.blurb")).backgroundColor;
+	// 	} catch (e) { 
+	// 		console.log("none of these works are yours.");
+	// 	}
+	// 	return c;
+	// }()
+// 	const root = `
+// :root {
+// 	--background-color: ${bgColor};
+// 	--own-color: ${ownColor};
+// }` // this is a separate variable so that i don't have to be always checking to make sure i'm not overwriting the root when copy-pasting lol
 	const stylesheet = `
-.own .chapterDrop {
-  --background-color: var(--own-color);
-}
-
 .chapterDrop {
   display: block;
   width: 100%;
@@ -116,10 +129,18 @@ function css() {
 }
 .chapterDrop ol li::before {
   content: attr(chapter-number) ". ";
-  display: inline-table;
+  display: inline-block;
   padding-right: 0.5em;
   width: 2em;
   text-align: right;
+  vertical-align: top;
+}
+.chapterDrop ol li details {
+  display: inline-table;
+  width: calc(100% - 2.5em);
+}
+.chapterDrop ol li h4.heading {
+  display: inline;
 }
 .chapterDrop ol li .datetime {
   position: relative;
@@ -129,9 +150,9 @@ function css() {
 .chapterDrop ol > details summary {
   position: sticky;
   top: 0;
-  background-color: var(--background-color);
-  text-shadow: -1px -1px var(--background-color), 1px -1px var(--background-color), -1px 1px var(--background-color), 1px 1px var(--background-color), 0 -1px var(--background-color), 0 1px var(--background-color), -1px 0 var(--background-color), 1px 0 var(--background-color);
+  background-color: inherit;
   z-index: 1;
+  transition-duration: 0.5s;
 }
 .chapterDrop ol > details summary::before {
   content: "Show ";
@@ -144,7 +165,8 @@ function css() {
   content: "Hide ";
 }`;
 	const style = document.createElement("style");
-	style.innerText = root + stylesheet;
+	// style.innerText = root + stylesheet;
+	style.innerText = stylesheet;
 	document.querySelector("head").appendChild(style);
 }
 showChapters();

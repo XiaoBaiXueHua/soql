@@ -1,5 +1,6 @@
 @use "sass:selector";
 @use "../fragments/mixins";
+
 // .own {
 // 	.chapterDrop {
 // 		--background-color: var(--own-color);
@@ -36,10 +37,20 @@
 			// list-style-position: inside;
 			&::before {
 				content: attr(chapter-number) ". ";
-				display: inline-table;
+				display: inline-block;
 				padding-right: 0.5em;
 				width: 2em;
 				text-align: right;
+				vertical-align: top;
+			}
+
+			details {
+				display: inline-table;
+				width: calc(100% - 2.5em);
+			}
+
+			h4.heading {
+				display: inline;
 			}
 
 			.datetime {
@@ -58,6 +69,7 @@
 				// @include mixins.outline($outline-color: var(--background-color));
 				z-index: 1; // makes it also cover the floating datetime spans
 				transition-duration: 0.5s; // this is what makes the padding transition back smooth instead of jarring
+
 				&::before {
 					content: "Show ";
 				}
@@ -67,6 +79,7 @@
 				summary {
 					padding-left: 25%;
 					transition: 0.5s;
+
 					&::before {
 						content: "Hide ";
 					}

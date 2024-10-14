@@ -129,10 +129,18 @@ function css() {
 }
 .chapterDrop ol li::before {
   content: attr(chapter-number) ". ";
-  display: inline-table;
+  display: inline-block;
   padding-right: 0.5em;
   width: 2em;
   text-align: right;
+  vertical-align: top;
+}
+.chapterDrop ol li details {
+  display: inline-table;
+  width: calc(100% - 2.5em);
+}
+.chapterDrop ol li h4.heading {
+  display: inline;
 }
 .chapterDrop ol li .datetime {
   position: relative;
