@@ -161,6 +161,25 @@ class filter_id {
 	// }
 }
 
+// class savedFilter {
+// 	constructor() {
+// 		this.filter = [];
+// 		this.users = [];
+// 		this.works = [];
+// 	}
+// }
+
+// class filterObj {
+// 	constructor(fandom) {
+// 		this.type = (fandom !== "global" ? "fandom" : "global"); // should be either "global" or "fandom"
+// 		this.fandom = fandom;
+// 		this.filters = {
+// 			include: {},
+// 			exclude: {}
+// 		}
+// 	}
+// }
+
 function emptyStorage(key) { //function to give you that particular localStorage (n set it to nothing if dne)
 	if (!localStorage[key]) {
 		localStorage.setItem(key, "");

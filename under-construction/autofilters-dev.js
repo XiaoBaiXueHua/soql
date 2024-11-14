@@ -17,7 +17,7 @@
 /* various important global vars */
 const header = document.querySelector("h2:has(a.tag)");
 //console.log(header);
-const currentTag = header.querySelector("a.tag"); //the current tag being searched 
+const currentTag = header.querySelector("a.tag"); //the current tag being searched
 const errorFlash = document.querySelector("div.flash.error");
 const noResults = function () {
 	return header.innerHTML.match(/\n0\s/) ? true : false;
@@ -28,7 +28,7 @@ const noResults = function () {
 
 /* keeping the fandoms w/saved filters in an array: */
 var listKey = "saved fandoms";
-var savedFandoms = localStorage[listKey]; //need to keep an array of available fandoms to be able to make a dropdown of options when 
+var savedFandoms = localStorage[listKey]; //need to keep an array of available fandoms to be able to make a dropdown of options when
 if (!savedFandoms) {
 	//localStorage.setItem(listKey, []);
 	savedFandoms = [];
@@ -103,7 +103,7 @@ const tagName = function () {
 	return tag;
 }();
 //if (!localStorage[`ids-global`]) {localStorage.setItem("ids-global", "")}; //if there's nothing in the global ids key storage, make it blank
-//if there's nothing 
+//if there's nothing
 function emptyStorage(key) { //function to give you that particular localStorage (n set it to nothing if dne)
 	if (!localStorage[key]) {
 		localStorage.setItem(key, "");
@@ -218,7 +218,7 @@ const globEl = global[4];
 /* now for the tag id fetcher */
 
 /* the function to add the tag ids n stuff */
-//gotta make these first for nya
+//gotta make these first for tagUI
 const navList = document.querySelector("#main ul.user.navigation");
 const filtButt = document.createElement("li");
 filtButt.id = "get_id_butt";
@@ -377,19 +377,35 @@ function showAllFilters(parent) {
 const fandomEl = fandomName ? fan[4] : null;
 
 
-//the id filter selector should be made into a class tbh, but since idk how to execute that correctly rn, it'll just be global vars 
+//the id filter selector should be made into a class tbh, but since idk how to execute that correctly rn, it'll just be global vars
 const select = document.createElement("select");
 select.className = "filterSelector"; //should make it a class since it'll probably be used again when working on banishment
 function currentSel() {
 	return select.value;
 }
-
+function selectorType() {
+	//console.log(`current targetFilter: `, targetFilter, ` and current selection: ${currentSel()}`);
+	return (currentSel() == "global") ? "global" : "fandom";
+};
 
 /* display the filter_ids and actions */
-function nya() {
+function tagUI() {
 	if (!document.querySelector("#filter_opt")) {
 		const filterOpt = document.createElement("fieldset");
 		filterOpt.id = "filter_opt";
+
+		/* heading & current tag info */
+		const h4 = document.createElement("h4");
+		h4.id = "filter-heading";
+		h4.innerHTML = "Autofilter Options";
+
+		const p = document.createElement("p");
+		p.innerHTML = `<strong>Current tag</strong>: ${tagName}`;
+		// filterOpt.append(h4, p);
+		if (document.querySelector(`textarea#${selectorType()}Filters`).value.match(id)) {
+			p.innerHTML += ` <small>(already included in the ${selectorType()} filters.)</small>`
+		}
+
 		/* display ID # & choose where to append the tag */
 		const fil = document.createElement("div");
 		const id_exp = document.createElement("ul"); //make the div w/the id output and the buttons for importing/exporting opts
@@ -400,20 +416,29 @@ function nya() {
 		const label = document.createElement("label");
 		label.innerHTML = "filter_ids:";
 		label.setAttribute("for", "id_output");
+		label.appendChild(output);
+		// p.appendChild(label);
 
 		/* import/export buttons */
 		const impDiv = document.createElement("div"); //div for the import process
 		const impButt = document.createElement("li");
-		impButt.innerHTML = `<a>Import</a>`;
+		impButt.innerHTML = `<a>Import Filters</a>`;
 		impButt.addEventListener("click", () => {
 			impsy(impDiv);
 		})
 		const expButt = document.createElement("li");
-		expButt.innerHTML = `<a>Export</a>`;
+		expButt.innerHTML = `<a>Export Filters</a>`;
 		expButt.addEventListener("click", () => {
 			expy(filterArray());
 		});
 
+		const optimizeButt = document.createElement("li");
+		optimizeButt.innerHTML = `<a>Optimize Filters</a>`;
+		optimizeButt.addEventListener("click", optimizeFilters);
+
+		const nowEditP = document.createElement("p"); // makes a paragraph to clarify what the selection does (changes which filter this tag is being edited to);
+		nowEditP.innerHTML = `Currently editing filter: `;
+		nowEditP.append(select);
 		/* selection dropdown */
 		const globalOpt = `<option value="global">Global</option>`;
 		if (!fandomName) { //if in a global tag, give the option to pick a fandom for this particular tag
@@ -434,10 +459,6 @@ function nya() {
 		}
 		//var targetFilter = select.options[0].value;
 		//var targetFilter = `filter-${currentSel()}`;
-		function selectorType() {
-			//console.log(`current targetFilter: `, targetFilter, ` and current selection: ${currentSel()}`);
-			return (`filter-${currentSel()}` == "filter-global") ? "global" : "fandom";
-		};
 		/*select.onchange = function () {
 			//console.log(select.value);
 			targetFilter = `filter-${select.value}`; //this selector is also used when importing values for ids, since i have yet to optimize that
@@ -525,75 +546,76 @@ function nya() {
 		for (a of ugh) {
 			tagButtons(a);
 		}
-		id_exp.append(label, output, document.createElement("br"), impButt, expButt, impDiv);
-		fil.append(id_exp, select);
-		filterOpt.append(fil, buttonAct, appp);
+		id_exp.append(impButt, expButt, optimizeButt, impDiv);
+		// fil.append(id_exp, select);
+		fil.append(label, id_exp, nowEditP);
+		filterOpt.append(h4, p, fil, buttonAct, appp);
 		navList.parentElement.insertAdjacentElement("afterend", filterOpt);
 	}
 }
 //only add the tag id fetcher button if there's a form
 if (form) {
 	navList.insertAdjacentElement("afterbegin", filtButt);
-	filtButt.addEventListener("mouseup", nya);
+	filtButt.addEventListener("mouseup", tagUI);
 }
 
 /* banish a particular work from your search results */
-const workList = document.querySelectorAll("li[id^='work']");
-//var nyeh = (!global[3] && !search_submit); //if both the global n the fandom checkmarks are off AND we're not on a search page
-var nyeh = fan ? (!global[3] && !fan[3]) : !global[3]; //have to check if the fandom box exists first before declaring it -_-
-console.log(`!global[3] (&& optional !fan[3]): ${nyeh}`);
-// this doesn't actually do anything yet
-if (nyeh || search_submit) {
-	//if the autofilters are currently disabled or we're already on a search page, do the thing
-	for (const work of workList) {
-		//console.log(work);
-		const work_id = work.id.replace("work_", ""); //get its id num from. well. its id.
-		const title = work.querySelector(".heading a").innerText.trim(); // they don't even put a class on the title link...
-		const klasses = work.classList; // need this to be an array for works w/multiple authors
-		const user_ids = new Array();
-		const authors = new Array();
-		var aLinks = work.querySelectorAll(`a[rel="author"]`);
-		for (const a of aLinks) {
-			authors.push(a.innerText);
-		}
-		let anonymous = false;
-		for (const klass of klasses) {
-			if (klass.search(/^user-/) >= 0) {
-				user_ids.push(klass.replace("user-", ""));
-			}
-		}
-		if (user_ids.length < 1) {
-			console.info("oh hey an anon work");
-			anonymous = true;
-		}
-		// console.log(`work_id: ${work_id}, anonymous? ${anonymous}, authors: `, authors, user_ids);
-		const banSel = document.createElement("select");
-		banSel.className = "banish";
-		const hellip = document.createElement("option");
-		hellip.innerHTML = "&hellip;";
-		banSel.appendChild(hellip);
+// const workList = document.querySelectorAll("li[id^='work']");
+// //var nyeh = (!global[3] && !search_submit); //if both the global n the fandom checkmarks are off AND we're not on a search page
+// var nyeh = fan ? (!global[3] && !fan[3]) : !global[3]; //have to check if the fandom box exists first before declaring it -_-
+// console.log(`!global[3] (&& optional !fan[3]): ${nyeh}`);
+// // this doesn't actually do anything yet
+// if (nyeh || search_submit) {
+// 	//if the autofilters are currently disabled or we're already on a search page, do the thing
+// 	for (const work of workList) {
+// 		//console.log(work);
+// 		const work_id = work.id.replace("work_", ""); //get its id num from. well. its id.
+// 		const title = work.querySelector(".heading a").innerText.trim(); // they don't even put a class on the title link...
+// 		const klasses = work.classList; // need this to be an array for works w/multiple authors
+// 		const user_ids = new Array();
+// 		const authors = new Array();
+// 		var aLinks = work.querySelectorAll(`a[rel="author"]`);
+// 		for (const a of aLinks) {
+// 			authors.push(a.innerText);
+// 		}
+// 		let anonymous = false;
+// 		for (const klass of klasses) {
+// 			if (klass.search(/^user-/) >= 0) {
+// 				user_ids.push(klass.replace("user-", ""));
+// 			}
+// 		}
+// 		if (user_ids.length < 1) {
+// 			console.info("oh hey an anon work");
+// 			anonymous = true;
+// 		}
+// 		// console.log(`work_id: ${work_id}, anonymous? ${anonymous}, authors: `, authors, user_ids);
+// 		const banSel = document.createElement("select");
+// 		banSel.className = "banish";
+// 		const hellip = document.createElement("option");
+// 		hellip.innerHTML = "&hellip;";
+// 		banSel.appendChild(hellip);
 
-		const banWork = document.createElement("option");
-		banWork.innerHTML = `ban "${title}"`;
-		banWork.value = work_id;
-		banSel.appendChild(banWork);
-		if (anonymous) {
-			const opt = document.createElement("option");
-			opt.innerHTML = "filter out all anonymous works.";
-			opt.value = "anonymous";
-			banSel.appendChild(opt);
-		} else {
-			for (var i = 0; i < authors.length; i++) {
-				const opt = document.createElement("option");
-				opt.value = user_ids[i];
-				opt.innerHTML = `ban ${authors[i]}`;
-				banSel.appendChild(opt);
-			}
-		}
+// 		const banWork = document.createElement("option");
+// 		banWork.innerHTML = `ban "${title}"`;
+// 		banWork.value = work_id;
+// 		banSel.appendChild(banWork);
+// 		if (anonymous) {
+// 			const opt = document.createElement("option");
+// 			opt.innerHTML = "filter out all anonymous works.";
+// 			opt.value = "anonymous";
+// 			banSel.appendChild(opt);
+// 		} else {
+// 			for (var i = 0; i < authors.length; i++) {
+// 				const opt = document.createElement("option");
+// 				opt.value = user_ids[i];
+// 				opt.innerHTML = `ban ${authors[i]}`;
+// 				banSel.appendChild(opt);
+// 			}
+// 		}
 
-		work.querySelector("p.datetime").insertAdjacentElement("afterend", banSel); // inject the selection next to the datetime or something
-	}
-}
+// 		work.querySelector("p.datetime").insertAdjacentElement("afterend", banSel); // inject the selection next to the datetime or something
+// 	}
+// }
 
 
 /* add filters + temp search to search w/in results box */
@@ -659,9 +681,12 @@ if (search_submit == "") {
 		var filterStore = emptyStorage(`filter-${key}`);
 		//if (localStorage[`filter-${key}`]) {
 		if (filterStore) {
-			var html = filterStore + " "; //add in the extra space for matching the last in the string
+			// var html = filterStore + " "; //add in the extra space for matching the last in the string
 			//console.log(`stored filters for filter-${key}: \n\n${filterStore}`);
 			//console.log("globIdStorage: ", globIdStorage);
+			// const fills = filterStore.split(/\s(?=(-|l|f|r|c|t|w|b|!)\w+)/).filter(function(item) { return item.length > 3 });
+			var fills = filterStore.split(/\s(?=(-|l|f|r|c|t|w|b|!)\w+)(?<!&)/).filter(function (item) { return item.length > 3 && item }); // can't seem to use parentheses in the negative lookback to group multiple ones, so i'll just leave it as just "not preceded by '&'"
+			console.log(`splitting the ${key} filter on spaces: `, fills); // (?<!(&)) (?<!(&|\)|!|\})) (?=(-|l|f|r|c|t|w|b|!)\w+)
 			const p = document.createElement("p");
 			p.className = `prev-${key.replaceAll(/\W+/g, "-")}`;
 			//p.innerHTML = `<strong>${key.replaceAll(/-/g, " ").trim()} Filters:</strong></br><span>${localStorage[`filter-${key}`]}</span>`;
@@ -669,10 +694,16 @@ if (search_submit == "") {
 			l.innerHTML = `${key.replaceAll(/-/g, " ").trim()} Filters:`;
 			//const gson = storJson(globIdStorage);
 			//console.log("global json, gson:", gson);
+			p.append(l, document.createElement("br")); // append these first ofc
 			//console.log("a: ", a);
-			const sp = document.createElement("span");
-			sp.innerHTML = html;
-			p.append(l, document.createElement("br"), sp);
+			for (var i = 0; i < fills.length; i++) {
+				var html = fills[i];
+				const sp = document.createElement("span");
+				sp.innerHTML = html;
+				p.appendChild(sp);
+				if (i !== fills.length - 1) { p.innerHTML += ", "; } // add the comma and stuff if we're not at the end
+			}
+			// p.append(l, document.createElement("br"), sp);
 			//p.innerHTML += html;
 			details.appendChild(p);
 		};
@@ -728,6 +759,7 @@ const download = (path, filename) => {
 function expy(obj) {
 	console.info("now executing expy on", obj);
 	//console.log(filterArray());
+	// console.log(JSON.stringify(obj));
 	var arr = obj;
 	var jason = "{"; //opening bracket;
 	for (const [key, value] of arr) {
@@ -743,7 +775,7 @@ function expy(obj) {
 	//downloading as json from https://attacomsian.com/blog/javascript-download-file
 	const blob = new Blob([jason], { type: 'application/json' }); //create blob object
 	const DL_jason = URL.createObjectURL(blob);
-	const saveDate = new Date();
+	var saveDate = new Date();
 	download(DL_jason, `autofilters_${saveDate.getFullYear()}_${saveDate.getMonth()}_${saveDate.getDay()}.json`); //download the file
 	URL.revokeObjectURL(DL_jason); //release object url
 	//return jason;
@@ -805,9 +837,9 @@ class filterObj {
 		this.cssName = this.name.replace(/\W+/g, "-");
 		this.filters = function () { // has sub-objects "include", "exclude", and "complex"
 			// storJson(emptyStorage(`filter-${this.name}`))
-			let filterJson;
+			let filterObj;
 			try {
-				filterJson = JSON.parse(localStorage[this.name].filters);
+				filterObj = JSON.parse(localStorage[this.name].filters);
 			} catch (e) {
 				console.error("it seems you haven't used the updated version of the script yet. now turning filters into a js object.");
 				var filterStr = localStorage[`filter-${this.name}`].replace(/s{2,}/g, " ") + " ";
@@ -819,31 +851,6 @@ class filterObj {
 					const char = filterStr[j];
 					// if we're done with our parentheses and we're at a space...
 					if ((numParentheses == 0 && char == " ") || j == filterStr.length - 1) { // if there are no parentheses && we're currently on a space, OR we've finished the string...
-						var rule = filterStr.substring(lastColon + 1, j).trim();
-						if (rule.startsWith("(")) {
-							// if the rule starts w/a parentheses, then that means we're working w/a grouping and should thus chop off the parentheses and turn the groupings into an array
-							let ruleArr; // array to hold the rules
-							rule = rule.substring(1, rule.length - 1); // chops off parentheses
-							if (rule.search("(") >= 0) {
-								// if there are still parentheses left, then that means we have sub-groupings, so we have to iterate through the string.
-								var numP2 = 0;
-								var lastRule = 0;
-								for (var l = 0; l < rule.length; l++) {
-									const subChar = rule[l];
-									if (subChar == "(") {
-										numP2++;
-									} else if (subChar == ")") {
-										numP2--;
-									} else if ((subChar == " " && numP2 == 0) || l == rule.length - 1) {
-										console.log(`new rule string: ${rule.substring(lastRule, l)}`);
-										lastRule = l;
-									}
-								}
-							} else {
-								// otherwise, we can just split at the " || "
-								ruleArr = rule.split(/\s+\|\|\s+/g);
-							}
-						}
 						rules.push(filterStr.substring(lastColon + 1, j).trim()); // push the substring to the rules
 						lastColon = j;
 					}
@@ -881,14 +888,13 @@ class filterObj {
 					}
 				}
 				console.log(`include array: `, incl, `\nexcl array: `, excl, `\nand other queries array: `, otherQueries);
-				// filterObj = this.strToObj(localStorage[`filter-${this.name}`].replace(/s{2,}/g, " ") + " ");
-				filterJson = {
+				filterObj = {
 					include: incl,
 					exclude: excl,
 					complex: otherQueries
-				};
+				}
 			}
-			return filterJson;
+			return filterObj;
 		}(); // this is the array of filters that actually gets used
 		this.ids = storJson(emptyStorage(`ids-${this.cssName}`)); // this is just the array of ids and their names specific to this particular fandom
 		this.enabled = localStorage[`enable-${this.cssName}`] ? storJson(localStorage[`enable-${this.cssName}`]) : true; // bc local storage stores things as strings, we can just check to make sure the local storage obj exists w/o worrying abt stuff. anyway if it doesn't exist default is true
@@ -899,85 +905,6 @@ class filterObj {
 	textbox() {
 		const box = dom.pp("", "textarea", false, { id: `${this.type}Filters` });
 	}
-
-	// strToObj(filterStr) {
-	// 	// var filterStr = localStorage[`filter-${this.name}`].replace(/s{2,}/g, " ") + " ";
-	// 	const query = new Array();
-	// 	const rules = new Array();
-	// 	var lastColon = 0;
-	// 	var numParentheses = 0; // track how many parentheses deep we are currently
-	// 	for (var j = 0; j < filterStr.length; j++) {
-	// 		const char = filterStr[j];
-	// 		// if we're done with our parentheses and we're at a space...
-	// 		if ((numParentheses == 0 && char == " ") || j == filterStr.length - 1) { // if there are no parentheses && we're currently on a space, OR we've finished the string...
-	// 			var rule = filterStr.substring(lastColon + 1, j).trim();
-	// 			if (rule.startsWith("(")) {
-	// 				// if the rule starts w/a parentheses, then that means we're working w/a grouping and should thus chop off the parentheses and turn the groupings into an array
-	// 				let ruleArr; // array to hold the rules
-	// 				rule = rule.substring(1, rule.length - 1); // chops off parentheses
-	// 				if (rule.search("(") >= 0) {
-	// 					// if there are still parentheses left, then that means we have sub-groupings, so we have to iterate through the string.
-	// 					var numP2 = 0;
-	// 					var lastRule = 0;
-	// 					for (var l = 0; l < rule.length; l++) {
-	// 						const subChar = rule[l];
-	// 						if (subChar == "(") {
-	// 							numP2++;
-	// 						} else if (subChar == ")") {
-	// 							numP2--;
-	// 						} else if ((subChar == " " && numP2 == 0) || l == rule.length - 1) {
-	// 							console.log(`new rule string: ${rule.substring(lastRule, l)}`);
-	// 							lastRule = l;
-	// 						}
-	// 					}
-	// 				} else {
-	// 					// otherwise, we can just split at the " || "
-	// 					ruleArr = rule.split(/\s+\|\|\s+/g);
-	// 				}
-	// 			}
-	// 			rules.push(filterStr.substring(lastColon + 1, j).trim()); // push the substring to the rules
-	// 			lastColon = j;
-	// 		}
-	// 		if (char == ":" && numParentheses == 0) {
-	// 			query.push(filterStr.substring(lastColon, j).trim()); // if we're at a colon & have no parentheses, then pass the current subscring onto the queries
-	// 			lastColon = j;
-	// 		} else if (char == "(") {
-	// 			numParentheses++;
-	// 		} else if (char == ")") {
-	// 			numParentheses--;
-	// 		}
-	// 	}
-	// 	console.log(`query array: `, query, `\nrules array: `, rules);
-	// 	const incl = new Array(), excl = new Array(), otherQueries = new Array();
-	// 	if (query.length == rules.length) {
-	// 		for (var i = 0; i < query.length; i++) {
-	// 			query[i].startsWith("-") ? excl.push([query[i], rules[i]]) : incl.push([query[i], rules[i]]);
-	// 		}
-	// 	} else {
-	// 		// make arrays of the three types of queries: include, exclude, and complex
-	// 		for (var i = 0; i < query.length || i < rules.length; i++) { // because the rules would be longer than the queries in this case
-	// 			try {
-	// 				if (rules[currRule].search(":") >= 0) {
-	// 					// if it's a complex query
-	// 					otherQueries.push(rules[currRule]);
-	// 					currRule++;
-	// 				}
-	// 			} catch (e) {
-	// 				console.log("we have gone past the number of rules.");
-	// 			}
-	// 			if (i < query.length) {
-	// 				query[i].startsWith("-") ? excl.push([query[i], rules[currRule]]) : incl.push([query[i], rules[currRule]]);
-	// 			}
-	// 			currRule++;
-	// 		}
-	// 	}
-	// 	console.log(`include array: `, incl, `\nexcl array: `, excl, `\nand other queries array: `, otherQueries);
-	// 	return {
-	// 		include: incl,
-	// 		exclude: excl,
-	// 		complex: otherQueries
-	// 	};
-	// }
 
 	filterText(decode = false) {
 		// turns the filters object into the text that the ao3 advanced search can parse
@@ -1007,56 +934,81 @@ class filterObj {
 	}
 }
 
+
 function optimizeFilters() {
-	const savedFandoms = JSON.parse(localStorage["saved fandoms"]);
-	var fandObj = new Array();
-	for (const fan of savedFandoms) {
-		fandObj.push(new filterObj(fan));
-	}
-	console.log(fandObj);
-	// const filterArray = Object.entries(localStorage);
-	// for (const [key, value] of filterArray) {
-	// 	if (key.search(/^filter-/) >= 0 && value) {
-	// 		console.log(`key: ${key}; value: \n`, value);
-	// 		const filts = value.split(/\s(?=[-fcrul])/g); // split along spaces followed by -, f, c, or r
-	// 		const keepSame = new Array();
-	// 		const excls = new Array();
-	// 		let newFilter = "";
-	// 		for (const filter of filts) {
-	// 			if (filter.search(/^-filter_ids:/) >= 0) {
-	// 				excls.push(filter.replace("-filter_ids:", ""));
-	// 			} else {
-	// 				keepSame.push(filter);
-	// 			}
-	// 		}
-	// 		for (const f of keepSame) { newFilter += `${f} `; }
-	// 		if (excls.length > 0) {
-	// 			newFilter += "-filter_ids:("; // open the parentheses
-	// 			for (var i = 0; i < excls.length; i++) {
-	// 				newFilter += excls[i]; // add the number
-	// 				if (i < excls.length - 1) { newFilter += " || "; }
-	// 			}
-	// 			newFilter += ")"; // now close the parentheses
-	// 		}
-	// 		// console.log(`newFilter for ${key}:\n`, newFilter);
-	// 		//console.log(`array of ids to filter out: `, excls, `\narray to keep the same: `, keepSame);
-	// 		localStorage.setItem(key, newFilter);
-	// 	}
-	// 	// now do some stuff to basically consolidate some of the filter stuff into one object per fandom
-	// 	for (const fand of JSON.parse(localStorage[listKey])) {
-	// 		let regex = new RegExp(`$\\(${fand}|${toCss(fand)}\\)`);
-	// 		if (key.search(regex) >= 0) {
-	// 			console.log(fand);
-	// 		}
-	// 	}
+	// const savedFandoms = JSON.parse(localStorage["saved fandoms"]);
+	// var fandObj = new Array();
+	// for (const fan of savedFandoms) {
+	// 	fandObj.push(new filterObj(fan));
 	// }
+	// console.log(fandObj);
+	const filterArray = Object.entries(localStorage);
+	for (const [key, value] of filterArray) {
+		if (key.search(/^filter-/) >= 0 && value) {
+			console.log(`key: ${key}; value: \n`, value);
+			const filts = value.split(/\s(?=(-\(?|l|f|r|c|t|w|b|s)\w+)(?<!&)/).filter(function (item) { return item.length > 3 && item }); // split along spaces followed by -, f, c, or r. previously \s(?=[-fcrul])
+			console.log(`da filts: `, filts);
+			const keepSame = new Array();
+			const excls = new Array();
+			let newFilter = "";
+			for (const filter of filts) {
+				if (filter.search(/^-filter_ids:/) >= 0) {
+					excls.push(filter.replace("-filter_ids:", ""));
+				} else {
+					keepSame.push(filter);
+				}
+			}
+			for (const f of keepSame) { newFilter += `${f} `; }
+			console.log(`keepSame (${keepSame.length}): `, keepSame, `\nexcls (${excls.length}): `, excls);
+			if (excls.length > 0) {
+				newFilter += "-filter_ids:("; // open the parentheses
+				for (var i = 0; i < excls.length; i++) {
+					// let addition = excls[i];
+					// if (!(parseInt(addition) > 0)) {
+					// // 	if it's NaN
+					// 	console.log(`ohohoho this is a complex request already!`);
+					// 	addition = addition.substring(1, addition.length - 1); // remove the parentheses perhaps?
+					// }
+					// try {
+					// 	console.log(parseInt(addition) > 0);
+					// 	addition = parseInt(addition);
+					// } catch (e) {
+					// 	console.log(`ohohoho this is a complex request already!`);
+					// 	// addition = addition.substring(1, addition.length - 1); // remove the parentheses
+					// }
+					// newFilter += addition; // add the number
+					newFilter += excls[i]; // add the thing
+					if (i < excls.length - 1) { newFilter += " || "; }
+				}
+				newFilter += ")"; // now close the parentheses
+				if (newFilter.search(/$-filter_ids:\({2,}/)) {
+					// if the filter_ids has more than one set of parentheses being unnecessary
+					console.log(`optimizing THIS is a job for another day lolol`)
+				}
+			}
+			// console.log(`newFilter for ${key}:\n`, newFilter);
+			//console.log(`array of ids to filter out: `, excls, `\narray to keep the same: `, keepSame);
+			localStorage.setItem(key, newFilter.trim());
+			const announceP = document.createElement("p");
+			announceP.innerHTML = `Optimized <strong>${key.replace("filter-", "")}</strong> filters.`;
+			announceP.className = "appended-tag";
+			document.querySelector(`#append-p`).prepend(announceP);
+		}
+	}
+	// now do some stuff to basically consolidate some of the filter stuff into one object per fandom
+	for (const fand of JSON.parse(localStorage[listKey])) {
+		let regex = new RegExp(`$\\(${fand}|${toCss(fand)}\\)`);
+		if (key.search(regex) >= 0) {
+			console.log(fand);
+		}
+	}
 }
 
 // optimizeFilters();
 
 let today = new Date();
 console.log(`today's date: ${today.getDate()}`);
-if (today.getDate() == 1) { // on the first of every month, clear out localStorage entries that are empty
+if (today.getDate() == 1) {
 	for (const [key, value] of Object.entries(localStorage)) {
 		if (value == "") {
 			localStorage.removeItem(key);
@@ -1065,7 +1017,7 @@ if (today.getDate() == 1) { // on the first of every month, clear out localStora
 	}
 }
 
-//nya(); //automatically open the id thing for debugger purposes
+//tagUI(); //automatically open the id thing for debugger purposes
 
 /* CSS STYLING AT THE END BC IT'S A PICKY BITCH */
 var css = `
@@ -1164,19 +1116,24 @@ if (form) {
 		display: block;
 		float: right;
 		min-width: 30em;
-		max-width: 100%;
-		width: ${parseInt(optWidth)}px;
+		max-width: 100%; /* this can't be vw or else it overflows on mobile */
+		width: 482px;
 		margin-top: 5px;
 		margin-right: 5px;
 		text-align: left;
 	}
-	#filter_opt .actions {
-		text-align: left;
-		float: left;
+	#filter_opt h4 {
+		text-align: center;
+		margin-top: 0;
+		padding-bottom: 0.25em;
+		border-bottom: 1px solid;
 	}
-	#filter_opt .actions br {display: none;}
+	#filter_opt .actions {
+		display: block;
+		width: 100%;
+		margin: 0.25em auto;
+	}
 	#filter_opt input {
-		max-width: 33%;
 		border-radius: 0.3em;
 	}
 	#filter_opt label {
@@ -1185,8 +1142,17 @@ if (form) {
 		padding: 0;
 		font-weight: bold;
 	}
-	#filter_opt select{
-		margin-top: 5px;
+	#tag_actions {
+		width: 100%;
+		margin: 5px 0 0;
+		padding-bottom: 5px;
+		display: grid;
+		grid-template-columns: repeat(3, 3fr);
+	}
+	#tag_actions button {
+		display: block;
+		text-transform: capitalize;
+		margin: 0 auto;
 	}
 	#tag_actions {
 		width: 100%;
