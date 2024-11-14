@@ -383,7 +383,10 @@ select.className = "filterSelector"; //should make it a class since it'll probab
 function currentSel() {
 	return select.value;
 }
-
+function selectorType() {
+	//console.log(`current targetFilter: `, targetFilter, ` and current selection: ${currentSel()}`);
+	return (currentSel() == "global") ? "global" : "fandom";
+};
 
 /* display the filter_ids and actions */
 function tagUI() {
@@ -399,6 +402,9 @@ function tagUI() {
 		const p = document.createElement("p");
 		p.innerHTML = `<strong>Current tag</strong>: ${tagName}`;
 		// filterOpt.append(h4, p);
+		if (document.querySelector(`textarea#${selectorType()}Filters`).value.match(id)) {
+			p.innerHTML += ` <small>(already included in the ${selectorType()} filters.)</small>`
+		}
 
 		/* display ID # & choose where to append the tag */
 		const fil = document.createElement("div");
@@ -411,6 +417,7 @@ function tagUI() {
 		label.innerHTML = "filter_ids:";
 		label.setAttribute("for", "id_output");
 		label.appendChild(output);
+		// p.appendChild(label);
 
 		/* import/export buttons */
 		const impDiv = document.createElement("div"); //div for the import process
@@ -424,6 +431,11 @@ function tagUI() {
 		expButt.addEventListener("click", () => {
 			expy(filterArray());
 		});
+
+		const optimizeButt = document.createElement("li");
+		optimizeButt.innerHTML = `<a>Optimize Filters</a>`;
+		optimizeButt.addEventListener("click", optimizeFilters);
+
 		const nowEditP = document.createElement("p"); // makes a paragraph to clarify what the selection does (changes which filter this tag is being edited to);
 		nowEditP.innerHTML = `Currently editing filter: `;
 		nowEditP.append(select);
@@ -447,10 +459,6 @@ function tagUI() {
 		}
 		//var targetFilter = select.options[0].value;
 		//var targetFilter = `filter-${currentSel()}`;
-		function selectorType() {
-			//console.log(`current targetFilter: `, targetFilter, ` and current selection: ${currentSel()}`);
-			return (`filter-${currentSel()}` == "filter-global") ? "global" : "fandom";
-		};
 		/*select.onchange = function () {
 			//console.log(select.value);
 			targetFilter = `filter-${select.value}`; //this selector is also used when importing values for ids, since i have yet to optimize that
@@ -538,9 +546,9 @@ function tagUI() {
 		for (a of ugh) {
 			tagButtons(a);
 		}
-		id_exp.append(label, document.createElement("br"), impButt, expButt, impDiv);
+		id_exp.append(impButt, expButt, optimizeButt, impDiv);
 		// fil.append(id_exp, select);
-		fil.append(id_exp, nowEditP);
+		fil.append(label, id_exp, nowEditP);
 		filterOpt.append(h4, p, fil, buttonAct, appp);
 		navList.parentElement.insertAdjacentElement("afterend", filterOpt);
 	}
@@ -677,7 +685,7 @@ if (search_submit == "") {
 			//console.log(`stored filters for filter-${key}: \n\n${filterStore}`);
 			//console.log("globIdStorage: ", globIdStorage);
 			// const fills = filterStore.split(/\s(?=(-|l|f|r|c|t|w|b|!)\w+)/).filter(function(item) { return item.length > 3 });
-			var fills = filterStore.split(/\s(?=(-|l|f|r|c|t|w|b|!)\w+)(?<!&)/).filter(function(item) { return item.length > 3 && item }); // can't seem to use parentheses in the negative lookback to group multiple ones, so i'll just leave it as just "not preceded by '&'"
+			var fills = filterStore.split(/\s(?=(-|l|f|r|c|t|w|b|!)\w+)(?<!&)/).filter(function (item) { return item.length > 3 && item }); // can't seem to use parentheses in the negative lookback to group multiple ones, so i'll just leave it as just "not preceded by '&'"
 			console.log(`splitting the ${key} filter on spaces: `, fills); // (?<!(&)) (?<!(&|\)|!|\})) (?=(-|l|f|r|c|t|w|b|!)\w+)
 			const p = document.createElement("p");
 			p.className = `prev-${key.replaceAll(/\W+/g, "-")}`;
@@ -693,7 +701,7 @@ if (search_submit == "") {
 				const sp = document.createElement("span");
 				sp.innerHTML = html;
 				p.appendChild(sp);
-				if (i !== fills.length - 1) {p.innerHTML += ", ";} // add the comma and stuff if we're not at the end
+				if (i !== fills.length - 1) { p.innerHTML += ", "; } // add the comma and stuff if we're not at the end
 			}
 			// p.append(l, document.createElement("br"), sp);
 			//p.innerHTML += html;
@@ -928,17 +936,18 @@ class filterObj {
 
 
 function optimizeFilters() {
-	const savedFandoms = JSON.parse(localStorage["saved fandoms"]);
-	var fandObj = new Array();
-	for (const fan of savedFandoms) {
-		fandObj.push(new filterObj(fan));
-	}
-	console.log(fandObj);
+	// const savedFandoms = JSON.parse(localStorage["saved fandoms"]);
+	// var fandObj = new Array();
+	// for (const fan of savedFandoms) {
+	// 	fandObj.push(new filterObj(fan));
+	// }
+	// console.log(fandObj);
 	const filterArray = Object.entries(localStorage);
 	for (const [key, value] of filterArray) {
 		if (key.search(/^filter-/) >= 0 && value) {
 			console.log(`key: ${key}; value: \n`, value);
-			const filts = value.split(/\s(?=[-fcrul])/g); // split along spaces followed by -, f, c, or r
+			const filts = value.split(/\s(?=(-\(?|l|f|r|c|t|w|b|s)\w+)(?<!&)/).filter(function (item) { return item.length > 3 && item }); // split along spaces followed by -, f, c, or r. previously \s(?=[-fcrul])
+			console.log(`da filts: `, filts);
 			const keepSame = new Array();
 			const excls = new Array();
 			let newFilter = "";
@@ -950,24 +959,47 @@ function optimizeFilters() {
 				}
 			}
 			for (const f of keepSame) { newFilter += `${f} `; }
+			console.log(`keepSame (${keepSame.length}): `, keepSame, `\nexcls (${excls.length}): `, excls);
 			if (excls.length > 0) {
 				newFilter += "-filter_ids:("; // open the parentheses
 				for (var i = 0; i < excls.length; i++) {
-					newFilter += excls[i]; // add the number
+					// let addition = excls[i];
+					// if (!(parseInt(addition) > 0)) {
+					// // 	if it's NaN
+					// 	console.log(`ohohoho this is a complex request already!`);
+					// 	addition = addition.substring(1, addition.length - 1); // remove the parentheses perhaps?
+					// }
+					// try {
+					// 	console.log(parseInt(addition) > 0);
+					// 	addition = parseInt(addition);
+					// } catch (e) {
+					// 	console.log(`ohohoho this is a complex request already!`);
+					// 	// addition = addition.substring(1, addition.length - 1); // remove the parentheses
+					// }
+					// newFilter += addition; // add the number
+					newFilter += excls[i]; // add the thing
 					if (i < excls.length - 1) { newFilter += " || "; }
 				}
 				newFilter += ")"; // now close the parentheses
+				if (newFilter.search(/$-filter_ids:\({2,}/)) {
+					// if the filter_ids has more than one set of parentheses being unnecessary
+					console.log(`optimizing THIS is a job for another day lolol`)
+				}
 			}
 			// console.log(`newFilter for ${key}:\n`, newFilter);
 			//console.log(`array of ids to filter out: `, excls, `\narray to keep the same: `, keepSame);
-			localStorage.setItem(key, newFilter);
+			localStorage.setItem(key, newFilter.trim());
+			const announceP = document.createElement("p");
+			announceP.innerHTML = `Optimized <strong>${key.replace("filter-", "")}</strong> filters.`;
+			announceP.className = "appended-tag";
+			document.querySelector(`#append-p`).prepend(announceP);
 		}
-		// now do some stuff to basically consolidate some of the filter stuff into one object per fandom
-		for (const fand of JSON.parse(localStorage[listKey])) {
-			let regex = new RegExp(`$\\(${fand}|${toCss(fand)}\\)`);
-			if (key.search(regex) >= 0) {
-				console.log(fand);
-			}
+	}
+	// now do some stuff to basically consolidate some of the filter stuff into one object per fandom
+	for (const fand of JSON.parse(localStorage[listKey])) {
+		let regex = new RegExp(`$\\(${fand}|${toCss(fand)}\\)`);
+		if (key.search(regex) >= 0) {
+			console.log(fand);
 		}
 	}
 }
@@ -1084,19 +1116,24 @@ if (form) {
 		display: block;
 		float: right;
 		min-width: 30em;
-		max-width: 100vw;
-		width: ${parseInt(optWidth)}px;
+		max-width: 100%; /* this can't be vw or else it overflows on mobile */
+		width: 482px;
 		margin-top: 5px;
 		margin-right: 5px;
 		text-align: left;
 	}
-	#filter_opt .actions {
-		text-align: left;
-		float: left;
+	#filter_opt h4 {
+		text-align: center;
+		margin-top: 0;
+		padding-bottom: 0.25em;
+		border-bottom: 1px solid;
 	}
-	#filter_opt .actions br {display: none;}
+	#filter_opt .actions {
+		display: block;
+		width: 100%;
+		margin: 0.25em auto;
+	}
 	#filter_opt input {
-		max-width: 33%;
 		border-radius: 0.3em;
 	}
 	#filter_opt label {
@@ -1105,8 +1142,17 @@ if (form) {
 		padding: 0;
 		font-weight: bold;
 	}
-	#filter_opt select{
-		margin-top: 5px;
+	#tag_actions {
+		width: 100%;
+		margin: 5px 0 0;
+		padding-bottom: 5px;
+		display: grid;
+		grid-template-columns: repeat(3, 3fr);
+	}
+	#tag_actions button {
+		display: block;
+		text-transform: capitalize;
+		margin: 0 auto;
 	}
 	#tag_actions {
 		width: 100%;
