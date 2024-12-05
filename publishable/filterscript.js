@@ -9,7 +9,6 @@
 // @downloadURL	https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/filterscript.js
 // @updateURL	https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/filterscript.js
 // @version 2.2
-// @version	2.1
 // @history 2.2 - added ability to optimize filters to ui. idiot-proofed the ui a bit more (it's me i'm idiots)
 // @history 2.1 - added ability to import/export saved filters
 // @grant	none
