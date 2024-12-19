@@ -402,10 +402,14 @@ function tagUI() {
 		const p = document.createElement("p");
 		p.innerHTML = `<strong>Current tag</strong>: ${tagName}`;
 		// filterOpt.append(h4, p);
-		if (document.querySelector(`textarea#${selectorType()}Filters`).value.match(id)) {
-			p.innerHTML += ` <small>(already included in the ${selectorType()} filters.)</small>`
+		let txtarea = document.querySelector(`textarea#${selectorType()}Filters`);
+		try {
+			if (txtarea.value.match(id)) {
+				p.innerHTML += ` <small>(already included in the ${selectorType()} filters.)</small>`
+			}
+		} catch (e) {
+			console.info(`not in a fandom tag, probably`, e);
 		}
-
 		/* display ID # & choose where to append the tag */
 		const fil = document.createElement("div");
 		const id_exp = document.createElement("ul"); //make the div w/the id output and the buttons for importing/exporting opts
