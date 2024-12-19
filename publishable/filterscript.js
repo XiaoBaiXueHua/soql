@@ -8,7 +8,8 @@
 // @match	http*://archiveofourown.org/works?commit=*&tag_id=*
 // @downloadURL	https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/filterscript.js
 // @updateURL	https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/filterscript.js
-// @version 2.2
+// @version 2.2.1
+// @history 2.2.1 - fixed a bug abt the tag ui not showing up on global tag types
 // @history 2.2 - added ability to optimize filters to ui. idiot-proofed the ui a bit more (it's me i'm idiots)
 // @history 2.1 - added ability to import/export saved filters
 // @grant	none
@@ -365,8 +366,13 @@ function tagUI() {
 
 		const p = document.createElement("p");
 		p.innerHTML = `<strong>Current tag</strong>: ${tagName}`;
-		if (document.querySelector(`textarea#${selectorType()}Filters`).value.match(id)) {
-			p.innerHTML += ` <small>(already included in the ${selectorType()} filters.)</small>`
+		let txtarea = document.querySelector(`textarea#${selectorType()}Filters`);
+		try {
+			if (txtarea.value.match(id)) {
+				p.innerHTML += ` <small>(already included in the ${selectorType()} filters.)</small>`
+			}
+		} catch (e) {
+			console.info(`not in a fandom tag, probably`, e);
 		}
 
 		/* display ID # & choose where to append the tag */
