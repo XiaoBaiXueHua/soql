@@ -285,12 +285,12 @@ if (searchdt !== null || searchdd !== null) {
 	summary.innerHTML = "Saved Filters";
 	const saveDiv = document.createElement("div");
 	/* make the global box */
-	for (el of globEl) {
+	for (const el of globEl) {
 		saveDiv.appendChild(el);
 	};
 	const fanEl = box(fan) ? fan[4] : null;
 	if (fanEl) {
-		for (el of fanEl) {
+		for (const el of fanEl) {
 			saveDiv.appendChild(el);
 		};
 	}
@@ -518,7 +518,7 @@ function tagUI() {
 			})
 		};
 		var ugh = [ex, inc, rem]; //i am lazy and so shall array the various action buttons so that i can loop them instead of doing fucking. tagButtons(thing) every fucking time
-		for (a of ugh) {
+		for (const a of ugh) {
 			tagButtons(a);
 		}
 		id_exp.append(impButt, expButt, optimizeButt, impDiv);
