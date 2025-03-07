@@ -8,7 +8,8 @@
 // @match	http*://archiveofourown.org/works?commit=*&tag_id=*
 // @downloadURL	https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/filterscript.js
 // @updateURL	https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/filterscript.js
-// @version 2.2.1
+// @version 2.2.2
+// @history 2.2.2 - script can now self-correct when it stores a filter id's name wrong (like in a botched import)
 // @history 2.2.1 - fixed a bug abt the tag ui not showing up on global tag types
 // @history 2.2 - added ability to optimize filters to ui. idiot-proofed the ui a bit more (it's me i'm idiots)
 // @history 2.1 - added ability to import/export saved filters
@@ -229,12 +230,33 @@ var filter_ids = `filter_ids:${id}`;
 
 function idKey(n = tagName, i = id, k = fandomName ? `ids-${cssFanName}` : "ids-global", s = fandomName ? fanIdStorage : globIdStorage) { //by default, do this w/the current tag's name, id, and fandom. the import process will need to loop through this later, hence the params
 	var add = [n, i];
-	let str = new RegExp(`\\["${n}","${i}"\\]`);
+	// let str = new RegExp(`${JSON.stringify(add)}`);
+	var findID = new RegExp(`\\D${i}\\D`), exactMatch = new RegExp(`\\["${n.replaceAll(/\|/g, "\\|")}","${i}"\\]`);
 	var idsObj = storJson(s);
-	if (s.match(str) <= 0) { //js can't match objects w/in arrays to my knowledge, so this was the best i could do lol
-		idsObj.push(add); //add it to the object
-		s = JSON.stringify(idsObj);
-		autosave(k, JSON.stringify(idsObj)); //and then save it
+	if (s.search(findID) > 0) {
+		console.log(`the id number in ${JSON.stringify(add)} exists in the filter keys.`);
+		if (s.search(exactMatch) < 0) { // doing a new RegExp(JSON.stringify(add)) DOES NOT WORK.
+			// if it doesn't exist Exactly as already printed
+			console.log(`however, the name does not match.`);
+			for (var q = 0; q < idsObj.length; q++) {
+				const kv = idsObj[q]; // kv stands for key-value
+				if (parseInt(kv[1]) == parseInt(add[1])) {
+					console.log(`the key value obj matches at q == ${q}`, kv, add);
+					idsObj[q] = add; // just reset this
+					console.log(idsObj[q]);
+					break;
+				}
+				if (q == idsObj.length - 1) {
+					console.log(`yeah sorry didn't find it in here :/`);
+					idsObj.push(add);
+				}
+			}
+			autosave(k, JSON.stringify(idsObj)); // autosave it and be free
+		}
+		
+	} else {
+		idsObj.push(add); // otherwise just add it
+		autosave(k, JSON.stringify(idsObj)); // and autosave
 	}
 }
 
@@ -682,111 +704,6 @@ function impsy(div) { //for now just have it read from a specified div
 	})
 	div.append(instructions, tb, parseButt);
 }
-
-
-class filterObj {
-	constructor(fandom) {
-		this.fullName = fandom;
-		this.name = fandom.replace(filterObj.disambiguator, "");
-		this.cssName = this.name.replace(/\W+/g, "-");
-		this.filters = function () { // has sub-objects "include", "exclude", and "complex"
-			let filterObj;
-			try {
-				filterObj = JSON.parse(localStorage[this.name].filters);
-			} catch (e) {
-				console.error("it seems you haven't used the updated version of the script yet. now turning filters into a js object.");
-				var filterStr = localStorage[`filter-${this.name}`].replace(/s{2,}/g, " ") + " ";
-				const query = new Array();
-				const rules = new Array();
-				var lastColon = 0;
-				var numParentheses = 0; // track how many parentheses deep we are currently
-				for (var j = 0; j < filterStr.length; j++) {
-					const char = filterStr[j];
-					// if we're done with our parentheses and we're at a space...
-					if ((numParentheses == 0 && char == " ") || j == filterStr.length - 1) { // if there are no parentheses && we're currently on a space, OR we've finished the string...
-						rules.push(filterStr.substring(lastColon + 1, j).trim()); // push the substring to the rules
-						lastColon = j;
-					}
-					if (char == ":" && numParentheses == 0) {
-						query.push(filterStr.substring(lastColon, j).trim()); // if we're at a colon & have no parentheses, then pass the current subscring onto the queries
-						lastColon = j;
-					} else if (char == "(") {
-						numParentheses++;
-					} else if (char == ")") {
-						numParentheses--;
-					}
-				}
-				// console.log(`query array: `, query, `\nrules array: `, rules);
-				const incl = new Array(), excl = new Array(), otherQueries = new Array();
-				if (query.length == rules.length) {
-					for (var i = 0; i < query.length; i++) {
-						query[i].startsWith("-") ? excl.push([query[i], rules[i]]) : incl.push([query[i], rules[i]]);
-					}
-				} else {
-					// make arrays of the three types of queries: include, exclude, and complex
-					for (var i = 0; i < query.length || i < rules.length; i++) { // because the rules would be longer than the queries in this case
-						try {
-							if (rules[currRule].search(":") >= 0) {
-								// if it's a complex query
-								otherQueries.push(rules[currRule]);
-								currRule++;
-							}
-						} catch (e) {
-							console.log("we have gone past the number of rules.");
-						}
-						if (i < query.length) {
-							query[i].startsWith("-") ? excl.push([query[i], rules[currRule]]) : incl.push([query[i], rules[currRule]]);
-						}
-						currRule++;
-					}
-				}
-				// console.log(`include array: `, incl, `\nexcl array: `, excl, `\nand other queries array: `, otherQueries);
-				filterObj = {
-					include: incl,
-					exclude: excl,
-					complex: otherQueries
-				}
-			}
-			return filterObj;
-		}(); // this is the array of filters that actually gets used
-		this.ids = storJson(emptyStorage(`ids-${this.cssName}`)); // this is just the array of ids and their names specific to this particular fandom
-		this.enabled = localStorage[`enable-${this.cssName}`] ? storJson(localStorage[`enable-${this.cssName}`]) : true; // bc local storage stores things as strings, we can just check to make sure the local storage obj exists w/o worrying abt stuff. anyway if it doesn't exist default is true
-		this.type = (fandom !== "global") ? fandom : "fandom";
-	}
-	static disambiguator = /\s\((\w+(\s|&)*|\d+\s?)+\)/g; //removes disambiguators
-
-	textbox() {
-		const box = dom.pp("", "textarea", false, { id: `${this.type}Filters` });
-	}
-
-	filterText(decode = false) {
-		// turns the filters object into the text that the ao3 advanced search can parse
-		const ids = this.ids;
-		const inc = this.filters.include, ex = this.filters.exclude, comp = this.filters.complex;
-		let str = ""; // initialize the string
-		for (var [key, value] of inc) {
-			if (decode) {
-				switch (key) {
-					case "filter_ids": {
-						for (const [name, number] of ids) {
-							value = value.replaceAll(new RegExp(`\\b${number}\\b`, "g"), name);
-						}
-						break;
-					}
-				}
-			}
-			str += `${key}:${value} `;
-		}
-		for (var [key, value] of ex) {
-			str += `${key}:${value} `;
-		}
-		for (const query of comp) {
-			str += `${query} `;
-		}
-		return str.trim();
-	}
-}
-
 
 function optimizeFilters() {
 	const filterArray = Object.entries(localStorage);
