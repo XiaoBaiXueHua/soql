@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name	ao3 sticky filters DEVELOPER
+// @name	ao3 sticky filters
 // @namespace	https://sincerelyandyourstruly.neocities.org
 // @author	白雪花
 // @description	rewriting thE saved filters script from https://greasyfork.org/en/scripts/3578-ao3-saved-filters, as well as adding in features made possible by flamebyrd's tag id bookmarklet (https://random.fangirling.net/scripts/ao3_tag_id)
@@ -262,7 +262,7 @@ const fandomName = function () {
 	}
 	if (!fandom || !fandomCount || !tagCount) { return; } // you know maybe in the rewrite, maybe instead of having it return nothing/null for these things, have it return "global" instead. might do something good.
 	var meetsCutoff = (fandomCount / tagCount * 100 >= fandom_cutoff);
-	console.log(`% of fics in ${tagName} belonging to ${fandom}: ${fandomCount / tagCount * 100}`)
+	// console.log(`% of fics in ${tagName} belonging to ${fandom}: ${fandomCount / tagCount * 100}`)
 	if (meetsCutoff && relevant.fandoms.indexOf(fandom) < 0) { //if it qualifies as being part of a fandom & is not yet in the array, add it and then save it to local storage
 		const tmp = relevant.fandoms; // have to do it this way, since the static thing automatically always fetches it from the localStorage ehe
 		tmp.push(fandom);
@@ -280,9 +280,26 @@ const cssFanName = fandomName ? toCss(fandomName) : null;
 class idKeyVals extends relevant {
 	static get global() {
 		// returns a json
+		let jason = [ // default freebies
+			["Not Rated", 9],["General Audiences", 10],["Teen And Up", 11], ["Mature", 12], ["Explicit", 13],
+			["Author Chose Not to Use Archive Warnings", 14],["No Archive Warnings Apply", 16],["Graphic Depictions of Violence", 17], ["Major Character Death", 18], ["Rape/Non-Con", 19], ["Underage Sex", 20],
+			["General", 21], ["F/M", 22], ["M/M", 23], ["Other", 24], ["F/F", 116], ["Multi", 2246],
+			["Chatting & Messaging", 106225]
+		]; 
+		try {
+			jason = JSON.parse(localStorage(`ids-global`));
+		} catch (e) {
+			localStorage.setItem(`ids-global`, JSON.stringify(jason));
+		}
 		return JSON.parse(localStorage[`ids-global`]);
 	}
 	static get fandom() {
+		let jason = [[]];
+		try {
+			jason = JSON.parse(`ids-${cssFanName}`);
+		} catch (e) {
+			localStorage.setItem(`ids-${cssFanName}`, JSON.stringify(jason));
+		}
 		return cssFanName ? JSON.parse(localStorage[`ids-${cssFanName}`]) : [[]];
 	}
 	static includes(idNumber) {
@@ -297,7 +314,8 @@ class idKeyVals extends relevant {
 		autosave(`ids-${cssFanName ? cssFanName : "global"}`, JSON.stringify(rem)); // and then also save it
 	}
 }
-
+// console.log(idKeyVals.global, idKeyVals.fandom);
+// console.log(idKeyVals.includes(9));
 //if there's nothing
 function emptyStorage(key) { //function to give you that particular localStorage (n set it to nothing if dne)
 	if (!localStorage[key]) {
@@ -438,7 +456,7 @@ var filter_ids = `filter_ids:${id}`;
 function idKey(n = tagName, i = id) { //by default, do this w/the current tag's name, id, and fandom. the import process will need to loop through this later, hence the params
 	var add = [n, i];
 	const incl = idKeyVals.includes(i);
-
+	
 	if (incl) {
 		if (incl[0] !== n) {
 			idKeyVals.replace(add); // replace it with its proper name if it doesn't match
