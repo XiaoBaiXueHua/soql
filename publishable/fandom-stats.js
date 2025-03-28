@@ -8,8 +8,8 @@
 // @match		https://archiveofourown.org/users/*/stats**
 // @exclude		https://archiveofourown.org/users/*/stats*flat_view=true*
 // @icon		https://www.google.com/s2/favicons?sz=64&domain=archiveofourown.org
-// @downloadURL	https://raw.githubusercontent.com/XiaoBaiXueHua/misc-userscripts/main/fandom-stats.js
-// @updateURL	https://raw.githubusercontent.com/XiaoBaiXueHua/misc-userscripts/main/fandom-stats.js
+// @downloadURL	https://raw.githubusercontent.com/XiaoBaiXueHua/misc-userscripts/main/publishable/fandom-stats.js
+// @updateURL	https://raw.githubusercontent.com/XiaoBaiXueHua/misc-userscripts/main/publishable/fandom-stats.js
 // @grant		none
 // ==/UserScript==
 
