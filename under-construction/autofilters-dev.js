@@ -18,6 +18,20 @@
 // @run-at	document-end
 // ==/UserScript==
 
+if (!window.soql) {
+	window.soql = {
+		autofilters: { 
+			enabled: true,
+			// toCss: (str) => { return str.replaceAll(/\W+/g, "-"); }
+		}
+	}
+} else {
+	window.soql[`autofilters`] = { 
+		enabled: true,
+		// toCss: (str) => { return str.replaceAll(/\W+/g, "-"); }
+	};
+}
+
 /* various important global vars */
 var remAmbig = /(?<=\s)\((\w+(\s|&)*?|\d+\s?)+\)/g; //removes disambiguators
 
@@ -279,6 +293,7 @@ const fandomName = function () {
 	return meetsCutoff ? fandom : null;
 }();
 console.info(`fandomName: ${fandomName}`);
+window.soql.autofilters[`fandomName`] = fandomName;
 console.log(relevant.fandoms);
 /* function to make css-friendly versions of a name */
 function toCss(str) {
@@ -339,16 +354,6 @@ function emptyStorage(key) { //function to give you that particular localStorage
 	}
 	return localStorage[key];
 }
-// function storJson(item) { //turns local storage item into a json
-// 	let a;
-// 	try {
-// 		a = JSON.parse(item);
-// 	} catch (e) {
-// 		console.error(`obj that was supposed to become a json: `, item, e);
-// 		a = [];
-// 	}
-// 	return a;
-// }
 
 var fanIdStorage; // = localStorage[`ids-${cssFanName}`];
 function isFandom() { //function for setting all the various vars that only show up if it's a fandom-specific tag. will have to clean up the thing later but for now i'll just leave it as is
@@ -774,65 +779,6 @@ if (form) {
 	navList.insertAdjacentElement("afterbegin", filtButt);
 	filtButt.addEventListener("mouseup", tagUI);
 }
-
-/* banish a particular work from your search results */
-// const workList = document.querySelectorAll("li[id^='work']");
-// //var nyeh = (!global[3] && !search_submit); //if both the global n the fandom checkmarks are off AND we're not on a search page
-// var nyeh = fan ? (!global[3] && !fan[3]) : !global[3]; //have to check if the fandom box exists first before declaring it -_-
-// console.log(`!global[3] (&& optional !fan[3]): ${nyeh}`);
-// // this doesn't actually do anything yet
-// if (nyeh || search_submit) {
-// 	//if the autofilters are currently disabled or we're already on a search page, do the thing
-// 	for (const work of workList) {
-// 		//console.log(work);
-// 		const work_id = work.id.replace("work_", ""); //get its id num from. well. its id.
-// 		const title = work.querySelector(".heading a").innerText.trim(); // they don't even put a class on the title link...
-// 		const klasses = work.classList; // need this to be an array for works w/multiple authors
-// 		const user_ids = new Array();
-// 		const authors = new Array();
-// 		var aLinks = work.querySelectorAll(`a[rel="author"]`);
-// 		for (const a of aLinks) {
-// 			authors.push(a.innerText);
-// 		}
-// 		let anonymous = false;
-// 		for (const klass of klasses) {
-// 			if (klass.search(/^user-/) >= 0) {
-// 				user_ids.push(klass.replace("user-", ""));
-// 			}
-// 		}
-// 		if (user_ids.length < 1) {
-// 			console.info("oh hey an anon work");
-// 			anonymous = true;
-// 		}
-// 		// console.log(`work_id: ${work_id}, anonymous? ${anonymous}, authors: `, authors, user_ids);
-// 		const banSel = document.createElement("select");
-// 		banSel.className = "banish";
-// 		const hellip = document.createElement("option");
-// 		hellip.innerHTML = "&hellip;";
-// 		banSel.appendChild(hellip);
-
-// 		const banWork = document.createElement("option");
-// 		banWork.innerHTML = `ban "${title}"`;
-// 		banWork.value = work_id;
-// 		banSel.appendChild(banWork);
-// 		if (anonymous) {
-// 			const opt = document.createElement("option");
-// 			opt.innerHTML = "filter out all anonymous works.";
-// 			opt.value = "anonymous";
-// 			banSel.appendChild(opt);
-// 		} else {
-// 			for (var i = 0; i < authors.length; i++) {
-// 				const opt = document.createElement("option");
-// 				opt.value = user_ids[i];
-// 				opt.innerHTML = `ban ${authors[i]}`;
-// 				banSel.appendChild(opt);
-// 			}
-// 		}
-
-// 		work.querySelector("p.datetime").insertAdjacentElement("afterend", banSel); // inject the selection next to the datetime or something
-// 	}
-// }
-
 
 /* add filters + temp search to search w/in results box */
 function submission() {
@@ -1305,6 +1251,14 @@ if (form) {
 	}
 	.prev-${cssFanName} span {
 		background-color: #d8cefb;
+	}
+	.banish {
+		margin: 0;
+		max-width: 15ch;
+		position: absolute;
+		top: 1.15lh;
+		right: 0;
+		min-width: 0;
 	}
 	@media only screen and (max-width: 48em) {
 		.prev-search {margin: 10px 0;}
