@@ -21,16 +21,16 @@
 if (!window.soql) {
 	window.soql = {
 		autofilters: { 
-			enabled: true,
-			// toCss: (str) => { return str.replaceAll(/\W+/g, "-"); }
+			enabled: true
 		}
 	}
 } else {
 	window.soql[`autofilters`] = { 
-		enabled: true,
-		// toCss: (str) => { return str.replaceAll(/\W+/g, "-"); }
+		enabled: true
 	};
 }
+window.soql[`toCss`] = function (str) { return str.replaceAll(/\W+/g, "-"); }
+// window.soql.autofilters.
 
 /* various important global vars */
 var remAmbig = /(?<=\s)\((\w+(\s|&)*?|\d+\s?)+\)/g; //removes disambiguators
@@ -49,11 +49,12 @@ const noResults = function () {
 /* keeping the fandoms w/saved filters in an array: */
 var listKey = "saved fandoms";
 if (!localStorage[listKey]) { localStorage.setItem(listKey, JSON.stringify(new Array())); } // set it to a new array if it doesn't exist
+window.soql.autofilters.fandoms = function () { return JSON.parse(localStorage[listKey]); } // save this to the window thing
 
 // fuck it, making this a class so we can always get this shit fresh
 class relevant {
 	static get fandoms() {
-		return JSON.parse(localStorage[listKey]);
+		return JSON.parse(localStorage[listKey]); // we'll see if we can replace this w/the window obj version later
 	}
 
 	static get all() {

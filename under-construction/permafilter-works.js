@@ -22,6 +22,7 @@ if (!window.soql) {
 		return;
 	}
 	const autofilters = window.soql.autofilters; // bind this
+	const fandoms = autofilters.fandoms();
 	// const cssFanName = autofilters.toCss(autofilters.fandomName);
 	// actually maybe we should make this a small actions button that pulls up a floating <dialog> module ui. and also make this its own script
 	/* banish a particular work from your search results */
@@ -29,9 +30,6 @@ if (!window.soql) {
 	//var nyeh = (!global[3] && !search_submit); //if both the global n the fandom checkmarks are off AND we're not on a search page
 	// var nyeh = autofilters.fandomName ? (!document.querySelector(`#globalFilters`) && !document.querySelector(`#fandomFilters`)) : !document.querySelector(`#globalFilters`); //have to check if the fandom box exists first before declaring it -_-
 	//
-	// this doesn't actually do anything yet
-	// if (nyeh || window.location.search) {
-	//if the autofilters are currently disabled or we're already on a search page, do the thing
 	for (const work of workList) {
 		//console.log(work);
 		const tags = work.querySelectorAll(`a.tag`);
@@ -89,7 +87,7 @@ if (!window.soql) {
 			label.innerHTML += ` All anonymous works`;
 			authDiv.appendChild(label);
 		} else {
-			for (var i = 0; i < authors.length; i++) {
+			for (var i = 0; i < authors.length; i++) { // okay. so the classes aren't listed in the same order as the authors (that's alphabetized), so this is technically not the way to do it but for now sure
 				const input = document.createElement("input");
 				input.type = "checkbox"; // later make it more complex by detecting
 				input.id = `work-${work_id}-auth-${user_ids[i]}`;
@@ -121,12 +119,46 @@ if (!window.soql) {
 		}
 		tagsDiv.appendChild(tagD);
 		banForm.appendChild(tagsDiv);
+
+		// console.log(autofilters.fandoms());
+		const select = document.createElement(`select`);
+		// select.innerHTML = `<option value="global">Global</option>`;
+		const globOpt = document.createElement(`option`);
+		globOpt.value = "global";
+		globOpt.innerHTML = `Global`;
+		if (!autofilters.fandomName) {
+			select.appendChild(globOpt); // append the global option
+			// then run through all of the fandoms
+			for (const f of fandoms) {
+				const opt = document.createElement(`option`);
+				opt.innerHTML = f;
+				opt.value = f;
+				select.appendChild(opt);
+			}
+		} else {
+			select.innerHTML = `<option value=${autofilters.fandomName}>${autofilters.fandomName}</option>`;
+			select.appendChild(globOpt);
+		}
+
+
+		const p = document.createElement(`p`);
+		p.innerHTML = `&hellip;from the ${select.outerHTML} filters.`;
+		banForm.appendChild(p);
+
+		const subButt = document.createElement(`input`);
+		subButt.type = `submit`;
+		subButt.value = `BEGONE!!!!!!`
+		banForm.appendChild(subButt);
+		banForm.onsubmit = () => {
+			console.log(`hi. submission :3`);
+			banDialogue.close();
+			return false;
+		}
 		banDialogue.appendChild(banForm);
 
 		work.querySelector("p.datetime").insertAdjacentElement("afterend", banButt); // inject the selection next to the datetime or something
 		work.appendChild(banDialogue); // put that thang somewhere
 	}
-	// }
 
 
 }
