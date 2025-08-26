@@ -44,7 +44,7 @@ class relevant {
 
 	static get all() {
 		// const lesigh = new Object(localStorage);
-		return Object.entries(localStorage).filter((entry) => { return (entry[0].search(/^(filter|enable|ids)/) >= 0) }); // only returns the local storage entries relevant to this script
+		return Object.entries(localStorage).filter((entry) => { return (entry[0].search(/^(filter|enable|ids)/) >= 0) }); // only returns the local storage entries relevant to this script, like the filters, enables, and ids
 	}
 	static get keys() {
 		return Object.keys(localStorage).filter((entry) => entry.search(/^(filter|enable|ids)/) >= 0); // just the keys
@@ -289,11 +289,11 @@ class idKeyVals extends relevant {
 	static get global() {
 		// returns a json
 		let jason = [ // default freebies
-			["Not Rated", 9],["General Audiences", 10],["Teen And Up", 11], ["Mature", 12], ["Explicit", 13],
-			["Author Chose Not to Use Archive Warnings", 14],["No Archive Warnings Apply", 16],["Graphic Depictions of Violence", 17], ["Major Character Death", 18], ["Rape/Non-Con", 19], ["Underage Sex", 20],
+			["Not Rated", 9], ["General Audiences", 10], ["Teen And Up", 11], ["Mature", 12], ["Explicit", 13],
+			["Author Chose Not to Use Archive Warnings", 14], ["No Archive Warnings Apply", 16], ["Graphic Depictions of Violence", 17], ["Major Character Death", 18], ["Rape/Non-Con", 19], ["Underage Sex", 20],
 			["General", 21], ["F/M", 22], ["M/M", 23], ["Other", 24], ["F/F", 116], ["Multi", 2246],
 			["Chatting & Messaging", 106225]
-		]; 
+		];
 		try {
 			jason = JSON.parse(localStorage.getItem(`ids-global`));
 		} catch (e) {
@@ -315,6 +315,7 @@ class idKeyVals extends relevant {
 	static includes(idNumber) {
 		const opts = idKeyVals.global.concat(idKeyVals.fandom).filter(
 			(entry) => {
+				if (!entry) { return false; } // in case there's holes i guess
 				// console.log(`entry being filtered: `, entry);
 				return (entry[1] == parseInt(idNumber));
 			}
@@ -469,7 +470,7 @@ const id = function () {
 		i = document.querySelector("#subscription_subscribable_id").value;
 	};
 	// console.log(`we have here a ${typeof(i)} for our id#`);
-	if (typeof(i) !== "number") {
+	if (typeof (i) !== "number") {
 		try {
 			i = parseInt(i); // try turning it into a number
 		} catch (e) {
@@ -483,7 +484,7 @@ var filter_ids = `filter_ids:${id}`;
 function idKey(n = tagName, i = id) { //by default, do this w/the current tag's name, id, and fandom. the import process will need to loop through this later, hence the params
 	var add = [n, i];
 	const incl = idKeyVals.includes(i);
-	
+
 	if (incl) {
 		if (incl[0] !== n) {
 			idKeyVals.replace(add); // replace it with its proper name if it doesn't match
@@ -971,9 +972,7 @@ function expy(obj) {
 	var jason = {};
 
 	for (const [key, value] of obj) {
-		if (key.search(/^(filter|enable)-/) >= 0) {
-			jason[key] = value;
-		}
+		jason[key] = value; // just trust that we're feeding the f'n a clean version of what we want saved already
 	}
 	jason = JSON.stringify(jason);
 	// console.log(`jason before expy: `, jason);
