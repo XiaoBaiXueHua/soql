@@ -323,16 +323,16 @@ function emptyStorage(key) { //function to give you that particular localStorage
 	}
 	return localStorage[key];
 }
-function storJson(item) { //turns local storage item into a json
-	let a;
-	try {
-		a = JSON.parse(item);
-	} catch (e) {
-		console.error(`obj that was supposed to become a json: `, item, e);
-		a = [];
-	}
-	return a;
-}
+// function storJson(item) { //turns local storage item into a json
+// 	let a;
+// 	try {
+// 		a = JSON.parse(item);
+// 	} catch (e) {
+// 		console.error(`obj that was supposed to become a json: `, item, e);
+// 		a = [];
+// 	}
+// 	return a;
+// }
 
 var fanIdStorage; // = localStorage[`ids-${cssFanName}`];
 function isFandom() { //function for setting all the various vars that only show up if it's a fandom-specific tag. will have to clean up the thing later but for now i'll just leave it as is
@@ -344,9 +344,13 @@ function isFandom() { //function for setting all the various vars that only show
 isFandom();
 var globIdStorage = emptyStorage(`ids-global`);
 
+function searchType(str) {
+	return (str == "global" || str == "advanced-search") ? str : "fandom"; // function for flattening fandom names down to just "fandom". will probably be more useful when doing a proper rewrite tbh
+}
+
 /* local storage keys */
 function enable(key) {
-	if (key == "advanced-search") { return null };
+	if (key == "advanced-search") { return null; }
 	let enabled = true;
 	try {
 		enabled = JSON.parse(localStorage[`enable-${key}`]);
@@ -460,7 +464,6 @@ function idKey(n = tagName, i = id) { //by default, do this w/the current tag's 
 	if (incl) {
 		if (incl[0] !== n) {
 			idKeyVals.replace(add); // replace it with its proper name if it doesn't match
-
 		}
 	} else {
 		console.log(`hmm. we don't have ${JSON.stringify(add)} in here.`);
@@ -1087,11 +1090,12 @@ function objectify(arr) { // turns a filter in the thing into an object
 		const range = ex.match(/(\[|\{|\}|\]|<|>)/g); // all the stuff associated w/ranges
 		const query = ex.match(/^-?(\w|_)+(?=:)/);
 		// query ? simple.push(ex) : complex.push(ex);
+		// if it's a normal type of filter like filter_ids: or bookmark_count: or crossover:, WITHOUT being a range, then gotta do some processing
 		if (query && !range) {
 			ind = query[0];
 			// if (!cleaned[ind]) { cleaned[ind] = ""; }
 			tmp[ind] ? tmp[ind] += ` ||` : tmp[ind] = ""; // we don't need the double bars for complex requests, so if the thing already exists, then add them in for simple types
-			v = ex.replaceAll(`${ind}:`, "").replaceAll(/(^\(|\)$)/g, ""); // first just remove the query n its colon
+			v = ex.replaceAll(`${ind}:`, "").replaceAll(/(^\(|\)$)/g, ""); // first just remove the query n its colon, then get rid of its outermost shell of parentheses
 		}
 		// cleaned[ind] += `${cleaned[ind].length > 0 ? ` ||` : ""} ${v}`;
 		tmp[ind] += ` ${v}`;
