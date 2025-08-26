@@ -193,7 +193,11 @@ function storageCleanup() {
 				// if it's not allowed (not in the saved fandoms --> had no saved filters last time cleaning was run)
 				if (e.length == 1) {
 					console.debug(`sole e entry: `, e[0]);
-					if (key.search(toCss(e[0][0])) >= 0) {
+					if (e[0].length < 1) {
+						// this line will have to exist forever now to atone for my sins of "bugged out the saving id keys" for so long
+						console.debug(`for some reason this entry is empty.`);
+						localStorage.removeItem(key);
+					} else if (key.search(toCss(e[0][0])) >= 0) {
 						console.debug(`the Sole entry is just the fandom's id number`);
 						localStorage.removeItem(key); // tbh just get rid of it at that point
 					}
