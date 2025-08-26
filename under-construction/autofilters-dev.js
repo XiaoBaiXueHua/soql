@@ -77,13 +77,16 @@ class relevant {
 		return relevant.values.filter((entry) => entry.search(/^ids/) >= 0);
 	}
 
-	static autosave(key, val, addition) {
+	static push(key, val, addition) {
+		console.log(`key: ${key}, val: `, val, ` addition: `, addition);
 		try {
 			const tmp = val;
-			(tmp.length == 1) ? tmp[0] = addition : tmp.push(addition);
+			(tmp.length < 1) ? tmp[0] = addition : tmp.push(addition);
 			localStorage.setItem(key, JSON.stringify(tmp));
+			console.log(`localStorage after pushing: `, localStorage[key]);
+			// console.log(idKeyVals.global)
 		} catch (e) {
-			console.error(`you're only supposed to use the static relevant.autosave to get around the way the getters work on the local storage :/`)
+			console.error(`you're only supposed to use the static relevant.push to get around the way the getters work on the local storage :/`)
 		}
 	}
 
@@ -112,6 +115,7 @@ function storageCleanup() {
 
 	const filteredFandoms = new Array();
 	const orphans = relevant.all; // bind this
+	console.log(`relevant.all: `, orphans);
 
 	function allowable(str) {
 		var i = 0, allowed = false;
@@ -287,23 +291,30 @@ class idKeyVals extends relevant {
 			["Chatting & Messaging", 106225]
 		]; 
 		try {
-			jason = JSON.parse(localStorage(`ids-global`));
+			jason = JSON.parse(localStorage.getItem(`ids-global`));
 		} catch (e) {
+			console.warn(`error in getting global ids: `, e);
 			localStorage.setItem(`ids-global`, JSON.stringify(jason));
 		}
-		return JSON.parse(localStorage[`ids-global`]);
+		return jason;
 	}
 	static get fandom() {
 		let jason = [[]];
 		try {
-			jason = JSON.parse(`ids-${cssFanName}`);
+			jason = JSON.parse(localStorage.getItem(`ids-${cssFanName}`));
 		} catch (e) {
 			localStorage.setItem(`ids-${cssFanName}`, JSON.stringify(jason));
 		}
-		return cssFanName ? JSON.parse(localStorage[`ids-${cssFanName}`]) : [[]];
+		// return cssFanName ? JSON.parse(localStorage[`ids-${cssFanName}`]) : [[]];
+		return jason; // i really don't know why i didn't just do this
 	}
 	static includes(idNumber) {
-		const opts = idKeyVals.global.concat(idKeyVals.fandom).filter((entry) => (entry[1] == parseInt(idNumber))); // look in both the global and the current fandom
+		const opts = idKeyVals.global.concat(idKeyVals.fandom).filter(
+			(entry) => {
+				// console.log(`entry being filtered: `, entry);
+				return (entry[1] == parseInt(idNumber));
+			}
+		); // look in both the global and the current fandom
 		if (opts.length > 0) { console.info(`found id #${idNumber} as "${opts[0][0]}".`) }
 		return (opts.length > 0) ? opts[0] : false;
 	}
@@ -436,24 +447,32 @@ filtButt.innerHTML = `<a id="id_butt">Tag ID</a>`;
 
 /* id fetcher function, by flamebyrd */
 const id = function () {
+	let i = null;
 	if (document.querySelector("#favorite_tag_tag_id")) {
 		console.log("favorite tag id method")
-		return document.querySelector("#favorite_tag_tag_id").value;
+		i = document.querySelector("#favorite_tag_tag_id").value;
 	} else if (document.querySelector("a.rss")) {
 		console.log("rss feed method");
 		var href = document.querySelector("a.rss");
 		href = href.getAttribute("href");
 		href = href.match(/\d+/);
-		return href;
+		i = href;
 	} else if (document.querySelector("#include_freeform_tags input:first-of-type")) {
 		console.log("first freeform tag method");
-		return document.querySelector("#include_freeform_tags input:first-of-type").value;
+		i = document.querySelector("#include_freeform_tags input:first-of-type").value;
 	} else if (document.querySelector("#subscription_subscribable_id")) {
 		console.log("subscribable id method");
-		return document.querySelector("#subscription_subscribable_id").value;
-	} else {
-		return null;
+		i = document.querySelector("#subscription_subscribable_id").value;
 	};
+	// console.log(`we have here a ${typeof(i)} for our id#`);
+	if (typeof(i) !== "number") {
+		try {
+			i = parseInt(i); // try turning it into a number
+		} catch (e) {
+			console.warn(`wah smth weird happened to our id#`);
+		}
+	}
+	return i;
 }();
 var filter_ids = `filter_ids:${id}`;
 
@@ -470,7 +489,7 @@ function idKey(n = tagName, i = id) { //by default, do this w/the current tag's 
 		const tmp = fandomName ? idKeyVals.fandom : idKeyVals.global;
 		// ((tmp.length == 1) ? tmp[0] = add : tmp.push(add)); // 
 		// localStorage.setItem(`ids-${fandomName ? cssFanName : global}`, JSON.stringify(tmp));
-		relevant.autosave(`ids-${fandomName ? cssFanName : "global"}`, tmp, add);
+		relevant.push(`ids-${fandomName ? cssFanName : "global"}`, tmp, add);
 	}
 }
 
