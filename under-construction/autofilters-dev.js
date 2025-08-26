@@ -332,7 +332,7 @@ window.soql.autofilters[`idKeyVals`] = class {
 			try {
 				jason = JSON.parse(localStorage.getItem(`ids-${window.soql.toCss(fanName)}`));
 			} catch (e) {
-				localStorage.setItem(`ids-${window.soql.toCss(fanName)}`, JSON.stringify(jason));
+				localStorage.setItem(`ids-${window.soql.toCss(fanName)}`, JSON.stringify(jason)); // make a new thing for legitimate new fandoms not in our storage
 			}
 		} else if (fanName == null) {
 			// just proceed to assume it's global at that point

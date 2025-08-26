@@ -21,18 +21,17 @@ if (!window.soql) {
 		console.error(`the permafilter works script requires you to install my autofilters script :/ aborting now`);
 		return;
 	}
+	
 	const autofilters = window.soql.autofilters; // bind this
-	const fandoms = autofilters.fandoms();
-	// const cssFanName = autofilters.toCss(autofilters.fandomName);
+	const fandoms = autofilters.relevant.fandoms;
 	// actually maybe we should make this a small actions button that pulls up a floating <dialog> module ui. and also make this its own script
 	/* banish a particular work from your search results */
 	const workList = document.querySelectorAll("li[id^='work']");
-	//var nyeh = (!global[3] && !search_submit); //if both the global n the fandom checkmarks are off AND we're not on a search page
-	// var nyeh = autofilters.fandomName ? (!document.querySelector(`#globalFilters`) && !document.querySelector(`#fandomFilters`)) : !document.querySelector(`#globalFilters`); //have to check if the fandom box exists first before declaring it -_-
 	//
 	for (const work of workList) {
 		//console.log(work);
-		const tags = work.querySelectorAll(`a.tag`);
+		const tags = work.querySelectorAll(`ul.tags li`);
+		const ts = work.querySelectorAll(`a.tag`); 
 		const work_id = work.id.replace("work_", ""); //get its id num from. well. its id.
 		const title = work.querySelector(".heading a").innerText.trim(); // they don't even put a class on the title link...
 		const klasses = work.classList; // need this to be an array for works w/multiple authors
@@ -64,38 +63,23 @@ if (!window.soql) {
 			// banDialogue.open = true;
 			banDialogue.showModal();
 		})
-		const workInput = document.createElement(`input`);
-		workInput.type = "checkbox";
-		workInput.id = `banish-work-${work_id}`;
-		workInput.value = work_id;
-		const workLabel = document.createElement(`label`);
-		workLabel.setAttribute(`for`, `banish-work-${work_id}`);
-		workLabel.appendChild(workInput);
+
+		const workLabel = makeCheckbox(`banish-work-${work_id}`, work_id);
 		workLabel.innerHTML += ` the work <em>${title}</em>`;
 		banForm.appendChild(workLabel);
 
 		const authDiv = document.createElement(`div`);
 		authDiv.id = `banish-work-auths-${work_id}`;
 		if (anonymous) {
-			const input = document.createElement("input");
-			input.id = `work-${work_id}-auth-anon`;
-			input.type = "checkbox";
-			input.value = "anonymous";
-			const label = document.createElement(`label`);
-			label.setAttribute(`for`, `work-${work_id}-auth-anon`);
-			label.appendChild(input);
+			const label = makeCheckbox(`work-${work_id}-auth-anon`, `anonymous`);
+			label.className = `ban-auth`;
 			label.innerHTML += ` All anonymous works`;
 			authDiv.appendChild(label);
 		} else {
 			for (var i = 0; i < authors.length; i++) { // okay. so the classes aren't listed in the same order as the authors (that's alphabetized), so this is technically not the way to do it but for now sure
-				const input = document.createElement("input");
-				input.type = "checkbox"; // later make it more complex by detecting
-				input.id = `work-${work_id}-auth-${user_ids[i]}`;
-				const label = document.createElement(`label`);
-				label.setAttribute(`for`, `work-${work_id}-auth-${user_ids[i]}`);
-				input.value = user_ids[i];
-				label.appendChild(input);
+				const label = makeCheckbox(`work-${work_id}-auth-${user_ids[i]}`, user_ids[i]);
 				label.innerHTML += ` the author ${authors[i]}`;
+				label.className = `ban-auth`;
 				authDiv.appendChild(label);
 			}
 		}
@@ -104,15 +88,19 @@ if (!window.soql) {
 		const tagsDiv = document.createElement(`details`);
 		tagsDiv.innerHTML = `<summary>Tags&hellip;</summary>`;
 		const tagD = document.createElement(`div`); // div for real this time
+		// uhhh probably loop through the tag fandoms too. alas.
+		var j = 0; // tracks how many total tags we've had so far, incl the fandoms
+		for (const f of work.querySelectorAll(`h5.fandoms.heading a.tag`)) {
+			// and now we do the same song and dance
+			const label = makeCheckbox(`work-${work_id}-tag-${j}`, "");
+			label.className = "fandom";
+			label.innerHTML += ` ${f.innerText}`;
+			tagD.appendChild(label);
+			j++;
+		}
 		for (var i = 0; i < tags.length; i++) {
-			// make the input
-			const input = document.createElement(`input`);
-			input.id = `work-${work_id}-tag-${i}`;
-			input.type = `checkbox`; // no value bc we're gonna have to do a page fetch for This one if it's checked
-			// make the label
-			const label = document.createElement(`label`);
-			label.setAttribute(`for`, `work-${work_id}-tag-${i}`);
-			label.appendChild(input);
+			const label = makeCheckbox(`work-${work_id}-tag-${i + j}`, ``); // no value bc we're gonna have to do a page fetch for This one if it's checked
+			label.className = tags[i].className; // give it the same class name
 			label.innerHTML += ` ${tags[i].innerText}`;
 			// add it to the tags div
 			tagD.appendChild(label);
@@ -145,13 +133,62 @@ if (!window.soql) {
 		p.innerHTML = `&hellip;from the ${select.outerHTML} filters.`;
 		banForm.appendChild(p);
 
+		// function selectVal() { return select.value; } // makes it always update
+		// const selectVal = () => { return select.value; }
+
 		const subButt = document.createElement(`input`);
 		subButt.type = `submit`;
 		subButt.value = `BEGONE!!!!!!`
 		banForm.appendChild(subButt);
 		banForm.onsubmit = () => {
-			console.log(`hi. submission :3`);
-			banDialogue.close();
+			console.log(`hi. submission for work ${work_id} (${title}) :3`);
+			// console.log(select);
+			const val = document.querySelector(`#ban-work-${work_id} select`).value; // gonna have to reselect it every time i guess
+			const banishment = `filter-${window.soql.toCss(val)}`
+			console.log(localStorage[banishment]); // gives us the filter string
+			var addStr = "";
+			// hmm. actually might have to make this sort of a thing a class so that we can just use getters.
+			if (work.querySelector(`#banish-work-${work_id}`).checked) {
+				addStr += ` -id:${work_id}`; // banish the work by id
+			}
+			if (work.querySelectorAll(`.ban-auth input:checked`).length > 0) {
+				if (!anonymous) {
+					// loop through it... later lol
+				} else {
+					addStr += ` in_anon_collection:false`;
+				}
+			}
+			var fetches = 0;
+			const frees = work.querySelectorAll(`dialog details input:checked`);
+			// let 
+			if (frees.length > 0) {
+				// const rx = new RegExp(`work-${work_id}-tag-`);
+				for (const t of frees) {
+					// um. hmm. gonna have to um. extract the index of the tag in the a.tags first
+					const ind = parseInt(t.id.replace(/work-\d+-tag-/, "")); 
+					// and then we do an async fetch timeout
+					const href = ts[ind].href; // extract the href
+					// console.log(`want to ban: ${t.innerText.trim()}\t | currently page fetching to ban: ${ts[ind].innerText}`);
+					// console.log(`sending request to ${href}`);
+					setTimeout(() => {
+						getPage(href).then((txt) => {
+							console.log(txt);
+							const tn = ts[ind].innerText.trim(); // tag name
+							const fn = autofilters.getFandom(txt, tn); // fetched tag's fandom name
+							const id = autofilters.getID(txt); // fetched tag's id #
+							console.log(`"${tn}" is part of ${fn} and has an id num. of ${id.toLocaleString()}`);
+							autofilters.idKeyVals.push(tn, id, fn); // add the tag storage
+							console.log(autofilters.idKeyVals.specific(fn)); // and also double-check to make sure it went through
+						});
+					}, fetches * 1000); // a second btwn fetches for now
+					fetches++;
+					break;
+				}
+			}
+			console.log(`Please wait so as not to overwhelm ao3 servers...`)
+			console.log(`adding: \n\t${addStr}`);
+			// localStorage.setItem(banishment, `${val}${addStr}`);
+			// banDialogue.close();
 			return false;
 		}
 		banDialogue.appendChild(banForm);
@@ -161,4 +198,29 @@ if (!window.soql) {
 	}
 
 
+}
+
+function makeCheckbox(id, value) {
+	const input = document.createElement(`input`);
+	input.type = "checkbox";
+	input.id = id;
+	input.value = value;
+
+	const label = document.createElement(`label`);
+	label.setAttribute(`for`, id);
+	label.appendChild(input);
+	return label; // do the inner html yourself :/
+}
+
+async function getPage(url) {
+	const request = await fetch(new Request(url));
+	const div = document.createElement(`div`);
+	if (request.ok) {
+		const response = await request.text();
+		// console.log(response);
+		div.innerHTML = response;
+	} else {
+		console.warn(`hey what happened`, request);
+	}
+	return div;
 }
