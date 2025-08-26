@@ -172,12 +172,28 @@ if (!window.soql) {
 					// console.log(`sending request to ${href}`);
 					setTimeout(() => {
 						getPage(href).then((txt) => {
-							console.log(txt);
+							console.log(txt); // console the tag name
 							const tn = ts[ind].innerText.trim(); // tag name
 							const fn = autofilters.getFandom(txt, tn); // fetched tag's fandom name
 							const id = autofilters.getID(txt); // fetched tag's id #
+
+							const trueName = function () {
+								let t = txt.querySelector(`h2 a.tag`);
+								if (t) {
+									// if we have this, then check to see if its value is the same as the fn we got
+									if (fn !== t.innerText.trim()) {
+										// if they're not the same, then prioritize the canonical name
+										return t.innerText.trim();
+									}
+								}
+								return fn; // otherwise leave it
+							}();
 							console.log(`"${tn}" is part of ${fn} and has an id num. of ${id.toLocaleString()}`);
-							autofilters.idKeyVals.push(tn, id, fn); // add the tag storage
+							if (id) {
+								autofilters.idKeyVals.push(trueName, id, fn); // add the tag storage if it's a wrangled tag. 
+							} else {
+								console.warn(`hi!! sorry, but "${tn}" is not a filterable tag at this moment.`)
+							}
 							console.log(autofilters.idKeyVals.specific(fn)); // and also double-check to make sure it went through
 						});
 					}, fetches * 1000); // a second btwn fetches for now

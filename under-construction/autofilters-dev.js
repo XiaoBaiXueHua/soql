@@ -369,8 +369,8 @@ window.soql.autofilters[`idKeyVals`] = class {
 		const incl = window.soql.autofilters.idKeyVals.includes(i);
 
 		if (incl) {
-			if (incl[0] !== n) {
-				window.soql.autofilters.idKeyVals.replace(add); // replace it with its proper name if it doesn't match
+			if ((incl[0] !== n)) {
+				window.soql.autofilters.idKeyVals.replace(add); // replace it with its proper name if it doesn't match AND if we've specified it should be renamed
 			}
 		} else {
 			console.log(`hmm. we don't have ${JSON.stringify(add)} in here.`);
