@@ -292,6 +292,7 @@ if (!window.soql) {
 					clearTimeout(failures);
 				}
 				infoDiv.insertAdjacentHTML(`afterbegin`, `<p>${successStr}</p>`);
+				localStorage.setItem(banishment, `${val}${addStr}`);
 
 			}, (fetches + 5) * fetchSpacing);
 
