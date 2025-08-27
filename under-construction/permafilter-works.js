@@ -2,7 +2,7 @@
 // @name         permafilter works
 // @namespace    https://sincerelyandyourstruly.neocities.org
 // @version      1.0
-// @description  (and also on a by-author/anonymity/orphaned scale but mostly relevant for the works). requires the sticky filters script to already be installed
+// @description  (and also on a by-author/anonymity/orphaned scale but mostly relevant for the works). requires the sticky filters script to already be installed, and for some reason picking tags off a work to banish w/o having to open the page yourself is a feature of This script instead of that one. 
 // @author       白雪花
 // @match        https://archiveofourown.org**
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=archiveofourown.org
@@ -21,6 +21,7 @@ if (!window.soql) {
 		console.error(`the permafilter works script requires you to install my autofilters script :/ aborting now`);
 		return;
 	}
+	const fetchSpacing = 2500; // ms btwn fetches
 
 	const autofilters = window.soql.autofilters; // bind this
 	const fandoms = autofilters.relevant.fandoms;
@@ -37,7 +38,7 @@ if (!window.soql) {
 		const klasses = work.classList; // need this to be an array for works w/multiple authors
 		const user_ids = new Array();
 		const authors = new Array();
-		var aLinks = work.querySelectorAll(`a[rel="author"]`);
+		const aLinks = work.querySelectorAll(`a[rel="author"]`);
 		for (const a of aLinks) {
 			authors.push(a.innerText);
 		}
@@ -55,14 +56,31 @@ if (!window.soql) {
 		const banButt = document.createElement(`button`);
 		banButt.className = "banish";
 		banButt.innerHTML = "<small>Filter&hellip;</small>";
+
 		const banDialogue = document.createElement(`dialog`);
 		banDialogue.id = `ban-work-${work_id}`;
-		banDialogue.innerHTML = `<h5>Banish&hellip;</h5>`;
+
+		const closeScroller = document.createElement(`div`);
+		closeScroller.className = `close-scroll`;
+
+		const closeDialogue = document.createElement(`button`);
+		closeDialogue.className = `close-ban`;
+		closeDialogue.innerHTML = `&times;`;
+		closeDialogue.addEventListener(`click`, () => { // put it here to keep the += str from killing it
+			banDialogue.close();
+		});
+		closeScroller.appendChild(closeDialogue);
+		banDialogue.appendChild(closeScroller);
+
+		const h5 = document.createElement(`h5`); // doing it this way keeps us from killing the close dialogue event listener
+		h5.innerHTML = `Banish&hellip;`;
+		banDialogue.appendChild(h5); // keep the close button first
+		
+
 		const banForm = document.createElement(`form`);
 		banButt.addEventListener(`click`, () => {
-			// banDialogue.open = true;
 			banDialogue.showModal();
-		})
+		});
 
 		const workLabel = makeCheckbox(`banish-work-${work_id}`, work_id);
 		workLabel.innerHTML += ` the work <em>${title}</em>`;
@@ -77,7 +95,7 @@ if (!window.soql) {
 			authDiv.appendChild(label);
 		} else {
 			for (var i = 0; i < authors.length; i++) { // okay. so the classes aren't listed in the same order as the authors (that's alphabetized), so this is technically not the way to do it but for now sure
-				const label = makeCheckbox(`work-${work_id}-auth-${user_ids[i]}`, user_ids[i]);
+				const label = makeCheckbox(`work-${work_id}-auth-${i}`, `auth-${i}`);
 				label.innerHTML += ` the author ${authors[i]}`;
 				label.className = `ban-auth`;
 				authDiv.appendChild(label);
@@ -85,6 +103,7 @@ if (!window.soql) {
 		}
 		banForm.appendChild(authDiv);
 
+		// checkboxes for banishing the various tags of that work
 		const tagsDiv = document.createElement(`details`);
 		tagsDiv.innerHTML = `<summary>Tags&hellip;</summary>`;
 		const tagD = document.createElement(`div`); // div for real this time
@@ -110,7 +129,6 @@ if (!window.soql) {
 
 		// console.log(autofilters.fandoms());
 		const select = document.createElement(`select`);
-		// select.innerHTML = `<option value="global">Global</option>`;
 		const globOpt = document.createElement(`option`);
 		globOpt.value = "global";
 		globOpt.innerHTML = `Global`;
@@ -133,34 +151,83 @@ if (!window.soql) {
 		p.innerHTML = `&hellip;from the ${select.outerHTML} filters.`;
 		banForm.appendChild(p);
 
-		// function selectVal() { return select.value; } // makes it always update
-		// const selectVal = () => { return select.value; }
-
 		const subButt = document.createElement(`input`);
 		subButt.type = `submit`;
 		subButt.value = `BEGONE!!!!!!`
 		banForm.appendChild(subButt);
+		banDialogue.appendChild(banForm);
+
+		const infoDiv = document.createElement(`div`);
+		infoDiv.class = `ban-info`;
+		banDialogue.appendChild(infoDiv);
 		banForm.onsubmit = () => {
 			console.log(`hi. submission for work ${work_id} (${title}) :3`);
 			// console.log(select);
+			var fetches = 0, successes = 0;
 			const val = document.querySelector(`#ban-work-${work_id} select`).value; // gonna have to reselect it every time i guess
 			const banishment = `filter-${window.soql.toCss(val)}`
 			console.log(localStorage[banishment]); // gives us the filter string
 			var addStr = "";
-			// hmm. actually might have to make this sort of a thing a class so that we can just use getters.
+			var successStr = `<p>The following additions have been made to the ${val} filters:</p>`;
+			const reqs = work.querySelectorAll(`label input:checked`) ? work.querySelectorAll(`label input:checked`).length : 0;
+
 			if (work.querySelector(`#banish-work-${work_id}`).checked) {
 				addStr += ` -id:${work_id}`; // banish the work by id
+				successStr += `<strong>Work:</strong> ${title} (id: ${work_id})\n`;
+				successes++;
 			}
-			if (work.querySelectorAll(`.ban-auth input:checked`).length > 0) {
+
+			const checkedAuths = work.querySelectorAll(`.ban-auth input:checked`);
+			if (checkedAuths.length > 0) {
 				if (!anonymous) {
-					// loop through it... later lol
+					if (work.querySelectorAll(`.ban-auth`).length == 1) {
+						// thank god we can just use the user_id from the classes
+						addStr += ` -user_ids:${user_ids[0]}`;
+						successStr += `<strong>User:</strong> ${authors[0]} (id: ${user_ids[0]})<br />`;
+					} else if (checkedAuths.length == authors.length) {
+						// rejoice! for we can just banish them all!! don't worry abt who they are for now.
+						for (var i = 0; i < authors.length; u++) {
+							addStr += ` -user_ids:${user_ids[i]}`;
+							successStr += `User: ${authors[i]}<br />`;
+							successes++;
+						}
+					} else {
+						// loop through the values to get the index of the author in the aLinks 
+						console.log(`aLinks: `, aLinks);
+						for (var k = 0; k < checkedAuths.length; k++) {
+							const ind = parseInt(checkedAuths[k].value.replace(/\D+/, ""));
+							console.log(`ind: ${ind} | author ${authors[ind]} (href: ${aLinks[ind]}) is abt to be booted`);
+							setTimeout(() => {
+								const u = new URL(aLinks[ind].href); // get the url out of it
+								pageFetch(u.pathname.replace(/\/pseuds\/.*/, "/profile")).then((txt) => { // fetch their profile page
+									// first try to get the id via subscribable_id, but if that doesn't work, then it should be div.user.home.profile dl.meta dd:last-of-type
+									let id = null;
+									if (txt.querySelector(`#subscription_subscribable_id`)) {
+										// subscribable id method (only for logged-in users)
+										id = parseInt(txt.querySelector(`#subscription_subscribable_id`).value);
+									} else {
+										id = parseInt(txt.querySelector(`div.user.home.profile dl.meta dd:last-of-type`).value);
+									}
+									if (id) {
+										addStr += ` -user_ids:${id}`;
+										successStr += `<strong>User:</strong> ${authors[ind]} (id: ${id})\n`;
+										successes++;
+									}
+								});
+							}, fetches * fetchSpacing);
+							fetches++;
+						}
+
+					}
 				} else {
+					// probably check to make sure that this isn't already in the filters but whatever that's for later
 					addStr += ` in_anon_collection:false`;
+					successStr += `<strong>in_anon_collection:</strong> false<br />`
+					successes++;
 				}
 			}
-			var fetches = 0;
+
 			const frees = work.querySelectorAll(`dialog details input:checked`);
-			// let 
 			if (frees.length > 0) {
 				// const rx = new RegExp(`work-${work_id}-tag-`);
 				for (const t of frees) {
@@ -169,47 +236,73 @@ if (!window.soql) {
 					// and then we do an async fetch timeout
 					const href = ts[ind].href; // extract the href
 					// console.log(`want to ban: ${t.innerText.trim()}\t | currently page fetching to ban: ${ts[ind].innerText}`);
-					// console.log(`sending request to ${href}`);
-					setTimeout(() => {
-						getPage(href).then((txt) => {
-							console.log(txt); // console the tag name
-							const tn = ts[ind].innerText.trim(); // tag name
-							const fn = autofilters.getFandom(txt, tn); // fetched tag's fandom name
-							const id = autofilters.getID(txt); // fetched tag's id #
+					// first check to make sure we don't already have the tag name saved somewhere
+					const savedId = autofilters.idKeyVals.includes(ts[ind].innerText.trim())
+					if (savedId) {
+						console.log(`oh thank god `)
+						addStr += ` -filter_ids:${savedId[1]}`;
+						successStr += `Tag: ${savedId[0]} (id: ${savedId[1]})<br />`;
+						successes++;
+					} else {
+						// if we don't, THEN we go send a page fetch
+						setTimeout(() => {
+							getPage(href).then((txt) => {
+								console.log(txt); // console the tag name
+								const tn = ts[ind].innerText.trim(); // tag name
+								const fn = autofilters.getFandom(txt, tn); // fetched tag's fandom name
+								const id = autofilters.getID(txt); // fetched tag's id #
 
-							const trueName = function () {
-								let t = txt.querySelector(`h2 a.tag`);
-								if (t) {
-									// if we have this, then check to see if its value is the same as the fn we got
-									if (fn !== t.innerText.trim()) {
-										// if they're not the same, then prioritize the canonical name
-										return t.innerText.trim();
+								const trueName = function () {
+									let t = txt.querySelector(`h2 a.tag`);
+									if (t) {
+										// if we have this, then check to see if its value is the same as the fn we got
+										if (fn !== t.innerText.trim()) {
+											// if they're not the same, then prioritize the canonical name
+											return t.innerText.trim();
+										}
 									}
+									return fn; // otherwise leave it
+								}();
+
+
+								if (trueName !== null) { // well. obvs this has to exist first. otherwise it's not a wrangleable tag.
+									console.log(`"${tn}" is part of ${fn} and has an id num. of ${id.toLocaleString()}`);
+
+									autofilters.idKeyVals.push(trueName, id, fn); // add the tag storage if it's a wrangled tag. 
+									successes++;
+									addStr += ` -filter_ids:${id}`;
+									successStr += `<strong>Tag:</strong> ${trueName} (id: ${id})<br />`;
+								} else {
+									infoDiv.insertAdjacentHTML(`afterbegin`, `<p class="flash">hi!! sorry, but "${tn}" is not a filterable tag at this moment.</p>`);
 								}
-								return fn; // otherwise leave it
-							}();
+								console.log(autofilters.idKeyVals.specific(fn)); // and also double-check to make sure it went through
+							});
+						}, fetches * fetchSpacing); // a second btwn fetches for now
+						fetches++;
+					}
 
-
-							if (trueName !== null) { // well. obvs this has to exist first. otherwise it's not a wrangleable tag.
-								console.log(`"${tn}" is part of ${fn} and has an id num. of ${id.toLocaleString()}`);
-								autofilters.idKeyVals.push(trueName, id, fn); // add the tag storage if it's a wrangled tag. 
-							} else {
-								console.warn(`hi!! sorry, but "${tn}" is not a filterable tag at this moment.`)
-							}
-							console.log(autofilters.idKeyVals.specific(fn)); // and also double-check to make sure it went through
-						});
-					}, fetches * 1000); // a second btwn fetches for now
-					fetches++;
-					break;
 				}
 			}
-			console.log(`Please wait so as not to overwhelm ao3 servers...`)
-			console.log(`adding: \n\t${addStr}`);
-			// localStorage.setItem(banishment, `${val}${addStr}`);
-			// banDialogue.close();
+			infoDiv.insertAdjacentHTML(`afterbegin`, `<p>Please wait so as not to overwhelm ao3 servers... (Estimated ETA: ${fetches * fetchSpacing / 1000}s)</p>`);
+
+			let failures = setTimeout(() => {
+				infoDiv.insertAdjacentHTML(`afterbegin`, `<p>wahhhh but you have some failures... either some of those tags were unwrangleable, or we probably sent too many fetch requests. :&lt;<br />try again in like ten minutes or smth.</p>`);
+			}, (fetches + 10) * fetchSpacing);
+
+			setTimeout(() => {
+				console.log(`successful additions: ${successes}/${reqs}`);
+				console.log(`adding: \n\t${addStr}`);
+				// successStr = `<p>${successStr}</p>`; // wrap it in its own paragraph
+				if (successes == reqs) {
+					clearTimeout(failures);
+				}
+				infoDiv.insertAdjacentHTML(`afterbegin`, `<p>${successStr}</p>`);
+
+				// localStorage.setItem(banishment, `${val}${addStr}`);
+			}, (fetches + 5) * fetchSpacing);
+
 			return false;
 		}
-		banDialogue.appendChild(banForm);
 
 		work.querySelector("p.datetime").insertAdjacentElement("afterend", banButt); // inject the selection next to the datetime or something
 		work.appendChild(banDialogue); // put that thang somewhere

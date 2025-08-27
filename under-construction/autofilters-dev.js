@@ -346,15 +346,35 @@ window.soql.autofilters[`idKeyVals`] = class {
 		return window.soql.autofilters.idKeyVals.specific(window.soql.autofilters.fandomName);
 	}
 
-	static includes(idNumber) {
-		const opts = window.soql.autofilters.idKeyVals.global.concat(window.soql.autofilters.idKeyVals.fandom).filter(
+	static includes(params = { name: null, number: null }) {
+		let idNumber = null, idName = null;
+		if (typeof (params) == "number") {
+			idNumber = params; // backwards compatibility
+		} else if (typeof (params) == "string") {
+			// this is if we're searching for it by name
+			idName = params;
+		} else if (typeof (params) == "object") {
+			// i guess this is like an exact match sort of thing
+			try {
+				idNumber = params.number;
+			} catch (e) {
+				// dne on the id number
+				try { // second-class search filter parameter name
+					idName = params.name;
+				} catch (e) {
+					// dne on the id name
+				}
+			}
+		}
+		const byId = (!(idNumber == null) && !(idNumber == NaN)); // boolean for determining if we're checking against an id or not
+		
+		const opts = window.soql.autofilters.idKeyVals.global.concat(window.soql.autofilters.idKeyVals.fandom).filter( // look in both the global and the current fandom
 			(entry) => {
 				if (!entry) { return false; } // in case there's holes i guess
 				// console.log(`entry being filtered: `, entry);
-				return (entry[1] == parseInt(idNumber));
+				return (byId ? (entry[1] == parseInt(idNumber)) : (entry[0] == idName));
 			}
-		); // look in both the global and the current fandom
-		if (opts.length > 0) { console.info(`found id #${idNumber} as "${opts[0][0]}".`) }
+		); 
 		return (opts.length > 0) ? opts[0] : false;
 	}
 	static replace([filterName, idNumber]) {
@@ -519,7 +539,7 @@ const searchdd = document.querySelector("dd.search:not(.autocomplete");
 const advSearch = document.querySelector("#work_search_query");
 
 //if there's one there will obvs be the other, but just so that they don't feel left out, using "or"
-if (searchdt !== null || searchdd !== null) { 
+if (searchdt !== null || searchdd !== null) {
 	window.soql.autofilters.idKeyVals.push(tagName, id, fandomName); //first, just save the tag id in local storage. save me the time
 	advSearch.hidden = true;
 	const fakeSearch = document.createElement("input");
