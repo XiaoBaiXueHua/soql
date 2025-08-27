@@ -91,7 +91,8 @@ window.soql.autofilters[`relevant`] = class { // let's see if we can attach a cl
 const rel = window.soql.autofilters.relevant; // this is just shorthanding for the purposes of in this script
 
 /* various important global vars */
-window.soql.remAmbig = /(?<=\s)\((\w+(\s|&)*?|\d+\s?)+\)/g; //removes disambiguators
+// /(?<=\s)\((\w+(\s|&)*?|\d+\s?)+\)/
+window.soql.remAmbig = /\s\((\w+(\s|&)*?|\d+\s?)+\)/g; //removes disambiguators
 
 const header = document.querySelector("h2:has(a.tag)");
 //console.log(header);
@@ -347,12 +348,17 @@ window.soql.autofilters[`idKeyVals`] = class {
 	}
 
 	static includes(params = { name: null, number: null }) {
+		console.log(`checking for an inclusion...`);
 		let idNumber = null, idName = null;
 		if (typeof (params) == "number") {
 			idNumber = params; // backwards compatibility
 		} else if (typeof (params) == "string") {
 			// this is if we're searching for it by name
-			idName = params;
+			if (parseInt(params) == NaN) {
+				idName = params;
+			} else {
+				idNumber = params;
+			}
 		} else if (typeof (params) == "object") {
 			// i guess this is like an exact match sort of thing
 			try {
@@ -367,19 +373,21 @@ window.soql.autofilters[`idKeyVals`] = class {
 			}
 		}
 		const byId = (!(idNumber == null) && !(idNumber == NaN)); // boolean for determining if we're checking against an id or not
-		
+
 		const opts = window.soql.autofilters.idKeyVals.global.concat(window.soql.autofilters.idKeyVals.fandom).filter( // look in both the global and the current fandom
 			(entry) => {
 				if (!entry) { return false; } // in case there's holes i guess
 				// console.log(`entry being filtered: `, entry);
 				return (byId ? (entry[1] == parseInt(idNumber)) : (entry[0] == idName));
 			}
-		); 
+		);
+		// console.log(`opts: `, opts);
+		if (opts.length > 0) { console.info(`found id #${idNumber} as "${opts[0][0]}".`) }
 		return (opts.length > 0) ? opts[0] : false;
 	}
 	static replace([filterName, idNumber]) {
 		const whichever = window.soql.autofilters.fandomName ? window.soql.autofilters.idKeyVals.fandom : window.soql.autofilters.idKeyVals.global;
-		const rem = whichever.filter((entry) => (entry[1] !== idNumber)); // produces an array with everything still intact Except for the id number in question
+		const rem = whichever.filter((entry) => (entry[1] !== parseInt(idNumber))); // produces an array with everything still intact Except for the id number in question
 		rem.push([filterName, idNumber]);
 		autosave(`ids-${window.soql.autofilters.fandomName ? cssFanName : "global"}`, JSON.stringify(rem)); // and then also save it
 	}
@@ -390,6 +398,7 @@ window.soql.autofilters[`idKeyVals`] = class {
 
 		if (incl) {
 			if ((incl[0] !== n)) {
+				console.debug(`updating tag name to "${n}"`)
 				window.soql.autofilters.idKeyVals.replace(add); // replace it with its proper name if it doesn't match AND if we've specified it should be renamed
 			}
 		} else {
@@ -540,7 +549,10 @@ const advSearch = document.querySelector("#work_search_query");
 
 //if there's one there will obvs be the other, but just so that they don't feel left out, using "or"
 if (searchdt !== null || searchdd !== null) {
-	iwindow.soql.autofilters.idKeyVals.push(tagName, id, fandomName); // first, just save the tag id in local storage. save me the time
+	if (!search_submit) {
+		window.soql.autofilters.idKeyVals.push(tagName, id, fandomName); // first, just save the tag id in local storage. save me the time
+	}
+
 	advSearch.hidden = true;
 	const fakeSearch = document.createElement("input");
 	fakeSearch.id = "fakeSearch";
@@ -967,8 +979,31 @@ function impsy(div) { //for now just have it read from a specified div
 	div.id = "importDiv";
 	const instructions = document.createElement("p");
 	//remember to remove the hard-coding of the import csv checkbox and also remove the hacky version of its import process by Finishing It
-	instructions.innerHTML = `<small>Please paste your exported options into the textbox below. <strong>This will override your current settings.</strong></small> | <input type="checkbox" id="import_csv" checked> <label for="import_csv">import id names from csv</label>`;
+	instructions.innerHTML = `<small>Please upload your backup as a .json or .txt file, or paste your exported options into the textbox below. <strong>This will override your current settings.</strong></small> | <input type="checkbox" id="import_csv"> <label for="import_csv">import id names from csv</label>`;
 	const tb = document.createElement("textarea");
+	const fileUpload = document.createElement(`input`);
+	fileUpload.type = "file";
+	fileUpload.setAttribute(`accept`, `.json, .txt, .csv`);
+	// yeah i just copied the reader from https://developer.mozilla.org/en-US/docs/Web/API/FileReader/readAsText 
+	fileUpload.addEventListener(`change`, previewFile);
+	function previewFile() {
+		const file = fileUpload.files[0];
+		const reader = new FileReader();
+
+		reader.addEventListener(
+			"load",
+			() => {
+				// this will then display a text file
+				tb.value = reader.result;
+			},
+			false,
+		);
+
+		if (file) {
+			reader.readAsText(file);
+		}
+	}
+
 	const parseButt = document.createElement("button");
 	parseButt.innerHTML = "Save Imported Settings";
 	parseButt.addEventListener("click", () => {
@@ -996,7 +1031,14 @@ function impsy(div) { //for now just have it read from a specified div
 				const obj = Object.entries(JSON.parse(impSet));
 				console.log(obj);
 				for (const [key, value] of obj) {
-					localStorage.setItem(key, value);
+					try {
+						localStorage.setItem(key, JSON.stringify(JSON.parse(value)));
+					} catch (e) {
+						console.error(e);
+						console.log(`key: ${key}\n`, value);
+						localStorage.setItem(key, value); // for the non-json versions like the filters
+					}
+
 				}
 				alert("filters successfully imported.");
 				window.location.reload();
@@ -1004,7 +1046,7 @@ function impsy(div) { //for now just have it read from a specified div
 		}
 
 	})
-	div.append(instructions, tb, parseButt);
+	div.append(instructions, fileUpload, tb, parseButt);
 }
 
 function optimizeFilters() {

@@ -8,7 +8,8 @@
 // @match	http*://archiveofourown.org/works?commit=*&tag_id=*
 // @downloadURL	https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/filterscript.js
 // @updateURL	https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/filterscript.js
-// @version 2.3
+// @version 2.4
+// @history 2.4 - added file uploading for imports
 // @history 2.3 - optimized how the filter optimizer works + fixed the monthly storage cleanup thing + also just began preparing to optimize shit in general
 // @history 2.2.2 - script can now self-correct when it stores a filter id's name wrong (like in a botched import)
 // @history 2.2.1 - fixed a bug abt the tag ui not showing up on global tag types
@@ -38,6 +39,7 @@ window.soql.autofilters[`relevant`] = class { // let's see if we can attach a cl
 	}
 
 	static get all() {
+		// const lesigh = new Object(localStorage);
 		return Object.entries(localStorage).filter((entry) => { return (entry[0].search(/^(filter|enable|ids)/) >= 0) }); // only returns the local storage entries relevant to this script, like the filters, enables, and ids
 	}
 	static get keys() {
@@ -79,7 +81,6 @@ window.soql.autofilters[`relevant`] = class { // let's see if we can attach a cl
 
 			localStorage.setItem(key, JSON.stringify(tmp)); // save the new ver to local storage
 			console.log(`localStorage after pushing: `, localStorage[key]);
-			// console.log(window.soql.autofilters.idKeyVals.global)
 		} catch (e) {
 			console.error(`you're only supposed to use the static rel.push to get around the way the getters work on the local storage :/`, e);
 		}
@@ -89,10 +90,9 @@ window.soql.autofilters[`relevant`] = class { // let's see if we can attach a cl
 const rel = window.soql.autofilters.relevant; // this is just shorthanding for the purposes of in this script
 
 /* various important global vars */
-window.soql.remAmbig = /(?<=\s)\((\w+(\s|&)*?|\d+\s?)+\)/g; //removes disambiguators
+window.soql.remAmbig = /\s\((\w+(\s|&)*?|\d+\s?)+\)/g; //removes disambiguators
 
 const header = document.querySelector("h2:has(a.tag)");
-//console.log(header);
 const currentTag = header.querySelector("a.tag"); //the current tag being searched
 const tagName = currentTag.innerText.replace(window.soql.remAmbig, "").trim();
 
@@ -110,7 +110,6 @@ window.soql.autofilters.fandoms = function () { return JSON.parse(localStorage[l
 // monthly cleanup stuff
 let today = dateFloor(), lastCleanup = dateFloor(); // default is today
 try {
-	lastCleanup = localStorage[`lastCleanup`];
 } catch (e) {
 	localStorage.setItem(`lastCleanup`, lastCleanup);
 }
@@ -121,7 +120,6 @@ function dateFloor(date = new Date()) { // function for getting the floor value 
 }
 // function for cleaning up storage: done automatically each month on the 1st and probably whenever you hit "optimize filters"
 function storageCleanup() {
-	// console.log(`saved fandoms: `, JSON.parse(localStorage[listKey]));
 	console.log(`cleaning...`);
 	var localFilters = 0, localEnables = 0; // local storage entry for the saved filters n whether that fandom's been enabled/disabled
 
@@ -147,7 +145,6 @@ function storageCleanup() {
 
 	for (const [key, value] of rel.all) {
 		const srch = key.match(/^(filter|enable)/);
-		// if (key.search(/^(filter|enable)-/) >= 0) {
 		const globalvance = !(key.search(/-(global|advanced-search)$/) < 0);
 
 		if (srch && !globalvance) { // also make sure you're not doing this to the global/advanced searches. just leave those alone
@@ -177,6 +174,7 @@ function storageCleanup() {
 		console.log(`ah. ${localFilters} filters & ${localEnables} enables. orphaned enables must die now.`)
 		for (const key of rel.finableKeys) {
 			console.log(`key: ${key}`);
+			// console.info(`key: ${key}`, rel.finable);
 			if (key.search(/^enable-/) >= 0) {
 				var safeEnable = allowable(key);
 
@@ -258,7 +256,6 @@ window.soql.autofilters[`getFandom`] = function (el = document, t = `[tagName]`)
 
 	var tagCount = el.querySelector(`h2:has(a.tag)`).innerText;
 	tagCount = tagCount.match(/(\d+,?\d*)+(?=\sW)/)[0].replaceAll(/,/g, ""); // get the number, remove the commas
-	// tagCount = tagCount.substring(0, tagCount.length - 2); //cut off the " W" bit that was used to make sure was Finding the actual fandom count (in case there's a fandom w/numbers in its name)
 	tagCount = parseInt(tagCount); //now turn it into an integer
 	console.log(`there are ${tagCount.toLocaleString()} works in the ${t} tag.`);
 	if (tagCount < 10) {
@@ -334,12 +331,17 @@ window.soql.autofilters[`idKeyVals`] = class {
 	}
 
 	static includes(params = { name: null, number: null }) {
+		console.log(`checking for an inclusion...`);
 		let idNumber = null, idName = null;
 		if (typeof (params) == "number") {
 			idNumber = params; // backwards compatibility
 		} else if (typeof (params) == "string") {
 			// this is if we're searching for it by name
-			idName = params;
+			if (parseInt(params) == NaN) {
+				idName = params;
+			} else {
+				idNumber = params;
+			}
 		} else if (typeof (params) == "object") {
 			// i guess this is like an exact match sort of thing
 			try {
@@ -354,19 +356,21 @@ window.soql.autofilters[`idKeyVals`] = class {
 			}
 		}
 		const byId = (!(idNumber == null) && !(idNumber == NaN)); // boolean for determining if we're checking against an id or not
-		
+
 		const opts = window.soql.autofilters.idKeyVals.global.concat(window.soql.autofilters.idKeyVals.fandom).filter( // look in both the global and the current fandom
 			(entry) => {
 				if (!entry) { return false; } // in case there's holes i guess
 				// console.log(`entry being filtered: `, entry);
 				return (byId ? (entry[1] == parseInt(idNumber)) : (entry[0] == idName));
 			}
-		); 
+		);
+		// console.log(`opts: `, opts);
+		if (opts.length > 0) { console.info(`found id #${idNumber} as "${opts[0][0]}".`) }
 		return (opts.length > 0) ? opts[0] : false;
 	}
 	static replace([filterName, idNumber]) {
 		const whichever = window.soql.autofilters.fandomName ? window.soql.autofilters.idKeyVals.fandom : window.soql.autofilters.idKeyVals.global;
-		const rem = whichever.filter((entry) => (entry[1] !== idNumber)); // produces an array with everything still intact Except for the id number in question
+		const rem = whichever.filter((entry) => (entry[1] !== parseInt(idNumber))); // produces an array with everything still intact Except for the id number in question
 		rem.push([filterName, idNumber]);
 		autosave(`ids-${window.soql.autofilters.fandomName ? cssFanName : "global"}`, JSON.stringify(rem)); // and then also save it
 	}
@@ -377,6 +381,7 @@ window.soql.autofilters[`idKeyVals`] = class {
 
 		if (incl) {
 			if ((incl[0] !== n)) {
+				console.debug(`updating tag name to "${n}"`)
 				window.soql.autofilters.idKeyVals.replace(add); // replace it with its proper name if it doesn't match AND if we've specified it should be renamed
 			}
 		} else {
@@ -506,7 +511,7 @@ window.soql.autofilters[`getID`] = function (el = document) {
 		console.log("subscribable id method");
 		i = el.querySelector("#subscription_subscribable_id").value;
 	};
-	// console.log(`we have here a ${typeof(i)} for our id#`);
+	
 	if (typeof (i) !== "number") {
 		try {
 			i = parseInt(i); // try turning it into a number
@@ -526,7 +531,10 @@ const advSearch = document.querySelector("#work_search_query");
 
 //if there's one there will obvs be the other, but just so that they don't feel left out, using "or"
 if (searchdt !== null || searchdd !== null) {
-	window.soql.autofilters.idKeyVals.push(tagName, id, fandomName); //first, just save the tag id in local storage. save me the time
+	if (!search_submit) {
+		window.soql.autofilters.idKeyVals.push(tagName, id, fandomName); // first, just save the tag id in local storage. save me the time
+	}
+
 	advSearch.hidden = true;
 	const fakeSearch = document.createElement("input");
 	fakeSearch.id = "fakeSearch";
@@ -781,6 +789,7 @@ function tagUI() {
 			tagButtons(a);
 		}
 		id_exp.append(impButt, expButt, optimizeButt, impDiv);
+		// fil.append(id_exp, select);
 		fil.append(label, id_exp, nowEditP);
 		filterOpt.append(h4, p, fil, buttonAct, appp);
 		navList.parentElement.insertAdjacentElement("afterend", filterOpt);
@@ -842,7 +851,6 @@ if (search_submit == "") {
 				const el = attr.el ? attr.el : "span";
 				const e = document.createElement(el);
 				e.innerHTML = str;
-				// if (klass) { e.className = klass; }
 				if (attr) {
 					for (const [k, v] of Object.entries(attr)) {
 						e.setAttribute(k, v);
@@ -865,10 +873,7 @@ if (search_submit == "") {
 					const valSplit = v.split(/\s+\|\|\s+/);
 					const spanner = pp(`${king}:`);
 					if (nums || valSplit) {
-						// p.innerHTML += `${key}:`;
-						// console.log(`${king} nums: `, nums); 
 						if (valSplit.length > 1) {
-							// var j = 0;
 							spanner.innerHTML += "(";
 							for (var j = 0; j < valSplit.length; j++) {
 								spanner.appendChild(pp(valSplit[j]));
@@ -883,7 +888,6 @@ if (search_submit == "") {
 						}
 						if (key.search(/filter_ids/) >= 0) {
 							// replace all the filters w/the id names n stuff
-							// v = v.replaceAll()
 						}
 					} else {
 						spanner.appendChild(pp(v));
@@ -927,6 +931,7 @@ const download = (path, filename) => {
 /* export saved filters as a json */
 function expy(obj) {
 	console.info("now executing expy on", obj);
+	// var arr = obj;
 	var jason = {};
 
 	for (const [key, value] of obj) {
@@ -936,10 +941,8 @@ function expy(obj) {
 	//downloading as json from https://attacomsian.com/blog/javascript-download-file
 	const blob = new Blob([jason], { type: 'application/json' }); //create blob object
 	const DL_jason = URL.createObjectURL(blob);
-	// var saveDate = dateFloor();
 	download(DL_jason, `autofilters_${dateFloor()}.json`); //download the file
 	URL.revokeObjectURL(DL_jason); //release object url
-	//return jason;
 };
 
 /* import saved filters from a string */
@@ -947,8 +950,31 @@ function impsy(div) { //for now just have it read from a specified div
 	div.id = "importDiv";
 	const instructions = document.createElement("p");
 	//remember to remove the hard-coding of the import csv checkbox and also remove the hacky version of its import process by Finishing It
-	instructions.innerHTML = `<small>Please paste your exported options into the textbox below. <strong>This will override your current settings.</strong></small> | <input type="checkbox" id="import_csv" checked> <label for="import_csv">import id names from csv</label>`;
+	instructions.innerHTML = `<small>Please upload your backup as a .json or .txt file, or paste your exported options into the textbox below. <strong>This will override your current settings.</strong></small> | <input type="checkbox" id="import_csv"> <label for="import_csv">import id names from csv</label>`;
 	const tb = document.createElement("textarea");
+	const fileUpload = document.createElement(`input`);
+	fileUpload.type = "file";
+	fileUpload.setAttribute(`accept`, `.json, .txt, .csv`);
+	// yeah i just copied the reader from https://developer.mozilla.org/en-US/docs/Web/API/FileReader/readAsText 
+	fileUpload.addEventListener(`change`, previewFile);
+	function previewFile() {
+		const file = fileUpload.files[0];
+		const reader = new FileReader();
+
+		reader.addEventListener(
+			"load",
+			() => {
+				// this will then display a text file
+				tb.value = reader.result;
+			},
+			false,
+		);
+
+		if (file) {
+			reader.readAsText(file);
+		}
+	}
+
 	const parseButt = document.createElement("button");
 	parseButt.innerHTML = "Save Imported Settings";
 	parseButt.addEventListener("click", () => {
@@ -974,8 +1000,16 @@ function impsy(div) { //for now just have it read from a specified div
 			}
 			if (parsable) {
 				const obj = Object.entries(JSON.parse(impSet));
+				console.log(obj);
 				for (const [key, value] of obj) {
-					localStorage.setItem(key, value);
+					try {
+						localStorage.setItem(key, JSON.stringify(JSON.parse(value)));
+					} catch (e) {
+						console.error(e);
+						console.log(`key: ${key}\n`, value);
+						localStorage.setItem(key, value); // for the non-json versions like the filters
+					}
+
 				}
 				alert("filters successfully imported.");
 				window.location.reload();
@@ -983,7 +1017,7 @@ function impsy(div) { //for now just have it read from a specified div
 		}
 
 	})
-	div.append(instructions, tb, parseButt);
+	div.append(instructions, fileUpload, tb, parseButt);
 }
 
 function optimizeFilters() {
@@ -991,10 +1025,12 @@ function optimizeFilters() {
 	console.log(`rel.finable: `, rel.finable);
 	for (const [key, value] of rel.filters) {
 		var finalStr = value;
+		// console.log(`full ${key}:\n`, value);
 		const sp = value.trim().split(/\s+/);
 
 		// don't bother if there's fewer than two different things getting filtered
 		if (sp.length > 1) {
+			// console.log(`sp: `, sp);
 			finalStr = ""; // reset this 
 			const cleaned = objectify(parseFilter(sp));
 			console.log(cleaned);
@@ -1015,6 +1051,7 @@ function optimizeFilters() {
 }
 
 function parseFilter(arr) { // takes and returns an array
+	// console.log(`parseFilter arr: `, arr);
 	const whee = new Array(); // new one each loop,, ehe
 	var paren = 0, str = ""; // track how many layers deep into parentheses we are & total string
 	for (var i = 0; i < arr.length; i++) {
@@ -1071,6 +1108,7 @@ function objectify(arr) { // turns a filter in the thing into an object
 	}
 	return tmp;
 }
+
 
 /* CSS STYLING AT THE END BC IT'S A PICKY BITCH */
 var css = `
