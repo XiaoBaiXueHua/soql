@@ -8,7 +8,7 @@
 // @match	http*://archiveofourown.org/works?commit=*&tag_id=*
 // @downloadURL	https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/filterscript.js
 // @updateURL	https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/filterscript.js
-// @version 2.3
+// @version 2.3.1
 // @history 2.3 - optimized how the filter optimizer works + fixed the monthly storage cleanup thing + also just began preparing to optimize shit in general
 // @history 2.2.2 - script can now self-correct when it stores a filter id's name wrong (like in a botched import)
 // @history 2.2.1 - fixed a bug abt the tag ui not showing up on global tag types
@@ -540,9 +540,7 @@ const advSearch = document.querySelector("#work_search_query");
 
 //if there's one there will obvs be the other, but just so that they don't feel left out, using "or"
 if (searchdt !== null || searchdd !== null) {
-	if (!search_submit) {
-		window.soql.autofilters.idKeyVals.push(tagName, id, fandomName); // first, just save the tag id in local storage. save me the time. but only if we're in a raw tag
-	}
+	iwindow.soql.autofilters.idKeyVals.push(tagName, id, fandomName); // first, just save the tag id in local storage. save me the time
 	advSearch.hidden = true;
 	const fakeSearch = document.createElement("input");
 	fakeSearch.id = "fakeSearch";
