@@ -83,7 +83,7 @@ window.soql.autofilters[`relevant`] = class { // let's see if we can attach a cl
 			console.log(`localStorage after pushing: `, localStorage[key]);
 			// console.log(window.soql.autofilters.idKeyVals.global)
 		} catch (e) {
-			console.error(`you're only supposed to use the static rel.push to get around the way the getters work on the local storage :/`)
+			console.error(`you're only supposed to use the static rel.push to get around the way the getters work on the local storage :/`, e);
 		}
 	}
 }
