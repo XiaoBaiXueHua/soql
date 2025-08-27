@@ -335,3 +335,61 @@ async function getPage(url) {
 	}
 	return div;
 }
+
+/* CSS */
+// console.log(window.getComputedStyle(document.querySelector(`#modal`)));
+const modalStyle = window.getComputedStyle(document.querySelector(`#modal`));
+var css = `[id^="ban"] {
+	background-color: ${modalStyle.backgroundColor};
+	color: ${modalStyle.color};
+	border-color: ${modalStyle.borderColor};
+	outline: ${modalStyle.outline};
+	box-shadow: ${modalStyle.boxShadow};
+}
+
+[id^=ban] details > div {
+  display: grid;
+  grid-template-columns: repeat(2, 2fr);
+  gap: 0.25em;
+  max-height: 33vh;
+  overflow-y: auto;
+}
+[id^=ban] .fandom {
+  font-family: serif;
+  -webkit-text-decoration: dotted underline;
+          text-decoration: dotted underline;
+}
+[id^=ban] .relationships {
+  background-color: rgba(0, 0, 0, 0.25);
+}
+[id^=ban] .characters {
+  background-color: rgba(0, 0, 0, 0.12);
+}
+[id^=ban] h5 {
+  margin-top: 0;
+  font-size: 1.2em;
+}
+
+.close-scroll {
+  position: sticky;
+  top: 0;
+  min-height: 1.5lh;
+  margin-bottom: -1.5lh;
+}
+
+.close-ban {
+  position: absolute;
+  top: 0lh;
+  right: 0.5em;
+}
+
+@media only screen and (max-width: 42em) {
+  [id^=ban] details > div {
+    grid-template-columns: 1fr;
+    max-height: 60vh;
+  }
+}/*# sourceMappingURL=permafilter-works.css.map */`;
+
+const style = document.createElement("style");
+style.innerText = css;
+document.querySelector("head").appendChild(style);

@@ -15,11 +15,11 @@
 	}
 
 	.relationships {
-		background-color: rgba(0, 0, 0, 0.1);
+		background-color: rgba(0, 0, 0, 0.25);
 	}
 
 	.characters {
-		background-color: rgba(0, 0, 0, 0.05);
+		background-color: rgba(0, 0, 0, 0.12);
 	}
 
 	h5 {
@@ -42,10 +42,11 @@
 }
 
 @media only screen and (max-width: 42em) {
+
 	// mobile mode
 	[id^='ban'] {
 		details {
-			> div {
+			>div {
 				grid-template-columns: 1fr;
 				max-height: 60vh;
 			}
