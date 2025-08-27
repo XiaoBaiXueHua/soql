@@ -15,10 +15,10 @@
 // ==/UserScript==
 
 if (!window.soql) {
-	console.error(`the permafilter works script requires you to install my autofilters script :/`);
+	console.error(`the permafilter works script requires you to install my autofilters script :/\nor, if you already have it installed, it needs to be UNDERNEATH the sticky filters script in your userscript manager.`);
 } else {
 	if (!window.soql.autofilters) {
-		console.error(`the permafilter works script requires you to install my autofilters script :/ aborting now`);
+		console.error(`the permafilter works script requires you to install my autofilters script :/\nor, if you already have it installed, it needs to be UNDERNEATH the sticky filters script in your userscript manager. \nanyway, aborting now`);
 		return;
 	}
 	const fetchSpacing = 2500; // ms btwn fetches
@@ -30,7 +30,6 @@ if (!window.soql) {
 	const workList = document.querySelectorAll("li[id^='work']");
 	//
 	for (const work of workList) {
-		//console.log(work);
 		const tags = work.querySelectorAll(`ul.tags li`);
 		const ts = work.querySelectorAll(`a.tag`);
 		const work_id = work.id.replace("work_", ""); //get its id num from. well. its id.
@@ -52,7 +51,7 @@ if (!window.soql) {
 			console.info("oh hey an anon work");
 			anonymous = true;
 		}
-		// console.log(`work_id: ${work_id}, anonymous? ${anonymous}, authors: `, authors, user_ids);
+
 		const banButt = document.createElement(`button`);
 		banButt.className = "banish";
 		banButt.innerHTML = "<small>Filter&hellip;</small>";
@@ -127,7 +126,6 @@ if (!window.soql) {
 		tagsDiv.appendChild(tagD);
 		banForm.appendChild(tagsDiv);
 
-		// console.log(autofilters.fandoms());
 		const select = document.createElement(`select`);
 		const globOpt = document.createElement(`option`);
 		globOpt.value = "global";
@@ -162,7 +160,6 @@ if (!window.soql) {
 		banDialogue.appendChild(infoDiv);
 		banForm.onsubmit = () => {
 			console.log(`hi. submission for work ${work_id} (${title}) :3`);
-			// console.log(select);
 			var fetches = 0, successes = 0;
 			const val = document.querySelector(`#ban-work-${work_id} select`).value; // gonna have to reselect it every time i guess
 			const banishment = `filter-${window.soql.toCss(val)}`
@@ -229,13 +226,11 @@ if (!window.soql) {
 
 			const frees = work.querySelectorAll(`dialog details input:checked`);
 			if (frees.length > 0) {
-				// const rx = new RegExp(`work-${work_id}-tag-`);
 				for (const t of frees) {
 					// um. hmm. gonna have to um. extract the index of the tag in the a.tags first
 					const ind = parseInt(t.id.replace(/work-\d+-tag-/, ""));
 					// and then we do an async fetch timeout
 					const href = ts[ind].href; // extract the href
-					// console.log(`want to ban: ${t.innerText.trim()}\t | currently page fetching to ban: ${ts[ind].innerText}`);
 					// first check to make sure we don't already have the tag name saved somewhere
 					const savedId = autofilters.idKeyVals.includes(ts[ind].innerText.trim())
 					if (savedId) {
@@ -298,7 +293,6 @@ if (!window.soql) {
 				}
 				infoDiv.insertAdjacentHTML(`afterbegin`, `<p>${successStr}</p>`);
 
-				// localStorage.setItem(banishment, `${val}${addStr}`);
 			}, (fetches + 5) * fetchSpacing);
 
 			return false;
@@ -337,7 +331,6 @@ async function getPage(url) {
 }
 
 /* CSS */
-// console.log(window.getComputedStyle(document.querySelector(`#modal`)));
 const modalStyle = window.getComputedStyle(document.querySelector(`#modal`));
 var css = `[id^="ban"] {
 	background-color: ${modalStyle.backgroundColor};
