@@ -21,7 +21,7 @@ if (!window.soql) {
 		console.error(`the permafilter works script requires you to install my autofilters script :/ aborting now`);
 		return;
 	}
-	
+
 	const autofilters = window.soql.autofilters; // bind this
 	const fandoms = autofilters.relevant.fandoms;
 	// actually maybe we should make this a small actions button that pulls up a floating <dialog> module ui. and also make this its own script
@@ -31,7 +31,7 @@ if (!window.soql) {
 	for (const work of workList) {
 		//console.log(work);
 		const tags = work.querySelectorAll(`ul.tags li`);
-		const ts = work.querySelectorAll(`a.tag`); 
+		const ts = work.querySelectorAll(`a.tag`);
 		const work_id = work.id.replace("work_", ""); //get its id num from. well. its id.
 		const title = work.querySelector(".heading a").innerText.trim(); // they don't even put a class on the title link...
 		const klasses = work.classList; // need this to be an array for works w/multiple authors
@@ -165,7 +165,7 @@ if (!window.soql) {
 				// const rx = new RegExp(`work-${work_id}-tag-`);
 				for (const t of frees) {
 					// um. hmm. gonna have to um. extract the index of the tag in the a.tags first
-					const ind = parseInt(t.id.replace(/work-\d+-tag-/, "")); 
+					const ind = parseInt(t.id.replace(/work-\d+-tag-/, ""));
 					// and then we do an async fetch timeout
 					const href = ts[ind].href; // extract the href
 					// console.log(`want to ban: ${t.innerText.trim()}\t | currently page fetching to ban: ${ts[ind].innerText}`);
@@ -188,8 +188,10 @@ if (!window.soql) {
 								}
 								return fn; // otherwise leave it
 							}();
-							console.log(`"${tn}" is part of ${fn} and has an id num. of ${id.toLocaleString()}`);
-							if (id) {
+
+
+							if (trueName !== null) { // well. obvs this has to exist first. otherwise it's not a wrangleable tag.
+								console.log(`"${tn}" is part of ${fn} and has an id num. of ${id.toLocaleString()}`);
 								autofilters.idKeyVals.push(trueName, id, fn); // add the tag storage if it's a wrangled tag. 
 							} else {
 								console.warn(`hi!! sorry, but "${tn}" is not a filterable tag at this moment.`)
