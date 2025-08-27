@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name	ao3 sticky filters DEVELOPER
+// @name	ao3 sticky filters
 // @namespace	https://sincerelyandyourstruly.neocities.org
 // @author	白雪花
 // @description	rewriting thE saved filters script from https://greasyfork.org/en/scripts/3578-ao3-saved-filters, as well as adding in features made possible by flamebyrd's tag id bookmarklet (https://random.fangirling.net/scripts/ao3_tag_id)
@@ -8,48 +8,244 @@
 // @match	http*://archiveofourown.org/works?commit=*&tag_id=*
 // @downloadURL	https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/filterscript.js
 // @updateURL	https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/filterscript.js
-// @version	2.1
+// @version 2.3
+// @history 2.3 - optimized how the filter optimizer works + fixed the monthly storage cleanup thing + also just began preparing to optimize shit in general
+// @history 2.2.2 - script can now self-correct when it stores a filter id's name wrong (like in a botched import)
+// @history 2.2.1 - fixed a bug abt the tag ui not showing up on global tag types
+// @history 2.2 - added ability to optimize filters to ui. idiot-proofed the ui a bit more (it's me i'm idiots)
 // @history 2.1 - added ability to import/export saved filters
 // @grant	none
 // @run-at	document-end
 // ==/UserScript==
 
+if (!window.soql) {
+	window.soql = {
+		autofilters: {
+			enabled: true
+		}
+	}
+} else {
+	window.soql[`autofilters`] = {
+		enabled: true
+	};
+}
+window.soql[`toCss`] = function (str) { return str.replaceAll(/\W+/g, "-"); }
+// window.soql.autofilters.
+
+// fuck it, making this a class so we can always get this shit fresh
+window.soql.autofilters[`relevant`] = class { // let's see if we can attach a class to it
+	static get fandoms() {
+		return JSON.parse(localStorage[listKey]); // we'll see if we can replace this w/the window obj version later
+	}
+
+	static get all() {
+		// const lesigh = new Object(localStorage);
+		return Object.entries(localStorage).filter((entry) => { return (entry[0].search(/^(filter|enable|ids)/) >= 0) }); // only returns the local storage entries relevant to this script, like the filters, enables, and ids
+	}
+	static get keys() {
+		return Object.keys(localStorage).filter((entry) => entry.search(/^(filter|enable|ids)/) >= 0); // just the keys
+	}
+	static get values() {
+		return Object.values(localStorage).filter((entry) => entry.search(/^(filter|enable|ids)/) >= 0); // just the values
+	}
+
+	static get finable() {
+		return rel.all.filter((entry) => (entry[0].search(/^ids/) < 0)); // returned as entries
+	}
+	static get finableKeys() {
+		return rel.keys.filter((entry) => entry.search(/^ids/) < 0);
+	}
+	static get finableValues() {
+		return rel.values.filter((entry) => entry.search(/^ids/) < 0);
+	}
+
+	static get filters() {
+		return rel.finable.filter((entry) => entry[0].search(/filter/) >= 0);
+	}
+
+	static get ids() {
+		return rel.all.filter((entry) => (entry[0].search(/^ids/) >= 0)); // returned as entries
+	}
+	static get idKeys() {
+		return rel.keys.filter((entry) => entry.search(/^ids/) >= 0);
+	}
+	static get idValues() {
+		return rel.values.filter((entry) => entry.search(/^ids/) >= 0);
+	}
+
+	static push(key, val, addition) {
+		console.log(`key: ${key}, val: `, val, ` addition: `, addition);
+		try {
+			const tmp = val;
+			(tmp.length < 1) ? tmp[0] = addition : tmp.push(addition);
+
+			localStorage.setItem(key, JSON.stringify(tmp)); // save the new ver to local storage
+			console.log(`localStorage after pushing: `, localStorage[key]);
+			// console.log(window.soql.autofilters.idKeyVals.global)
+		} catch (e) {
+			console.error(`you're only supposed to use the static rel.push to get around the way the getters work on the local storage :/`, e);
+		}
+	}
+}
+
+const rel = window.soql.autofilters.relevant; // this is just shorthanding for the purposes of in this script
+
 /* various important global vars */
+window.soql.remAmbig = /(?<=\s)\((\w+(\s|&)*?|\d+\s?)+\)/g; //removes disambiguators
+
 const header = document.querySelector("h2:has(a.tag)");
 //console.log(header);
 const currentTag = header.querySelector("a.tag"); //the current tag being searched
+const tagName = currentTag.innerText.replace(window.soql.remAmbig, "").trim();
+
 const errorFlash = document.querySelector("div.flash.error");
 const noResults = function () {
 	return header.innerHTML.match(/\n0\s/) ? true : false;
 }(); //will allow for the fandom box to be made
-//console.log("is error page?");
-//console.log(errorFlash);
 //here's the local storage array
 
 /* keeping the fandoms w/saved filters in an array: */
 var listKey = "saved fandoms";
-var savedFandoms = localStorage[listKey]; //need to keep an array of available fandoms to be able to make a dropdown of options when
-if (!savedFandoms) {
-	//localStorage.setItem(listKey, []);
-	savedFandoms = [];
-} else {
-	try {
-		savedFandoms = JSON.parse(savedFandoms);
-	} catch (e) {
-		savedFandoms = savedFandoms.split(/,/g);
-	}
-}
-//localStorage saves the list as a string, so to turn it into an array, must use split
-//console.log(savedFandoms);
+if (!localStorage[listKey]) { localStorage.setItem(listKey, JSON.stringify(new Array())); } // set it to a new array if it doesn't exist
+window.soql.autofilters.fandoms = function () { return JSON.parse(localStorage[listKey]); } // save this to the window thing
 
-function filterArray() { return Object.entries(localStorage) };
+// monthly cleanup stuff
+let today = dateFloor(), lastCleanup = dateFloor(); // default is today
+try {
+	// lastCleanup = JSON.parse(localStorage[`lastCleanup`]);
+	lastCleanup = localStorage[`lastCleanup`];
+} catch (e) {
+	// localStorage.setItem(`lastCleanup`, JSON.stringify(lastCleanup));
+	localStorage.setItem(`lastCleanup`, lastCleanup);
+}
+// const todayDate = new Date(today); // there should only ever 
+console.log(`today's date: ${today}\nlast cleanup date: ${lastCleanup}`);
+
+function dateFloor(date = new Date()) { // function for getting the floor value of the date as a string
+	return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+}
+// function for cleaning up storage: done automatically each month on the 1st and probably whenever you hit "optimize filters"
+function storageCleanup() {
+	// console.log(`saved fandoms: `, JSON.parse(localStorage[listKey]));
+	console.log(`cleaning...`);
+	var localFilters = 0, localEnables = 0; // local storage entry for the saved filters n whether that fandom's been enabled/disabled
+
+	const filteredFandoms = new Array();
+	const orphans = rel.all; // bind this
+	console.log(`rel.all: `, orphans);
+
+	function allowable(str) {
+		var i = 0, allowed = false;
+		const r = rel.fandoms;
+		// then we loop through all the currently included fandoms to see if this enable is Safe
+		while (!allowed && i < r.length) {
+			// ...also protect the enable global lol
+			// if (key == `enable-${toCss(rel.fandoms[i])}` || key == `enable-global`) {
+			let reg = new RegExp(`(${r[i]}|${toCss(r[i])}|global)`); // regex which checks if the thing is allowed in either its standard or css form
+			if (str.search(reg) > 0) {
+				allowed = true;
+				break;
+			}
+			i++;
+		}
+		return allowed;
+	}
+
+	for (const [key, value] of rel.all) {
+		const srch = key.match(/^(filter|enable)/);
+		// if (key.search(/^(filter|enable)-/) >= 0) {
+		const globalvance = !(key.search(/-(global|advanced-search)$/) < 0);
+		// console.log(`key: ${key}; value:\n${value}`)
+
+		if (srch && !globalvance) { // also make sure you're not doing this to the global/advanced searches. just leave those alone
+			// console.log(`key: ${key}; value:\n${value}`)
+			if (srch[0] == "filter" && key !== `filter-advanced-search`) { // simply Do Not Do This on the advanced search
+				const f = key.replace(/^filter-/, "");
+				if (value !== "") { // if that filter Has Values, then we keep its fandom name. and also we have to keep the global
+					localFilters++;
+					filteredFandoms.push(f);
+				} else { // otherwise remove those entries
+					console.log(`uhhh empty value for a filter (${key})`)
+					// localEnables++;
+					localStorage.removeItem(key);
+					localStorage.removeItem(`enable-${toCss(f)}`);
+				}
+			} else {
+				localEnables++;
+			}
+
+		}
+	}
+
+	localStorage.setItem(listKey, JSON.stringify(filteredFandoms)); // lalala save this
+
+	if (localFilters !== localEnables) {
+		// then we have to run it through again to clean up orphaned enables lol
+		// the only reason there Would be orphans is bc the script
+		console.log(`ah. ${localFilters} filters & ${localEnables} enables. orphaned enables must die now.`)
+		for (const key of rel.finableKeys) {
+			console.log(`key: ${key}`);
+			// console.info(`key: ${key}`, rel.finable);
+			if (key.search(/^enable-/) >= 0) {
+				var safeEnable = allowable(key);
+
+				if (!safeEnable) {
+					// if the enable item is not found in the list of saved fandoms, it is purged
+					localStorage.removeItem(key);
+				}
+			}
+		}
+	}
+
+	// now clean up the ids
+	for (const [key, value] of rel.ids) {
+		// console.debug(`key: ${key}\nvalue: ${value}`);
+		if (value == "") { // i genuinely have no idea how a blank id array could have happened, but since it's smth i'm encountering during debugging, i guess we're working with it now
+			localStorage.removeItem(key);
+		} else {
+			const e = JSON.parse(value);
+			// console.debug(`${key} allowed? `, allowable(key));
+			if (!allowable(key)) {
+				// console.log(e, e.length);
+				// if it's not allowed (not in the saved fandoms --> had no saved filters last time cleaning was run)
+				if (e.length == 1) {
+					console.debug(`sole e entry: `, e[0]);
+					if (e[0].length < 1) {
+						// this line will have to exist forever now to atone for my sins of "bugged out the saving id keys" for so long
+						console.debug(`for some reason this entry is empty.`);
+						localStorage.removeItem(key);
+					} else if (key.search(toCss(e[0][0])) >= 0) {
+						console.debug(`the Sole entry is just the fandom's id number`);
+						localStorage.removeItem(key); // tbh just get rid of it at that point
+					}
+				}
+			} else {
+				autosave(key, JSON.stringify(e.sort((a, b) => {
+					return parseInt(a[1]) - parseInt(b[1]);
+				}))); // sorts the existing ones by ascending id #
+			}
+		}
+
+
+	}
+	console.log(`localStorage before cleanup: `, orphans, `\nlocalStorage after cleanup: `, rel.all);
+
+	localStorage.setItem(`lastCleanup`, today); // sets it like this so that it's nice and Clean
+	// console.log(`last cleaned: `, localStorage[`lastCleanup`]);
+}
+
+// storageCleanup();
+
+if (((new Date(today)).getDate() == 1) && (today !== lastCleanup)) { // basically try to only do it once on the day of
+	// if ((new Date(today)).getDate() == 1) { // basically try to only do it once on the day of
+	console.log(`ahhh yes... monthly cleanup time`);
+	storageCleanup();
+}
 
 /* removes local storage on blank tags  */
 const search_submit = window.location.search;
-//console.log(`search_submit: ${search_submit}\n!search_submit: ${!search_submit}`);
 const currentPath = window.location.pathname.toString();
 const shouldClear = currentPath.match(/tags/);
-//console.log(`supposed to clear the advanced search: ${shouldClear}`);
 if (shouldClear && !search_submit) {
 	localStorage.setItem("filter-advanced-search", "");
 }
@@ -58,89 +254,172 @@ if (shouldClear && !search_submit) {
 const works = document.querySelector("#main.works-index");
 const form = document.querySelector("form#work-filters");
 
-var remAmbig = /\s\((\w+(\s|&)*|\d+\s?)+\)/g; //removes disambiguators
-const fandomName = function () {
+// function for sniping the fandom name name of a tag from a page
+window.soql.autofilters[`getFandom`] = function (el = document, t = `[tagName]`) {
 	var fandom_cutoff = 70;
-	var raw = document.querySelector("#include_fandom_tags label"); //gets the fandom count from the dropdown on the side
-	//console.log("item w/ fandom numbers:");
-	//console.log(raw);
-	if (!raw) { return null; };
-	raw = raw.innerText;
-	var fandom = raw.replace(remAmbig, "").trim();
+	var raws = el.querySelectorAll("#include_fandom_tags label"); //gets the fandom count from the dropdown on the side
+	if (!raws[0]) { return null; };
+	var raw = raws[0].innerText;
+	var fandom = raw.replace(window.soql.remAmbig, "").trim();
 	//later, maybe have it look at the other top fandoms n see if they're related, either by like an author name, or if there's an "all media types" attached to redeclare the cutoff
 
 	var fandomCount = raw.match(/\(\d+\)/).toString();
 	fandomCount = fandomCount.substring(1, fandomCount.length - 1); //chops off parentheses
 	fandomCount = parseInt(fandomCount);
 
-	var tagCount = header.innerText;
-	tagCount = tagCount.match(/\d+,?\d*\sW/).toString().replace(",", ""); //get the number, remove the comma
-	tagCount = tagCount.substring(0, tagCount.length - 2); //cut off the " W" bit that was used to make sure was Finding the actual fandom count (in case there's a fandom w/numbers in its name)
+	var tagCount = el.querySelector(`h2:has(a.tag)`).innerText;
+	tagCount = tagCount.match(/(\d+,?\d*)+(?=\sW)/)[0].replaceAll(/,/g, ""); // get the number, remove the commas
+	// tagCount = tagCount.substring(0, tagCount.length - 2); //cut off the " W" bit that was used to make sure was Finding the actual fandom count (in case there's a fandom w/numbers in its name)
 	tagCount = parseInt(tagCount); //now turn it into an integer
+	console.log(`there are ${tagCount.toLocaleString()} works in the ${t} tag.`);
+	if (tagCount < 10) {
+		// if there are fewer than 10 works in a tag, then we should Probably have a bit more careful thought going on
+		console.log(`there are ${raws.length} fandoms listed for this minor tag o.o`);
+		const ms = raw.match(window.soql.remAmbig);
+		var lowPercent = (parseInt(ms[ms.length - 1].replaceAll(/(\(|,|\))/g, "")) / tagCount) * 100; // uhhh takes the number in parentheses off the fandoms drop-down list, parses it as an integer, n divides it by number of fics in the tag
+		if (lowPercent >= fandom_cutoff) {
+			console.log(`${lowPercent}% of fics in ${t} tag belong in the ${fandom} tag.`)
+		} else {
+			console.log(`not enough fics to make a determination.`);
+			return;
+		}
 
-	if (!fandom || !fandomCount || !tagCount) { return; }
+	}
+	if (!fandom || !fandomCount || !tagCount) { return; } // you know maybe in the rewrite, maybe instead of having it return nothing/null for these things, have it return "global" instead. might do something good.
 	var meetsCutoff = (fandomCount / tagCount * 100 >= fandom_cutoff);
-	if (meetsCutoff && savedFandoms.indexOf(fandom) < 0) { //if it qualifies as being part of a fandom & is not yet in the array, add it and then save it to local storage
-		savedFandoms.push(fandom);
-		//localStorage[listKey] = JSON.stringify(savedFandoms);
-		autosave(listKey, JSON.stringify(savedFandoms));
+	// console.log(`% of fics in ${t} belonging to ${fandom}: ${fandomCount / tagCount * 100}`)
+	if (meetsCutoff && rel.fandoms.indexOf(fandom) < 0) { //if it qualifies as being part of a fandom & is not yet in the array, add it and then save it to local storage
+		const tmp = rel.fandoms; // have to do it this way, since the static thing automatically always fetches it from the localStorage ehe
+		tmp.push(fandom);
+		autosave(listKey, JSON.stringify(tmp));
 	}
 	return meetsCutoff ? fandom : null;
-}();
+}
+
+const fandomName = window.soql.autofilters.getFandom(document, tagName);
 console.info(`fandomName: ${fandomName}`);
-console.log(savedFandoms);
+window.soql.autofilters[`fandomName`] = fandomName; // bind this
+window.soql.autofilters[`cssName`] = window.soql.autofilters.fandomName ? window.soql.toCss(fandomName) : null;
+console.log(rel.fandoms);
 /* function to make css-friendly versions of a name */
 function toCss(str) {
 	return str.replaceAll(/\W+/g, "-");
 }
 const cssFanName = fandomName ? toCss(fandomName) : null;
-const tagName = function () {
-	//var tag = document.querySelector("h2.heading a.tag").innerText;
-	var tag = currentTag.innerText.replace(remAmbig, "").trim();
-	//console.log("tagName function querySelector of querySelector testing: ")
-	//console.log(tag);
-	//tag = tag.replace(remAmbig, "").trim();
-	return tag;
-}();
-//if (!localStorage[`ids-global`]) {localStorage.setItem("ids-global", "")}; //if there's nothing in the global ids key storage, make it blank
-//if there's nothing
+
+// attach the idKeyVals class
+window.soql.autofilters[`idKeyVals`] = class {
+	static get global() {
+		// returns a json
+		let jason = [ // default freebies
+			["Not Rated", 9], ["General Audiences", 10], ["Teen And Up", 11], ["Mature", 12], ["Explicit", 13], // ratings
+			["Author Chose Not to Use Archive Warnings", 14], ["No Archive Warnings Apply", 16], ["Graphic Depictions of Violence", 17], ["Major Character Death", 18], ["Rape/Non-Con", 19], ["Underage Sex", 20], // warnings
+			["General", 21], ["F/M", 22], ["M/M", 23], ["Other", 24], ["F/F", 116], ["Multi", 2246], // categories
+			["Chatting & Messaging", 106225] // general nuisances
+		];
+		try {
+			jason = JSON.parse(localStorage.getItem(`ids-global`));
+		} catch (e) {
+			console.warn(`error in getting global ids: `, e);
+			localStorage.setItem(`ids-global`, JSON.stringify(jason));
+		}
+		return jason;
+	}
+
+	static specific(fanName) {
+		let jason = [[]];
+		if (fanName) { // basically if it's not null
+			try {
+				jason = JSON.parse(localStorage.getItem(`ids-${window.soql.toCss(fanName)}`));
+			} catch (e) {
+				localStorage.setItem(`ids-${window.soql.toCss(fanName)}`, JSON.stringify(jason)); // make a new thing for legitimate new fandoms not in our storage
+			}
+		} else if (fanName == null) {
+			// just proceed to assume it's global at that point
+			return window.soql.autofilters.idKeyVals.global;
+		}
+		// return cssFanName ? JSON.parse(localStorage[`ids-${cssFanName}`]) : [[]];
+		return jason; // i really don't know why i didn't just do this
+	}
+
+	static get fandom() { // defaults to the current fandom tag you're in
+		return window.soql.autofilters.idKeyVals.specific(window.soql.autofilters.fandomName);
+	}
+
+	static includes(params = { name: null, number: null }) {
+		let idNumber = null, idName = null;
+		if (typeof (params) == "number") {
+			idNumber = params; // backwards compatibility
+		} else if (typeof (params) == "string") {
+			// this is if we're searching for it by name
+			idName = params;
+		} else if (typeof (params) == "object") {
+			// i guess this is like an exact match sort of thing
+			try {
+				idNumber = params.number;
+			} catch (e) {
+				// dne on the id number
+				try { // second-class search filter parameter name
+					idName = params.name;
+				} catch (e) {
+					// dne on the id name
+				}
+			}
+		}
+		const byId = (!(idNumber == null) && !(idNumber == NaN)); // boolean for determining if we're checking against an id or not
+		
+		const opts = window.soql.autofilters.idKeyVals.global.concat(window.soql.autofilters.idKeyVals.fandom).filter( // look in both the global and the current fandom
+			(entry) => {
+				if (!entry) { return false; } // in case there's holes i guess
+				// console.log(`entry being filtered: `, entry);
+				return (byId ? (entry[1] == parseInt(idNumber)) : (entry[0] == idName));
+			}
+		); 
+		return (opts.length > 0) ? opts[0] : false;
+	}
+	static replace([filterName, idNumber]) {
+		const whichever = window.soql.autofilters.fandomName ? window.soql.autofilters.idKeyVals.fandom : window.soql.autofilters.idKeyVals.global;
+		const rem = whichever.filter((entry) => (entry[1] !== idNumber)); // produces an array with everything still intact Except for the id number in question
+		rem.push([filterName, idNumber]);
+		autosave(`ids-${window.soql.autofilters.fandomName ? cssFanName : "global"}`, JSON.stringify(rem)); // and then also save it
+	}
+
+	static push(n, i, fn) { //by default, do this w/the current tag's name, id, and fandom. the import process will need to loop through this later, hence the params
+		var add = [n, i];
+		const incl = window.soql.autofilters.idKeyVals.includes(i);
+
+		if (incl) {
+			if ((incl[0] !== n)) {
+				window.soql.autofilters.idKeyVals.replace(add); // replace it with its proper name if it doesn't match AND if we've specified it should be renamed
+			}
+		} else {
+			console.log(`hmm. we don't have ${JSON.stringify(add)} in here.`);
+			const tmp = fn ? window.soql.autofilters.idKeyVals.specific(fn) : window.soql.autofilters.idKeyVals.global; // pick which json we're pushing to
+			console.log(`idKeyVals.push tmp:`, tmp);
+			rel.push(`ids-${fn ? window.soql.toCss(fn) : "global"}`, tmp, add);
+		}
+	}
+}
+
 function emptyStorage(key) { //function to give you that particular localStorage (n set it to nothing if dne)
 	if (!localStorage[key]) {
 		localStorage.setItem(key, "");
 	}
-	//console.log(localStorage[key]);
 	return localStorage[key];
 }
-function storJson(item) { //turns local storage item into a json
-	let a;
-	try {
-		a = JSON.parse(item);
-	} catch (e) {
-		//console.debug(e);
-		console.error(`obj that was supposed to become a json: `, item, e);
-		a = [];
-	}
-	return a;
-}
 
-var fanIdStorage; // = localStorage[`ids-${cssFanName}`];
-function isFandom() { //function for setting all the various vars that only show up if it's a fandom-specific tag. will have to clean up the thing later but for now i'll just leave it as is
-	if (!fandomName) {
-		return; //just exit if there's no fandom
-	}
-	fanIdStorage = emptyStorage(`ids-${cssFanName}`);
+function searchType(str) {
+	return (str == "global" || str == "advanced-search") ? str : "fandom"; // function for flattening fandom names down to just "fandom". will probably be more useful when doing a proper rewrite tbh
 }
-isFandom();
-var globIdStorage = emptyStorage(`ids-global`);
 
 /* local storage keys */
 function enable(key) {
-	if (key == "advanced-search") { return null };
+	if (key == "advanced-search") { return null; }
 	let enabled = true;
 	try {
 		enabled = JSON.parse(localStorage[`enable-${key}`]);
 	} catch (e) {
-		console.error(`[${key}] has no set filters yet, so`, e);
+		console.warn(`[${key}] has no set filters yet`);
 		//if it's not "null" (aka no fandom), then default is true
 		if (key) {
 			localStorage.setItem(`enable-${key}`, true);
@@ -149,7 +428,6 @@ function enable(key) {
 	return enabled;
 }
 function filterTypes(name) {
-	//console.log(name);
 	var is = name == "fandom" ? true : false;
 	if (is && !fandomName) { return null; } //exit from trying to make a fandom box in a global tag
 	var key = `filter-${is ? fandomName : name}`;
@@ -167,13 +445,14 @@ var tempp = filterTypes("advanced-search");
 function autosave(key, value) {
 	localStorage.setItem(key, value);
 };
+window.soql.autofilters[`autosave`] = autosave; // i wonder if we can do it this way
+
 function checkbox(name, bool, prefix) {
 	prefix = prefix ? prefix : "enable"; //if not specified, then the prefix will be "enable";
 	const cbox = document.createElement("input");
 	cbox.setAttribute("type", "checkbox");
 	cbox.id = `${prefix}-${name}`;
 	cbox.checked = bool;
-	//const l = makeStrEl(prefix, "label");
 	const l = document.createElement("label");
 	l.setAttribute("for", `${prefix}-${name}`);
 	l.innerHTML = prefix;
@@ -187,8 +466,6 @@ function checkbox(name, bool, prefix) {
 };
 //function to transform an array. not sure why i had the return at the end since i obviously never set any vars to it
 function box(obj) {
-	//console.log("box being made:");
-	//console.log(obj);
 	if (!obj) { return null; }; //exit if no fandom
 	var is = (obj[0] == "fandom"); //thing for checking if this box is a fandom type or not
 	var name = obj[0];
@@ -199,7 +476,6 @@ function box(obj) {
 		obj[2] = box.value;
 		await autosave(obj[1], obj[2]);
 	});
-	//const label = makeStrEl(htm, "label");
 	const label = document.createElement("label");
 	label.className = "filter-box-label";
 	var htm = name;
@@ -225,42 +501,38 @@ filtButt.id = "get_id_butt";
 filtButt.innerHTML = `<a id="id_butt">Tag ID</a>`;
 
 /* id fetcher function, by flamebyrd */
-const id = function () {
-	if (document.querySelector("#favorite_tag_tag_id")) {
+window.soql.autofilters[`getID`] = function (el = document) {
+	let i = null;
+	if (el.querySelector("#favorite_tag_tag_id")) {
 		console.log("favorite tag id method")
-		return document.querySelector("#favorite_tag_tag_id").value;
-	} else if (document.querySelector("a.rss")) {
+		i = el.querySelector("#favorite_tag_tag_id").value;
+	} else if (el.querySelector("a.rss")) {
 		console.log("rss feed method");
-		var href = document.querySelector("a.rss");
+		var href = el.querySelector("a.rss");
 		href = href.getAttribute("href");
 		href = href.match(/\d+/);
-		return href;
-	} else if (document.querySelector("#include_freeform_tags input:first-of-type")) {
+		i = href;
+	} else if (el.querySelector("#include_freeform_tags input:first-of-type")) {
 		console.log("first freeform tag method");
-		return document.querySelector("#include_freeform_tags input:first-of-type").value;
-	} else if (document.querySelector("#subscription_subscribable_id")) {
+		i = el.querySelector("#include_freeform_tags input:first-of-type").value;
+	} else if (el.querySelector("#subscription_subscribable_id")) {
 		console.log("subscribable id method");
-		return document.querySelector("#subscription_subscribable_id").value;
-	} else {
-		//if (!errorFlash) {alert("can't find tag id :C");};
-		return null;
+		i = el.querySelector("#subscription_subscribable_id").value;
 	};
-}();
+	// console.log(`we have here a ${typeof(i)} for our id#`);
+	if (typeof (i) !== "number") {
+		try {
+			i = parseInt(i); // try turning it into a number
+		} catch (e) {
+			console.warn(`wah smth weird happened to our id#`);
+		}
+	}
+	return i;
+}
+const id = window.soql.autofilters.getID();
 var filter_ids = `filter_ids:${id}`;
 
-function idKey(n = tagName, i = id, k = fandomName ? `ids-${cssFanName}` : "ids-global", s = fandomName ? fanIdStorage : globIdStorage) { //by default, do this w/the current tag's name, id, and fandom. the import process will need to loop through this later, hence the params
-	var add = [n, i];
-	let str = new RegExp(`\\["${n}","${i}"\\]`);
-	var idsObj = storJson(s);
-	// console.log(`idsObj: `, idsObj, `the thing to add: ${str} to ${JSON.stringify(idsObj)}`, `does it match the stored string? :`, s.match(str));
-	if (s.match(str) <= 0) { //js can't match objects w/in arrays to my knowledge, so this was the best i could do lol
-		idsObj.push(add); //add it to the object
-		s = JSON.stringify(idsObj);
-		autosave(k, JSON.stringify(idsObj)); //and then save it
-	}
-	//console.log(s);
-}
-
+// const idKey = window.soql.autofilters.idKeyVals.push(tagName, id);
 /* now to deal w/the currently-existing form */
 const searchdt = document.querySelector("dt.search:not(.autocomplete)");
 const searchdd = document.querySelector("dd.search:not(.autocomplete");
@@ -268,7 +540,7 @@ const advSearch = document.querySelector("#work_search_query");
 
 //if there's one there will obvs be the other, but just so that they don't feel left out, using "or"
 if (searchdt !== null || searchdd !== null) {
-	idKey(); //first, just save the tag id in local storage. save me the time
+	window.soql.autofilters.idKeyVals.push(tagName, id, fandomName); //first, just save the tag id in local storage. save me the time
 	advSearch.hidden = true;
 	const fakeSearch = document.createElement("input");
 	fakeSearch.id = "fakeSearch";
@@ -286,27 +558,23 @@ if (searchdt !== null || searchdd !== null) {
 	summary.innerHTML = "Saved Filters";
 	const saveDiv = document.createElement("div");
 	/* make the global box */
-	for (el of globEl) {
+	for (const el of globEl) {
 		saveDiv.appendChild(el);
 	};
-	//console.log(`box(fan) || noResults: ${(box(fan) || noResults)}`);
 	const fanEl = box(fan) ? fan[4] : null;
 	if (fanEl) {
-		for (el of fanEl) {
+		for (const el of fanEl) {
 			saveDiv.appendChild(el);
 		};
 	}
 	/* when a search returns nothing */
 	else if (noResults) {
-		//console.log("noResults is true");
 		var html = `Your search returned no results. Would you like to review your filters?`;
-		//p.innerHTML = html;
 		debuggy(html);
 	};
 	details.append(summary, saveDiv);
 	searchdt.insertAdjacentElement("beforebegin", details);
 } else if (errorFlash) {
-	//const p = document.createElement("p");
 	var html = "Double-check your filters for mistakes.";
 	debuggy(html);
 } else {
@@ -320,9 +588,7 @@ function debuggy(t = "", par = header) {
 	debugDiv.id = "error_debug";
 	const p = document.createElement("p");
 	p.innerHTML = t;
-	//console.log(currentTag);
 	var href = `${currentTag.href}/works`;
-	//console.log(href);
 	const reSearch = document.createElement("ul");
 	reSearch.className = "actions";
 	reSearch.id = "debugged-search";
@@ -334,7 +600,6 @@ function debuggy(t = "", par = header) {
 			showAllFilters(debugDiv);
 			showFilters.remove(); //remove self after showing all the filters
 		})
-		//showFilters.setAttribute("onclick", showAllFilters(debugDiv));
 		reSearch.appendChild(showFilters);
 	} else if (errorFlash) {
 		showAllFilters(debugDiv); //will automatically do the debug div on the error flash page
@@ -343,10 +608,6 @@ function debuggy(t = "", par = header) {
 	research.href = href;
 	research.innerHTML = "Search Again";
 	reSearch.appendChild(research);
-	//errorFlash.insertAdjacentElement("afterend", debugDiv);
-	//errorFlash.insertAdjacentElement("afterend", p);
-	//header.insertAdjacentHTML("afterend", "<hr>");
-	//header.insertAdjacentElement("afterend", reSearch);
 	par.insertAdjacentElement("afterend", debugDiv);
 	debugDiv.insertAdjacentElement("afterend", reSearch);
 	header.insertAdjacentElement("afterend", p);
@@ -354,7 +615,7 @@ function debuggy(t = "", par = header) {
 
 /* function for showing all the filters */
 function showAllFilters(parent) {
-	for (const [key, value] of filterArray()) {
+	for (const [key, value] of rel.finable) {
 		if (key.toString().startsWith("filter-") && value) {
 			const cssId = toCss(key);
 			const div = document.createElement("div");
@@ -384,13 +645,13 @@ function currentSel() {
 	return select.value;
 }
 function selectorType() {
-	//console.log(`current targetFilter: `, targetFilter, ` and current selection: ${currentSel()}`);
 	return (currentSel() == "global") ? "global" : "fandom";
 };
 
 /* display the filter_ids and actions */
 function tagUI() {
-	if (!document.querySelector("#filter_opt")) {
+	const frm = document.querySelector(`#filter_opt`)
+	if (!frm) {
 		const filterOpt = document.createElement("fieldset");
 		filterOpt.id = "filter_opt";
 
@@ -401,7 +662,6 @@ function tagUI() {
 
 		const p = document.createElement("p");
 		p.innerHTML = `<strong>Current tag</strong>: ${tagName}`;
-		// filterOpt.append(h4, p);
 		let txtarea = document.querySelector(`textarea#${selectorType()}Filters`);
 		try {
 			if (txtarea.value.match(id)) {
@@ -410,6 +670,7 @@ function tagUI() {
 		} catch (e) {
 			console.info(`not in a fandom tag, probably`, e);
 		}
+
 		/* display ID # & choose where to append the tag */
 		const fil = document.createElement("div");
 		const id_exp = document.createElement("ul"); //make the div w/the id output and the buttons for importing/exporting opts
@@ -433,7 +694,7 @@ function tagUI() {
 		const expButt = document.createElement("li");
 		expButt.innerHTML = `<a>Export Filters</a>`;
 		expButt.addEventListener("click", () => {
-			expy(filterArray());
+			expy(rel.all);
 		});
 
 		const optimizeButt = document.createElement("li");
@@ -447,7 +708,7 @@ function tagUI() {
 		const globalOpt = `<option value="global">Global</option>`;
 		if (!fandomName) { //if in a global tag, give the option to pick a fandom for this particular tag
 			select.innerHTML = globalOpt;
-			for (var fandom of savedFandoms) {
+			for (var fandom of rel.fandoms) {
 				const option = document.createElement("option");
 				option.innerHTML = fandom;
 				option.setAttribute("value", fandom);
@@ -456,17 +717,10 @@ function tagUI() {
 		} else {
 			const option = document.createElement("option");
 			option.innerHTML = fandomName;
-			//option.setAttribute("value", `filter-${fandomName}`);
 			option.setAttribute("value", fandomName);
 			select.appendChild(option);
 			select.innerHTML += globalOpt;
 		}
-		//var targetFilter = select.options[0].value;
-		//var targetFilter = `filter-${currentSel()}`;
-		/*select.onchange = function () {
-			//console.log(select.value);
-			targetFilter = `filter-${select.value}`; //this selector is also used when importing values for ids, since i have yet to optimize that
-		}*/
 
 		/* exclude, include, or remove a tag */
 		const buttonAct = document.createElement("div");
@@ -489,18 +743,10 @@ function tagUI() {
 
 		//function for adding the filter to the search values + saved local storage
 		function addFilt(obj) {
-			//console.log(`${selectorType()}Filters`);
 			var filtArr = [selectorType(), `filter-${currentSel()}`, localStorage[`filter-${currentSel()}`], select.selectedIndex];
 			var textarea = document.getElementById(`${filtArr[0]}Filters`);
 			var curr = select.options[filtArr[3]].text;
-			//let doubleck = new RegExp(`\\D${id}\\s`, "g");
-			//if fandom-specific, goes into the fandom filter box
-			//var filtArr = fandomName ? fan : global;
-			//console.log(filtArr);
-			//console.log(targetFilter);
-			//var filtArr = targetFilter;
 			var filt = ` ${filtArr[2]} `; //need the spaces in order to correctly match the values later lol. it'll be trimmed in the end
-			//var type = ` ${obj.pre}${filter_ids} `;
 			var type = obj.ing;
 			var old_ids = new RegExp(` -?${filter_ids} `);
 			var newFilt = ` ${obj.pre} `;
@@ -528,7 +774,6 @@ function tagUI() {
 				p.innerHTML = `Now ${obj.ing}ing <strong>${tagName}</strong> in <em>${curr}</em>.`;
 			}
 			filt = filt.replace(/\s{2,}/g, " ").trim(); //remove extra whitespaces
-			//filtArr[4][1].value = filt;
 			if (textarea) {
 				textarea.value = filt;
 			}
@@ -547,7 +792,7 @@ function tagUI() {
 			})
 		};
 		var ugh = [ex, inc, rem]; //i am lazy and so shall array the various action buttons so that i can loop them instead of doing fucking. tagButtons(thing) every fucking time
-		for (a of ugh) {
+		for (const a of ugh) {
 			tagButtons(a);
 		}
 		id_exp.append(impButt, expButt, optimizeButt, impDiv);
@@ -555,6 +800,8 @@ function tagUI() {
 		fil.append(label, id_exp, nowEditP);
 		filterOpt.append(h4, p, fil, buttonAct, appp);
 		navList.parentElement.insertAdjacentElement("afterend", filterOpt);
+	} else {
+		frm.hidden = !(frm.hidden); // toggle that shit
 	}
 }
 //only add the tag id fetcher button if there's a form
@@ -563,73 +810,8 @@ if (form) {
 	filtButt.addEventListener("mouseup", tagUI);
 }
 
-/* banish a particular work from your search results */
-// const workList = document.querySelectorAll("li[id^='work']");
-// //var nyeh = (!global[3] && !search_submit); //if both the global n the fandom checkmarks are off AND we're not on a search page
-// var nyeh = fan ? (!global[3] && !fan[3]) : !global[3]; //have to check if the fandom box exists first before declaring it -_-
-// console.log(`!global[3] (&& optional !fan[3]): ${nyeh}`);
-// // this doesn't actually do anything yet
-// if (nyeh || search_submit) {
-// 	//if the autofilters are currently disabled or we're already on a search page, do the thing
-// 	for (const work of workList) {
-// 		//console.log(work);
-// 		const work_id = work.id.replace("work_", ""); //get its id num from. well. its id.
-// 		const title = work.querySelector(".heading a").innerText.trim(); // they don't even put a class on the title link...
-// 		const klasses = work.classList; // need this to be an array for works w/multiple authors
-// 		const user_ids = new Array();
-// 		const authors = new Array();
-// 		var aLinks = work.querySelectorAll(`a[rel="author"]`);
-// 		for (const a of aLinks) {
-// 			authors.push(a.innerText);
-// 		}
-// 		let anonymous = false;
-// 		for (const klass of klasses) {
-// 			if (klass.search(/^user-/) >= 0) {
-// 				user_ids.push(klass.replace("user-", ""));
-// 			}
-// 		}
-// 		if (user_ids.length < 1) {
-// 			console.info("oh hey an anon work");
-// 			anonymous = true;
-// 		}
-// 		// console.log(`work_id: ${work_id}, anonymous? ${anonymous}, authors: `, authors, user_ids);
-// 		const banSel = document.createElement("select");
-// 		banSel.className = "banish";
-// 		const hellip = document.createElement("option");
-// 		hellip.innerHTML = "&hellip;";
-// 		banSel.appendChild(hellip);
-
-// 		const banWork = document.createElement("option");
-// 		banWork.innerHTML = `ban "${title}"`;
-// 		banWork.value = work_id;
-// 		banSel.appendChild(banWork);
-// 		if (anonymous) {
-// 			const opt = document.createElement("option");
-// 			opt.innerHTML = "filter out all anonymous works.";
-// 			opt.value = "anonymous";
-// 			banSel.appendChild(opt);
-// 		} else {
-// 			for (var i = 0; i < authors.length; i++) {
-// 				const opt = document.createElement("option");
-// 				opt.value = user_ids[i];
-// 				opt.innerHTML = `ban ${authors[i]}`;
-// 				banSel.appendChild(opt);
-// 			}
-// 		}
-
-// 		work.querySelector("p.datetime").insertAdjacentElement("afterend", banSel); // inject the selection next to the datetime or something
-// 	}
-// }
-
-
 /* add filters + temp search to search w/in results box */
 function submission() {
-	//console.log("real box value:")
-	//console.log(advSearch.value);
-	//console.log("global array:");
-	//console.log(global);
-	//console.log("fandom array:");
-	//console.log(fan);
 	var globeSub = document.querySelector("#enable-global").checked ? global[2] : "";
 	var fanSub = "";
 	if (fandomName) {
@@ -638,23 +820,13 @@ function submission() {
 		}
 	};
 	var tempSub = tempp[2] ? tempp[2] : "";
-	//console.log("globalSub:");
-	//console.log(globeSub);
-	//console.log("fanSub:");
-	//console.log(fanSub);
-	//console.log("tempp:");
-	//console.log(tempp);
 	advSearch.value = `${globeSub} ${fanSub} ${tempSub}`;
 	advSearch.value = advSearch.value.replace(/\s{2,}/g, " ").trim();
 }
 if (form) { form.addEventListener("submit", submission) };
 
 /* autosubmit + previous filters drop */
-//const search_submit = window.location;
-//var debug_error = window.location.toString().match("error");
-//console.log(debug_error);
 if (search_submit == "") {
-	//localStorage.setItem("filter-advanced-search", "");
 	let globIsCheck = false; //by default
 	try {
 		globIsCheck = document.querySelector("#enable-global").checked;
@@ -673,8 +845,6 @@ if (search_submit == "") {
 		form.submit();
 	};
 } else if (!noResults) {
-	//tempp[2] = fakeSearch.value ? fakeSearch.value : ""; //if there's a value in the fake search (like when going through Pages of search w/in results things), then make sure that the temp search remains in local storage
-	//console.log(`!noResults: ${!noResults}`);
 	const details = document.createElement("details");
 	details.className = "prev-search";
 	const summary = document.createElement("summary");
@@ -683,32 +853,68 @@ if (search_submit == "") {
 
 	function filterloop(key) {
 		var filterStore = emptyStorage(`filter-${key}`);
-		//if (localStorage[`filter-${key}`]) {
 		if (filterStore) {
-			// var html = filterStore + " "; //add in the extra space for matching the last in the string
-			//console.log(`stored filters for filter-${key}: \n\n${filterStore}`);
-			//console.log("globIdStorage: ", globIdStorage);
-			// const fills = filterStore.split(/\s(?=(-|l|f|r|c|t|w|b|!)\w+)/).filter(function(item) { return item.length > 3 });
-			var fills = filterStore.split(/\s(?=(-|l|f|r|c|t|w|b|!)\w+)(?<!&)/).filter(function (item) { return item.length > 3 && item }); // can't seem to use parentheses in the negative lookback to group multiple ones, so i'll just leave it as just "not preceded by '&'"
-			console.log(`splitting the ${key} filter on spaces: `, fills); // (?<!(&)) (?<!(&|\)|!|\})) (?=(-|l|f|r|c|t|w|b|!)\w+)
+			function pp(str, attr = {}) {
+				const el = attr.el ? attr.el : "span";
+				const e = document.createElement(el);
+				e.innerHTML = str;
+				// if (klass) { e.className = klass; }
+				if (attr) {
+					for (const [k, v] of Object.entries(attr)) {
+						e.setAttribute(k, v);
+					}
+				}
+				return e;
+			}
 			const p = document.createElement("p");
 			p.className = `prev-${key.replaceAll(/\W+/g, "-")}`;
-			//p.innerHTML = `<strong>${key.replaceAll(/-/g, " ").trim()} Filters:</strong></br><span>${localStorage[`filter-${key}`]}</span>`;
 			const l = document.createElement("strong");
 			l.innerHTML = `${key.replaceAll(/-/g, " ").trim()} Filters:`;
-			//const gson = storJson(globIdStorage);
-			//console.log("global json, gson:", gson);
 			p.append(l, document.createElement("br")); // append these first ofc
-			//console.log("a: ", a);
-			for (var i = 0; i < fills.length; i++) {
-				var html = fills[i];
-				const sp = document.createElement("span");
-				sp.innerHTML = html;
-				p.appendChild(sp);
-				if (i !== fills.length - 1) { p.innerHTML += ", "; } // add the comma and stuff if we're not at the end
+			// console.log(`filterStore: `, filterStore)
+			const o = Object.entries(objectify(parseFilter(filterStore.split(/\s+/))));
+			console.log(o);
+			var i = 0;
+			for (const [king, value] of o) {
+				const v = value.trim();
+				if (king !== "complex") {
+					const nums = v.match(/\b\d+\b/g); // this is more relevant for the replacing thing tbh
+					const valSplit = v.split(/\s+\|\|\s+/);
+					const spanner = pp(`${king}:`);
+					if (nums || valSplit) {
+						// p.innerHTML += `${key}:`;
+						// console.log(`${king} nums: `, nums); 
+						if (valSplit.length > 1) {
+							// var j = 0;
+							spanner.innerHTML += "(";
+							for (var j = 0; j < valSplit.length; j++) {
+								spanner.appendChild(pp(valSplit[j]));
+								if (j < valSplit.length - 1) {
+									spanner.innerHTML += ", ";
+								}
+							}
+							spanner.innerHTML += ")";
+						} else {
+							spanner.appendChild(pp(v));
+
+						}
+						if (key.search(/filter_ids/) >= 0) {
+							// replace all the filters w/the id names n stuff
+							// v = v.replaceAll()
+						}
+					} else {
+						spanner.appendChild(pp(v));
+					}
+					p.appendChild(spanner);
+
+				} else {
+					p.appendChild(pp(v));
+				}
+				if (i < o.length - 1) {
+					p.innerHTML += ", ";
+				}
+				i++;
 			}
-			// p.append(l, document.createElement("br"), sp);
-			//p.innerHTML += html;
 			details.appendChild(p);
 		};
 	};
@@ -722,31 +928,7 @@ if (search_submit == "") {
 	if (fan && fan[3]) {
 		filterloop(fandomName);
 	}
-	details.innerHTML = function () {
-		var html = details.innerHTML; //start off as is
-		function yikes(obj) {
-			try {
-				for (const storedId of storJson(obj)) {
-					const rep = new RegExp(`\\b${storedId[1]}\\b`, "g"); //for now, hard code it like this. can make it more sensitive later
-					// console.log(`regexp: ${rep}`);
-					html = html.replaceAll(rep, `${storedId[0]}`);
-				}
-			} catch (e) {
-				console.error("i bet it's not iterable: ", e);
-			}
-		}
-		// console.log(`string to replace start: `, html);
-		yikes(globIdStorage);//global
-		// console.log(`html after replacing globally: `, html);
-		if (fandomName) {
-			yikes(fanIdStorage);
-		}
-		return html.trim(); //then return it replaced
-	}();
 	header.insertAdjacentElement("afterend", details);
-	//console.log("we are now erasing the local storage for the advanced search");
-	//localStorage.setItem("filter-advanced-search", fakeSearch.value ? fakeSearch.value : "");
-
 }
 
 //from https://attacomsian.com/blog/javascript-download-file
@@ -762,25 +944,20 @@ const download = (path, filename) => {
 /* export saved filters as a json */
 function expy(obj) {
 	console.info("now executing expy on", obj);
-	//console.log(filterArray());
-	// console.log(JSON.stringify(obj));
-	var arr = obj;
-	var jason = "{"; //opening bracket;
-	for (const [key, value] of arr) {
-		if (key.startsWith("filter-") || key.startsWith("enable-")) {
-			jason += `"${key}": "${value.replaceAll(`"`, `\\"`)}", `; //make sure to sanitize the values w/escape chars
-			if (obj.indexOf(arr) == obj.length) {
-				console.log("uhh this is the last one");
-			}
-		}
-		//expy(value);
+	// var arr = obj;
+	var jason = {};
+
+	for (const [key, value] of obj) {
+		jason[key] = value; // just trust that we're feeding the f'n a clean version of what we want saved already
 	}
-	jason = jason.substring(0, jason.length - 2) + "}"; //remove last trailing comma + space + closing bracket
+	jason = JSON.stringify(jason);
+	// console.log(`jason before expy: `, jason);
+	// jason = jason.substring(0, jason.length - 2) + "}"; //remove last trailing comma + space + closing bracket
 	//downloading as json from https://attacomsian.com/blog/javascript-download-file
 	const blob = new Blob([jason], { type: 'application/json' }); //create blob object
 	const DL_jason = URL.createObjectURL(blob);
-	var saveDate = new Date();
-	download(DL_jason, `autofilters_${saveDate.getFullYear()}_${saveDate.getMonth()}_${saveDate.getDay()}.json`); //download the file
+	// var saveDate = dateFloor();
+	download(DL_jason, `autofilters_${dateFloor()}.json`); //download the file
 	URL.revokeObjectURL(DL_jason); //release object url
 	//return jason;
 };
@@ -798,7 +975,6 @@ function impsy(div) { //for now just have it read from a specified div
 		var impCsv = document.querySelector("#import_csv").checked;
 		const impSet = tb.value;
 		if (impCsv) {
-			//console.log("textbox value:\n", impSet, "split by newlines: ", impSet.split("\n"));
 			const obj = function () {
 				var j = [];
 				for (const tag of impSet.split("\n")) {
@@ -806,11 +982,8 @@ function impsy(div) { //for now just have it read from a specified div
 				}
 				return j;
 			}();
-			//console.log(JSON.stringify(obj));
 			var key = `ids-${toCss(currentSel())}`;
-			//console.log(`save key: ${key}\n`, `save obj (not yet stringified):`, obj);
 			autosave(key, JSON.stringify(obj));
-			//autosave()
 		} else {
 			let parsable = false;
 			try {
@@ -833,193 +1006,103 @@ function impsy(div) { //for now just have it read from a specified div
 	div.append(instructions, tb, parseButt);
 }
 
-
-class filterObj {
-	constructor(fandom) {
-		this.fullName = fandom;
-		this.name = fandom.replace(filterObj.disambiguator, "");
-		this.cssName = this.name.replace(/\W+/g, "-");
-		this.filters = function () { // has sub-objects "include", "exclude", and "complex"
-			// storJson(emptyStorage(`filter-${this.name}`))
-			let filterObj;
-			try {
-				filterObj = JSON.parse(localStorage[this.name].filters);
-			} catch (e) {
-				console.error("it seems you haven't used the updated version of the script yet. now turning filters into a js object.");
-				var filterStr = localStorage[`filter-${this.name}`].replace(/s{2,}/g, " ") + " ";
-				const query = new Array();
-				const rules = new Array();
-				var lastColon = 0;
-				var numParentheses = 0; // track how many parentheses deep we are currently
-				for (var j = 0; j < filterStr.length; j++) {
-					const char = filterStr[j];
-					// if we're done with our parentheses and we're at a space...
-					if ((numParentheses == 0 && char == " ") || j == filterStr.length - 1) { // if there are no parentheses && we're currently on a space, OR we've finished the string...
-						rules.push(filterStr.substring(lastColon + 1, j).trim()); // push the substring to the rules
-						lastColon = j;
-					}
-					if (char == ":" && numParentheses == 0) {
-						query.push(filterStr.substring(lastColon, j).trim()); // if we're at a colon & have no parentheses, then pass the current subscring onto the queries
-						lastColon = j;
-					} else if (char == "(") {
-						numParentheses++;
-					} else if (char == ")") {
-						numParentheses--;
-					}
-				}
-				console.log(`query array: `, query, `\nrules array: `, rules);
-				const incl = new Array(), excl = new Array(), otherQueries = new Array();
-				if (query.length == rules.length) {
-					for (var i = 0; i < query.length; i++) {
-						query[i].startsWith("-") ? excl.push([query[i], rules[i]]) : incl.push([query[i], rules[i]]);
-					}
-				} else {
-					// make arrays of the three types of queries: include, exclude, and complex
-					for (var i = 0; i < query.length || i < rules.length; i++) { // because the rules would be longer than the queries in this case
-						try {
-							if (rules[currRule].search(":") >= 0) {
-								// if it's a complex query
-								otherQueries.push(rules[currRule]);
-								currRule++;
-							}
-						} catch (e) {
-							console.log("we have gone past the number of rules.");
-						}
-						if (i < query.length) {
-							query[i].startsWith("-") ? excl.push([query[i], rules[currRule]]) : incl.push([query[i], rules[currRule]]);
-						}
-						currRule++;
-					}
-				}
-				console.log(`include array: `, incl, `\nexcl array: `, excl, `\nand other queries array: `, otherQueries);
-				filterObj = {
-					include: incl,
-					exclude: excl,
-					complex: otherQueries
-				}
-			}
-			return filterObj;
-		}(); // this is the array of filters that actually gets used
-		this.ids = storJson(emptyStorage(`ids-${this.cssName}`)); // this is just the array of ids and their names specific to this particular fandom
-		this.enabled = localStorage[`enable-${this.cssName}`] ? storJson(localStorage[`enable-${this.cssName}`]) : true; // bc local storage stores things as strings, we can just check to make sure the local storage obj exists w/o worrying abt stuff. anyway if it doesn't exist default is true
-		this.type = (fandom !== "global") ? fandom : "fandom";
-	}
-	static disambiguator = /\s\((\w+(\s|&)*|\d+\s?)+\)/g; //removes disambiguators
-
-	textbox() {
-		const box = dom.pp("", "textarea", false, { id: `${this.type}Filters` });
-	}
-
-	filterText(decode = false) {
-		// turns the filters object into the text that the ao3 advanced search can parse
-		const ids = this.ids;
-		const inc = this.filters.include, ex = this.filters.exclude, comp = this.filters.complex;
-		let str = ""; // initialize the string
-		for (var [key, value] of inc) {
-			if (decode) {
-				switch (key) {
-					case "filter_ids": {
-						for (const [name, number] of ids) {
-							value = value.replaceAll(new RegExp(`\\b${number}\\b`, "g"), name);
-						}
-						break;
-					}
-				}
-			}
-			str += `${key}:${value} `;
-		}
-		for (var [key, value] of ex) {
-			str += `${key}:${value} `;
-		}
-		for (const query of comp) {
-			str += `${query} `;
-		}
-		return str.trim();
-	}
-}
-
-
 function optimizeFilters() {
-	// const savedFandoms = JSON.parse(localStorage["saved fandoms"]);
-	// var fandObj = new Array();
-	// for (const fan of savedFandoms) {
-	// 	fandObj.push(new filterObj(fan));
-	// }
-	// console.log(fandObj);
-	const filterArray = Object.entries(localStorage);
-	for (const [key, value] of filterArray) {
-		if (key.search(/^filter-/) >= 0 && value) {
-			console.log(`key: ${key}; value: \n`, value);
-			const filts = value.split(/\s(?=(-\(?|l|f|r|c|t|w|b|s)\w+)(?<!&)/).filter(function (item) { return item.length > 3 && item }); // split along spaces followed by -, f, c, or r. previously \s(?=[-fcrul])
-			console.log(`da filts: `, filts);
-			const keepSame = new Array();
-			const excls = new Array();
-			let newFilter = "";
-			for (const filter of filts) {
-				if (filter.search(/^-filter_ids:/) >= 0) {
-					excls.push(filter.replace("-filter_ids:", ""));
-				} else {
-					keepSame.push(filter);
+	storageCleanup(); // clean it up first
+	console.log(`rel.finable: `, rel.finable);
+	for (const [key, value] of rel.filters) {
+		var finalStr = value;
+		// console.log(`full ${key}:\n`, value);
+		const sp = value.trim().split(/\s+/);
+
+		// don't bother if there's fewer than two different things getting filtered
+		if (sp.length > 1) {
+			// console.log(`sp: `, sp);
+			finalStr = ""; // reset this 
+			const cleaned = objectify(parseFilter(sp));
+			console.log(cleaned);
+			for (const [k, v] of Object.entries(cleaned)) {
+				let val = v.trim();
+				if (k !== "complex") {
+					finalStr += ` ${k}:`;
+					if (val.split(/\s+/).length > 1) { // put them in parentheses if you need to
+						val = `(${val})`;
+					}
 				}
+				finalStr += val;
 			}
-			for (const f of keepSame) { newFilter += `${f} `; }
-			console.log(`keepSame (${keepSame.length}): `, keepSame, `\nexcls (${excls.length}): `, excls);
-			if (excls.length > 0) {
-				newFilter += "-filter_ids:("; // open the parentheses
-				for (var i = 0; i < excls.length; i++) {
-					// let addition = excls[i];
-					// if (!(parseInt(addition) > 0)) {
-					// // 	if it's NaN
-					// 	console.log(`ohohoho this is a complex request already!`);
-					// 	addition = addition.substring(1, addition.length - 1); // remove the parentheses perhaps?
-					// }
-					// try {
-					// 	console.log(parseInt(addition) > 0);
-					// 	addition = parseInt(addition);
-					// } catch (e) {
-					// 	console.log(`ohohoho this is a complex request already!`);
-					// 	// addition = addition.substring(1, addition.length - 1); // remove the parentheses
-					// }
-					// newFilter += addition; // add the number
-					newFilter += excls[i]; // add the thing
-					if (i < excls.length - 1) { newFilter += " || "; }
-				}
-				newFilter += ")"; // now close the parentheses
-				if (newFilter.search(/$-filter_ids:\({2,}/)) {
-					// if the filter_ids has more than one set of parentheses being unnecessary
-					console.log(`optimizing THIS is a job for another day lolol`)
-				}
-			}
-			// console.log(`newFilter for ${key}:\n`, newFilter);
-			//console.log(`array of ids to filter out: `, excls, `\narray to keep the same: `, keepSame);
-			localStorage.setItem(key, newFilter.trim());
-			const announceP = document.createElement("p");
-			announceP.innerHTML = `Optimized <strong>${key.replace("filter-", "")}</strong> filters.`;
-			announceP.className = "appended-tag";
-			document.querySelector(`#append-p`).prepend(announceP);
 		}
+		// console.log(`final string: ${finalStr}`);
+		localStorage.setItem(key, finalStr.trim()); // heh and we also have the groundwork to do this as like an object thing now too... sick as hell >:3
 	}
-	// now do some stuff to basically consolidate some of the filter stuff into one object per fandom
-	for (const fand of JSON.parse(localStorage[listKey])) {
-		let regex = new RegExp(`$\\(${fand}|${toCss(fand)}\\)`);
-		if (key.search(regex) >= 0) {
-			console.log(fand);
-		}
-	}
+
 }
 
-// optimizeFilters();
+function parseFilter(arr) { // takes and returns an array
+	// console.log(`parseFilter arr: `, arr);
+	const whee = new Array(); // new one each loop,, ehe
+	var paren = 0, str = ""; // track how many layers deep into parentheses we are & total string
+	for (var i = 0; i < arr.length; i++) {
+		const s = arr[i];
+		let lookahead = "";
+		try {
+			lookahead = arr[i + 1];
+		} catch (e) {
+			// we're at the last of them
+		}
+		const opens = s.match(/\(/g), closes = s.match(/\)/g);
+		if (opens) {
+			paren += opens.length;
+		}
+		if (closes) {
+			paren -= closes.length;
+		}
 
-let today = new Date();
-console.log(`today's date: ${today.getDate()}`);
-if (today.getDate() == 1) {
-	for (const [key, value] of Object.entries(localStorage)) {
-		if (value == "") {
-			localStorage.removeItem(key);
-			console.log(`item removed: ${key}.`)
+		str += `${s} `; // add the space back in
+
+		if (paren == 0 && s !== "TO") {
+			// if we're at a 0 layer (& not working with a range), then push it to the groupings and reset
+			if (lookahead) { // if there's smth to look forward to
+				if (lookahead !== "TO") {
+					// and the next one is NOT a "TO", then it's fine to reset
+
+					whee.push(str.trim());
+					str = "";
+				}
+			} else {
+				// if there's nothing to look forward to, then we have to push the last one anyway
+				whee.push(str.trim());
+				str = "";
+			}
 		}
 	}
+	// console.log(`whee: `, whee);
+	return whee;
 }
+
+function objectify(arr) { // turns a filter in the thing into an object
+	// console.log(arr);
+	const tmp = { complex: "" };
+	for (const ex of arr) {
+		// console.log(`query`)
+		let ind = "complex", v = ex;
+		const range = ex.match(/(\[|\{|\}|\]|<|>)/g); // all the stuff associated w/ranges
+		const query = ex.match(/^-?(\w|_)+(?=:)/);
+		// query ? simple.push(ex) : complex.push(ex);
+		// if it's a normal type of filter like filter_ids: or bookmark_count: or crossover:, WITHOUT being a range, then gotta do some processing
+		if (query && !range) {
+			ind = query[0];
+			// if (!cleaned[ind]) { cleaned[ind] = ""; }
+			tmp[ind] ? tmp[ind] += ` ||` : tmp[ind] = ""; // we don't need the double bars for complex requests, so if the thing already exists, then add them in for simple types
+			v = ex.replaceAll(`${ind}:`, "").replaceAll(/(^\(|\)$)/g, ""); // first just remove the query n its colon, then get rid of its outermost shell of parentheses
+		}
+		// cleaned[ind] += `${cleaned[ind].length > 0 ? ` ||` : ""} ${v}`;
+		tmp[ind] += ` ${v}`;
+		// cleaned[ind] += ` ${v}`;
+	}
+	// console.log(`tmp after all that: `, tmp);
+	return tmp;
+}
+
 
 //tagUI(); //automatically open the id thing for debugger purposes
 
@@ -1064,7 +1147,6 @@ var css = `
 }
 `; //gonna need this for the 0 results page anyway, might as well set it to smth
 if (form) {
-	const optWidth = window.getComputedStyle(document.querySelector("#main ul.user.navigation.actions")).width;
 	//const optMWidth = window.getComputedStyle(form).width;
 	const borderBottom = window.getComputedStyle(document.querySelector("form#work-filters dt")).borderBottom;
 	css += `
@@ -1126,11 +1208,18 @@ if (form) {
 		margin-right: 5px;
 		text-align: left;
 	}
+	#filter_opt[hidden] {
+		display: none;
+	}
 	#filter_opt h4 {
 		text-align: center;
 		margin-top: 0;
 		padding-bottom: 0.25em;
 		border-bottom: 1px solid;
+	}
+	#filter_opt .filterSelector {
+		min-width: clamp(3em, 100%, 10.5em);
+		max-width: calc(100% - 0.175em);
 	}
 	#filter_opt .actions {
 		display: block;
@@ -1180,6 +1269,10 @@ if (form) {
 	.prev-search p strong {text-transform: capitalize;}
 	.prev-search summary {font-size: 1.15em;}
 	.prev-search span {font-family: monospace; font-size: 8pt; color: black;}
+	[class^="prev"] span:has(span) {
+		background: none;
+		color: revert;
+	} 
 	.prev-advanced-search span {
 		background-color:#d3fdac;
 	}
@@ -1189,15 +1282,13 @@ if (form) {
 	.prev-${cssFanName} span {
 		background-color: #d8cefb;
 	}
-	select.banish {
-		font-size: 0.8em;
+	.banish {
 		margin: 0;
-		max-width: 3em;
-		display: block;
-		text-align: center;
+		max-width: 15ch;
 		position: absolute;
-		top: 1.5em;
+		top: 1.15lh;
 		right: 0;
+		min-width: 0;
 	}
 	@media only screen and (max-width: 48em) {
 		.prev-search {margin: 10px 0;}

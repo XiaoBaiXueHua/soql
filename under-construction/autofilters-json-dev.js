@@ -26,9 +26,55 @@ class savedFilter {
 }
 
 class filterObj {
-	// is the object type for "include" and "exclude", w/its two sub
-}
+	constructor(obj) {
+		// can take a plain string (fandom name => find it in the localStorage, or make smth fresh if it doesn't currently exist), or be fed an object 
+		// this.idPairs = new Array();
+		this.user_ids = {
+			include: new Array(), // each have both
+			exclude: new Array()
+		};
+		this.relationship_ids = {
+			include: new Array(), // each have both
+			exclude: new Array()
+		};
+		this.character_ids = {
+			include: new Array(), // each have both
+			exclude: new Array()
+		};
+		this.fandom_ids = {
+			include: new Array(), // each have both
+			exclude: new Array()
+		};
+		this.freeform_ids = {
+			include: new Array(), // each have both
+			exclude: new Array()
+		};
+		this.filter_ids = {
+			include: new Array(), // each have both
+			exclude: new Array()
+		};
+		// first of all there's no filter param called "story_ids" on ao3 i'm just naming it this to differentiate it from tag id numbers
+		this.story_ids = {
+			exclude: new Array() // there's 
+		}
+		this.complex = {
+			include: new Array(), // each have both
+			exclude: new Array()
+		};
 
+	}
+
+	static parseStandard(str) {
+		// parse a standard string and return an array
+	}
+	static parseComplex(str) {
+		// parse a complex query and return an array
+	}
+
+	print() {
+		// prints the saved things 
+	}
+}
 class filterKeys {
 	// okay this one might not have to be its own class since it's pretty much just an array of the filter ids
 }

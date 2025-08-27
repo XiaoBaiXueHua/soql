@@ -1,0 +1,55 @@
+[id^='ban'] {
+	details {
+		>div {
+			display: grid;
+			grid-template-columns: repeat(2, 2fr);
+			gap: 0.25em;
+			max-height: 33vh;
+			overflow-y: auto;
+		}
+	}
+
+	.fandom {
+		font-family: serif;
+		text-decoration: dotted underline;
+	}
+
+	.relationships {
+		background-color: rgba(0, 0, 0, 0.25);
+	}
+
+	.characters {
+		background-color: rgba(0, 0, 0, 0.12);
+	}
+
+	h5 {
+		margin-top: 0;
+		font-size: 1.2em;
+	}
+}
+
+.close-scroll {
+	position: sticky;
+	top: 0;
+	min-height: 1.5lh;
+	margin-bottom: -1.5lh;
+}
+
+.close-ban {
+	position: absolute;
+	top: 0lh;
+	right: 0.5em;
+}
+
+@media only screen and (max-width: 42em) {
+
+	// mobile mode
+	[id^='ban'] {
+		details {
+			>div {
+				grid-template-columns: 1fr;
+				max-height: 60vh;
+			}
+		}
+	}
+}

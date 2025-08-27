@@ -69,6 +69,25 @@ class dom {
 		return el; //returns an html element
 	}
 
+	static parry(stray, type = "p", klass = "", attr = {}) { // turns arrays of strings into arrays of the same element
+		const arr = new Array();
+		for (const s of stray) {
+			try {
+				const el = document.createElement(type);
+				el.innerHTML = s;
+				if (klass) el.className = klass;
+				if (attr) {
+					for (const [key, value] of Object.entries(attr)) {
+						el.setAttribute(key, value);
+					}
+				}
+				arr.push(el);
+			} catch (e) {
+				console.error("hey man parry's only for turning arrays of strings into arrays of the same element. you can't do... whatever it is you're doing.");
+			}
+		}
+		return arr;
+	}
 	//appends arrays of ELEMENTS to a parent
 	static appendix(array, par) {
 		for (const el of array) {
