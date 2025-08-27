@@ -540,7 +540,7 @@ const advSearch = document.querySelector("#work_search_query");
 
 //if there's one there will obvs be the other, but just so that they don't feel left out, using "or"
 if (searchdt !== null || searchdd !== null) {
-	iwindow.soql.autofilters.idKeyVals.push(tagName, id, fandomName); // first, just save the tag id in local storage. save me the time
+	window.soql.autofilters.idKeyVals.push(tagName, id, fandomName); // first, just save the tag id in local storage. save me the time
 	advSearch.hidden = true;
 	const fakeSearch = document.createElement("input");
 	fakeSearch.id = "fakeSearch";
