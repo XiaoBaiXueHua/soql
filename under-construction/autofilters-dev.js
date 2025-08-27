@@ -540,7 +540,9 @@ const advSearch = document.querySelector("#work_search_query");
 
 //if there's one there will obvs be the other, but just so that they don't feel left out, using "or"
 if (searchdt !== null || searchdd !== null) {
-	window.soql.autofilters.idKeyVals.push(tagName, id, fandomName); //first, just save the tag id in local storage. save me the time
+	if (!search_submit) {
+		window.soql.autofilters.idKeyVals.push(tagName, id, fandomName); // first, just save the tag id in local storage. save me the time. but only if we're in a raw tag
+	}
 	advSearch.hidden = true;
 	const fakeSearch = document.createElement("input");
 	fakeSearch.id = "fakeSearch";
@@ -994,6 +996,7 @@ function impsy(div) { //for now just have it read from a specified div
 			}
 			if (parsable) {
 				const obj = Object.entries(JSON.parse(impSet));
+				console.log(obj);
 				for (const [key, value] of obj) {
 					localStorage.setItem(key, value);
 				}
