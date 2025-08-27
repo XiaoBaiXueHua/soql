@@ -268,7 +268,7 @@ window.soql.autofilters[`getFandom`] = function (el = document, t = `[tagName]`)
 	fandomCount = parseInt(fandomCount);
 
 	var tagCount = el.querySelector(`h2:has(a.tag)`).innerText;
-	tagCount = tagCount.match(/(\d+,?\d*)+(?=\sW)/)[0].replace(",", ""); // get the number, remove the comma
+	tagCount = tagCount.match(/(\d+,?\d*)+(?=\sW)/)[0].replaceAll(/,/g, ""); // get the number, remove the commas
 	// tagCount = tagCount.substring(0, tagCount.length - 2); //cut off the " W" bit that was used to make sure was Finding the actual fandom count (in case there's a fandom w/numbers in its name)
 	tagCount = parseInt(tagCount); //now turn it into an integer
 	console.log(`there are ${tagCount.toLocaleString()} works in the ${t} tag.`);
@@ -375,6 +375,7 @@ window.soql.autofilters[`idKeyVals`] = class {
 		} else {
 			console.log(`hmm. we don't have ${JSON.stringify(add)} in here.`);
 			const tmp = fn ? window.soql.autofilters.idKeyVals.specific(fn) : window.soql.autofilters.idKeyVals.global; // pick which json we're pushing to
+			console.log(`idKeyVals.push tmp:`, tmp);
 			rel.push(`ids-${fn ? window.soql.toCss(fn) : "global"}`, tmp, add);
 		}
 	}
