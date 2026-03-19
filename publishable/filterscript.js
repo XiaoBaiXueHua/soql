@@ -8,7 +8,8 @@
 // @match	http*://archiveofourown.org/works?commit=*&tag_id=*
 // @downloadURL	https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/filterscript.js
 // @updateURL	https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/filterscript.js
-// @version 2.4
+// @version 2.5
+// @history 2.5 - reintroduced having the id numbers replaced with id names. it's not perfect but it's smth for now.
 // @history 2.4 - added file uploading for imports
 // @history 2.3 - optimized how the filter optimizer works + fixed the monthly storage cleanup thing + also just began preparing to optimize shit in general
 // @history 2.2.2 - script can now self-correct when it stores a filter id's name wrong (like in a botched import)
@@ -31,6 +32,7 @@ if (!window.soql) {
 	};
 }
 window.soql[`toCss`] = function (str) { return str.replaceAll(/\W+/g, "-"); }
+// window.soql.autofilters.
 
 // fuck it, making this a class so we can always get this shit fresh
 window.soql.autofilters[`relevant`] = class { // let's see if we can attach a class to it
@@ -81,6 +83,7 @@ window.soql.autofilters[`relevant`] = class { // let's see if we can attach a cl
 
 			localStorage.setItem(key, JSON.stringify(tmp)); // save the new ver to local storage
 			console.log(`localStorage after pushing: `, localStorage[key]);
+			// console.log(window.soql.autofilters.idKeyVals.global)
 		} catch (e) {
 			console.error(`you're only supposed to use the static rel.push to get around the way the getters work on the local storage :/`, e);
 		}
@@ -90,9 +93,11 @@ window.soql.autofilters[`relevant`] = class { // let's see if we can attach a cl
 const rel = window.soql.autofilters.relevant; // this is just shorthanding for the purposes of in this script
 
 /* various important global vars */
+// /(?<=\s)\((\w+(\s|&)*?|\d+\s?)+\)/
 window.soql.remAmbig = /\s\((\w+(\s|&)*?|\d+\s?)+\)/g; //removes disambiguators
 
 const header = document.querySelector("h2:has(a.tag)");
+//console.log(header);
 const currentTag = header.querySelector("a.tag"); //the current tag being searched
 const tagName = currentTag.innerText.replace(window.soql.remAmbig, "").trim();
 
@@ -110,9 +115,13 @@ window.soql.autofilters.fandoms = function () { return JSON.parse(localStorage[l
 // monthly cleanup stuff
 let today = dateFloor(), lastCleanup = dateFloor(); // default is today
 try {
+	// lastCleanup = JSON.parse(localStorage[`lastCleanup`]);
+	lastCleanup = localStorage[`lastCleanup`];
 } catch (e) {
+	// localStorage.setItem(`lastCleanup`, JSON.stringify(lastCleanup));
 	localStorage.setItem(`lastCleanup`, lastCleanup);
 }
+// const todayDate = new Date(today); // there should only ever
 console.log(`today's date: ${today}\nlast cleanup date: ${lastCleanup}`);
 
 function dateFloor(date = new Date()) { // function for getting the floor value of the date as a string
@@ -120,6 +129,7 @@ function dateFloor(date = new Date()) { // function for getting the floor value 
 }
 // function for cleaning up storage: done automatically each month on the 1st and probably whenever you hit "optimize filters"
 function storageCleanup() {
+	// console.log(`saved fandoms: `, JSON.parse(localStorage[listKey]));
 	console.log(`cleaning...`);
 	var localFilters = 0, localEnables = 0; // local storage entry for the saved filters n whether that fandom's been enabled/disabled
 
@@ -133,6 +143,7 @@ function storageCleanup() {
 		// then we loop through all the currently included fandoms to see if this enable is Safe
 		while (!allowed && i < r.length) {
 			// ...also protect the enable global lol
+			// if (key == `enable-${toCss(rel.fandoms[i])}` || key == `enable-global`) {
 			let reg = new RegExp(`(${r[i]}|${toCss(r[i])}|global)`); // regex which checks if the thing is allowed in either its standard or css form
 			if (str.search(reg) > 0) {
 				allowed = true;
@@ -145,7 +156,9 @@ function storageCleanup() {
 
 	for (const [key, value] of rel.all) {
 		const srch = key.match(/^(filter|enable)/);
+		// if (key.search(/^(filter|enable)-/) >= 0) {
 		const globalvance = !(key.search(/-(global|advanced-search)$/) < 0);
+		// console.log(`key: ${key}; value:\n${value}`)
 
 		if (srch && !globalvance) { // also make sure you're not doing this to the global/advanced searches. just leave those alone
 			// console.log(`key: ${key}; value:\n${value}`)
@@ -156,6 +169,7 @@ function storageCleanup() {
 					filteredFandoms.push(f);
 				} else { // otherwise remove those entries
 					console.log(`uhhh empty value for a filter (${key})`)
+					// localEnables++;
 					localStorage.removeItem(key);
 					localStorage.removeItem(`enable-${toCss(f)}`);
 				}
@@ -223,6 +237,8 @@ function storageCleanup() {
 	// console.log(`last cleaned: `, localStorage[`lastCleanup`]);
 }
 
+// storageCleanup();
+
 if (((new Date(today)).getDate() == 1) && (today !== lastCleanup)) { // basically try to only do it once on the day of
 	// if ((new Date(today)).getDate() == 1) { // basically try to only do it once on the day of
 	console.log(`ahhh yes... monthly cleanup time`);
@@ -256,6 +272,7 @@ window.soql.autofilters[`getFandom`] = function (el = document, t = `[tagName]`)
 
 	var tagCount = el.querySelector(`h2:has(a.tag)`).innerText;
 	tagCount = tagCount.match(/(\d+,?\d*)+(?=\sW)/)[0].replaceAll(/,/g, ""); // get the number, remove the commas
+	// tagCount = tagCount.substring(0, tagCount.length - 2); //cut off the " W" bit that was used to make sure was Finding the actual fandom count (in case there's a fandom w/numbers in its name)
 	tagCount = parseInt(tagCount); //now turn it into an integer
 	console.log(`there are ${tagCount.toLocaleString()} works in the ${t} tag.`);
 	if (tagCount < 10) {
@@ -273,6 +290,7 @@ window.soql.autofilters[`getFandom`] = function (el = document, t = `[tagName]`)
 	}
 	if (!fandom || !fandomCount || !tagCount) { return; } // you know maybe in the rewrite, maybe instead of having it return nothing/null for these things, have it return "global" instead. might do something good.
 	var meetsCutoff = (fandomCount / tagCount * 100 >= fandom_cutoff);
+	// console.log(`% of fics in ${t} belonging to ${fandom}: ${fandomCount / tagCount * 100}`)
 	if (meetsCutoff && rel.fandoms.indexOf(fandom) < 0) { //if it qualifies as being part of a fandom & is not yet in the array, add it and then save it to local storage
 		const tmp = rel.fandoms; // have to do it this way, since the static thing automatically always fetches it from the localStorage ehe
 		tmp.push(fandom);
@@ -323,6 +341,7 @@ window.soql.autofilters[`idKeyVals`] = class {
 			// just proceed to assume it's global at that point
 			return window.soql.autofilters.idKeyVals.global;
 		}
+		// return cssFanName ? JSON.parse(localStorage[`ids-${cssFanName}`]) : [[]];
 		return jason; // i really don't know why i didn't just do this
 	}
 
@@ -511,7 +530,7 @@ window.soql.autofilters[`getID`] = function (el = document) {
 		console.log("subscribable id method");
 		i = el.querySelector("#subscription_subscribable_id").value;
 	};
-	
+	// console.log(`we have here a ${typeof(i)} for our id#`);
 	if (typeof (i) !== "number") {
 		try {
 			i = parseInt(i); // try turning it into a number
@@ -524,6 +543,7 @@ window.soql.autofilters[`getID`] = function (el = document) {
 const id = window.soql.autofilters.getID();
 var filter_ids = `filter_ids:${id}`;
 
+// const idKey = window.soql.autofilters.idKeyVals.push(tagName, id);
 /* now to deal w/the currently-existing form */
 const searchdt = document.querySelector("dt.search:not(.autocomplete)");
 const searchdd = document.querySelector("dd.search:not(.autocomplete");
@@ -676,6 +696,7 @@ function tagUI() {
 		label.innerHTML = "filter_ids:";
 		label.setAttribute("for", "id_output");
 		label.appendChild(output);
+		// p.appendChild(label);
 
 		/* import/export buttons */
 		const impDiv = document.createElement("div"); //div for the import process
@@ -851,6 +872,7 @@ if (search_submit == "") {
 				const el = attr.el ? attr.el : "span";
 				const e = document.createElement(el);
 				e.innerHTML = str;
+				// if (klass) { e.className = klass; }
 				if (attr) {
 					for (const [k, v] of Object.entries(attr)) {
 						e.setAttribute(k, v);
@@ -863,32 +885,51 @@ if (search_submit == "") {
 			const l = document.createElement("strong");
 			l.innerHTML = `${key.replaceAll(/-/g, " ").trim()} Filters:`;
 			p.append(l, document.createElement("br")); // append these first ofc
+			// console.log(`filterStore: `, filterStore)
 			const o = Object.entries(objectify(parseFilter(filterStore.split(/\s+/))));
-			console.log(o);
+			console.log(`object entries of the parseFilter: `, o);
+			const currIds = JSON.parse(localStorage.getItem(`ids-${key.replaceAll(/\W+/g, "-")}`)); // this is the object which holds the key-vals for all the filter ids
+			console.log(`key: `, key, currIds);
 			var i = 0;
 			for (const [king, value] of o) {
 				const v = value.trim();
 				if (king !== "complex") {
 					const nums = v.match(/\b\d+\b/g); // this is more relevant for the replacing thing tbh
-					const valSplit = v.split(/\s+\|\|\s+/);
+					const valSplit = v.split(/\s+\|\|\s+/); // this splits the filter values on the "||" so that we can have commas instead on the showing
 					const spanner = pp(`${king}:`);
 					if (nums || valSplit) {
+						// p.innerHTML += `${key}:`;
+						console.log(`${king} nums: `, nums);
 						if (valSplit.length > 1) {
+							// var j = 0;
 							spanner.innerHTML += "(";
 							for (var j = 0; j < valSplit.length; j++) {
-								spanner.appendChild(pp(valSplit[j]));
+								// console.log()
+								// probably make showing the names of the tags optional later but for now just make it All the time All The Time
+								let spText = valSplit[j];
+								// console.log(`k`)
+								if (king.search(/filter/g) >= 0) {
+									spText = deObfuscate(valSplit[j], currIds); // i'm not sure if there'll be damages if we make it deObfuscate spText so just make it deObfuscate valSplit instead
+								}
+								spanner.appendChild(pp(spText));
 								if (j < valSplit.length - 1) {
 									spanner.innerHTML += ", ";
 								}
 							}
 							spanner.innerHTML += ")";
 						} else {
-							spanner.appendChild(pp(v));
+							let spText = v;
+							if (king.search(/filter/g) >= 0) {
+								deObfuscate(v, currIds);
+							}
+							spanner.appendChild(pp(spText));
 
 						}
-						if (key.search(/filter_ids/) >= 0) {
-							// replace all the filters w/the id names n stuff
-						}
+						// if (key.search(/filter_ids/) >= 0) {
+						// 	// replace all the filters w/the id names n stuff
+						//  // i don't think we can do it this way actually bc this'll also catch user_ids n stuff
+						// 	// v = v.replaceAll()
+						// }
 					} else {
 						spanner.appendChild(pp(v));
 					}
@@ -918,6 +959,30 @@ if (search_submit == "") {
 	header.insertAdjacentElement("afterend", details);
 }
 
+function deObfuscate(str, currIds) {
+	// links the id number to the id name
+	// console.log(`we are in a filter_ids thing.`)
+	// so basically, if we're in a filter_ids thing, replace
+	// spText = parseInt(spText);
+	let nyeh = parseInt(str);
+	if (isNaN(nyeh)) {
+		return str; // break if it's NaN
+	}
+	console.log(`nyeh: `, nyeh);
+	// console.log(`spText: `, spText);
+	// const weh = currIds.filter((w) => { return w; });
+	for (const w of currIds) {
+		if (w[1] == nyeh) {
+			console.log(`w: `, w);
+			nyeh = w[0];
+			break;
+		}
+	}
+	return nyeh;
+	// console.log(`weh: `, weh);
+	// console.log(currIds.filter((weh) => { console.log(weh); return weh[1] == parseInt(spText)}));
+}
+
 //from https://attacomsian.com/blog/javascript-download-file
 const download = (path, filename) => {
 	const anchor = document.createElement("a");
@@ -938,11 +1003,15 @@ function expy(obj) {
 		jason[key] = value; // just trust that we're feeding the f'n a clean version of what we want saved already
 	}
 	jason = JSON.stringify(jason);
+	// console.log(`jason before expy: `, jason);
+	// jason = jason.substring(0, jason.length - 2) + "}"; //remove last trailing comma + space + closing bracket
 	//downloading as json from https://attacomsian.com/blog/javascript-download-file
 	const blob = new Blob([jason], { type: 'application/json' }); //create blob object
 	const DL_jason = URL.createObjectURL(blob);
+	// var saveDate = dateFloor();
 	download(DL_jason, `autofilters_${dateFloor()}.json`); //download the file
 	URL.revokeObjectURL(DL_jason); //release object url
+	//return jason;
 };
 
 /* import saved filters from a string */
@@ -955,7 +1024,7 @@ function impsy(div) { //for now just have it read from a specified div
 	const fileUpload = document.createElement(`input`);
 	fileUpload.type = "file";
 	fileUpload.setAttribute(`accept`, `.json, .txt, .csv`);
-	// yeah i just copied the reader from https://developer.mozilla.org/en-US/docs/Web/API/FileReader/readAsText 
+	// yeah i just copied the reader from https://developer.mozilla.org/en-US/docs/Web/API/FileReader/readAsText
 	fileUpload.addEventListener(`change`, previewFile);
 	function previewFile() {
 		const file = fileUpload.files[0];
@@ -978,6 +1047,9 @@ function impsy(div) { //for now just have it read from a specified div
 	const parseButt = document.createElement("button");
 	parseButt.innerHTML = "Save Imported Settings";
 	parseButt.addEventListener("click", () => {
+		console.log(fileUpload);
+		const uploaded = fileUpload.files[0]; // only allowed to upload one so
+		console.log((new FileReader()).readAsText(uploaded));
 		var impCsv = document.querySelector("#import_csv").checked;
 		const impSet = tb.value;
 		if (impCsv) {
@@ -1031,7 +1103,7 @@ function optimizeFilters() {
 		// don't bother if there's fewer than two different things getting filtered
 		if (sp.length > 1) {
 			// console.log(`sp: `, sp);
-			finalStr = ""; // reset this 
+			finalStr = ""; // reset this
 			const cleaned = objectify(parseFilter(sp));
 			console.log(cleaned);
 			for (const [k, v] of Object.entries(cleaned)) {
@@ -1045,6 +1117,7 @@ function optimizeFilters() {
 				finalStr += val;
 			}
 		}
+		// console.log(`final string: ${finalStr}`);
 		localStorage.setItem(key, finalStr.trim()); // heh and we also have the groundwork to do this as like an object thing now too... sick as hell >:3
 	}
 
@@ -1088,15 +1161,19 @@ function parseFilter(arr) { // takes and returns an array
 			}
 		}
 	}
+	// console.log(`whee: `, whee);
 	return whee;
 }
 
 function objectify(arr) { // turns a filter in the thing into an object
+	// console.log(arr);
 	const tmp = { complex: "" };
 	for (const ex of arr) {
+		// console.log(`query`)
 		let ind = "complex", v = ex;
 		const range = ex.match(/(\[|\{|\}|\]|<|>)/g); // all the stuff associated w/ranges
 		const query = ex.match(/^-?(\w|_)+(?=:)/);
+		// query ? simple.push(ex) : complex.push(ex);
 		// if it's a normal type of filter like filter_ids: or bookmark_count: or crossover:, WITHOUT being a range, then gotta do some processing
 		if (query && !range) {
 			ind = query[0];
@@ -1104,11 +1181,16 @@ function objectify(arr) { // turns a filter in the thing into an object
 			tmp[ind] ? tmp[ind] += ` ||` : tmp[ind] = ""; // we don't need the double bars for complex requests, so if the thing already exists, then add them in for simple types
 			v = ex.replaceAll(`${ind}:`, "").replaceAll(/(^\(|\)$)/g, ""); // first just remove the query n its colon, then get rid of its outermost shell of parentheses
 		}
+		// cleaned[ind] += `${cleaned[ind].length > 0 ? ` ||` : ""} ${v}`;
 		tmp[ind] += ` ${v}`;
+		// cleaned[ind] += ` ${v}`;
 	}
+	// console.log(`tmp after all that: `, tmp);
 	return tmp;
 }
 
+
+//tagUI(); //automatically open the id thing for debugger purposes
 
 /* CSS STYLING AT THE END BC IT'S A PICKY BITCH */
 var css = `
@@ -1276,7 +1358,7 @@ if (form) {
 	[class^="prev"] span:has(span) {
 		background: none;
 		color: revert;
-	} 
+	}
 	.prev-advanced-search span {
 		background-color:#d3fdac;
 	}
