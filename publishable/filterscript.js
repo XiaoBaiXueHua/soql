@@ -8,7 +8,8 @@
 // @match	http*://archiveofourown.org/works?commit=*&tag_id=*
 // @downloadURL	https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/filterscript.js
 // @updateURL	https://raw.githubusercontent.com/XiaoBaiXueHua/soql/main/publishable/filterscript.js
-// @version 2.5
+// @version 2.5.1
+// @history 2.5.1 - fixed bug with advanced search and the id number replacer... ehe
 // @history 2.5 - reintroduced having the id numbers replaced with id names. it's not perfect but it's smth for now.
 // @history 2.4 - added file uploading for imports
 // @history 2.3 - optimized how the filter optimizer works + fixed the monthly storage cleanup thing + also just began preparing to optimize shit in general
@@ -80,13 +81,40 @@ window.soql.autofilters[`relevant`] = class { // let's see if we can attach a cl
 		try {
 			const tmp = val;
 			(tmp.length < 1) ? tmp[0] = addition : tmp.push(addition);
-
 			localStorage.setItem(key, JSON.stringify(tmp)); // save the new ver to local storage
 			console.log(`localStorage after pushing: `, localStorage[key]);
 			// console.log(window.soql.autofilters.idKeyVals.global)
 		} catch (e) {
 			console.error(`you're only supposed to use the static rel.push to get around the way the getters work on the local storage :/`, e);
 		}
+	}
+
+	static exchangeId(val) {
+		// turns an id number into its id name
+		let v = parseInt(val); // turn it into a number
+		if (isNaN(v)) {
+			// do smth else to NaN
+			v = val; // reset this
+			const int = val.match(/\d+/g); // dig all the id numbers out of it, assuming we're working with filter_ids lol
+			if (int.length > 0) {
+				// for (const i of val.match)
+				for (const d of int) {
+					const i = window.soql.autofilters.idKeyVals.includes(d);
+					if (i) {
+						v = v.replaceAll(new RegExp(`\\b${d}\\b`, `g`), i[0]);
+					}
+				}
+			}
+			// return val;
+		} else {
+			const a = window.soql.autofilters[`idKeyVals`].includes(val); // this automatically checks both the global and current fandom ids. yay
+			if (a) {
+				// return a[0];
+				v = a[0];
+			}
+		}
+
+		return v;
 	}
 }
 
@@ -350,7 +378,7 @@ window.soql.autofilters[`idKeyVals`] = class {
 	}
 
 	static includes(params = { name: null, number: null }) {
-		console.log(`checking for an inclusion...`);
+		// console.log(`checking for an inclusion...`);
 		let idNumber = null, idName = null;
 		if (typeof (params) == "number") {
 			idNumber = params; // backwards compatibility
@@ -384,7 +412,7 @@ window.soql.autofilters[`idKeyVals`] = class {
 			}
 		);
 		// console.log(`opts: `, opts);
-		if (opts.length > 0) { console.info(`found id #${idNumber} as "${opts[0][0]}".`) }
+		// if (opts.length > 0) { console.info(`found id #${idNumber} as "${opts[0][0]}".`) }
 		return (opts.length > 0) ? opts[0] : false;
 	}
 	static replace([filterName, idNumber]) {
@@ -887,7 +915,7 @@ if (search_submit == "") {
 			p.append(l, document.createElement("br")); // append these first ofc
 			// console.log(`filterStore: `, filterStore)
 			const o = Object.entries(objectify(parseFilter(filterStore.split(/\s+/))));
-			console.log(`object entries of the parseFilter: `, o);
+			// console.log(`object entries of the parseFilter: `, o);
 			const currIds = JSON.parse(localStorage.getItem(`ids-${key.replaceAll(/\W+/g, "-")}`)); // this is the object which holds the key-vals for all the filter ids
 			console.log(`key: `, key, currIds);
 			var i = 0;
@@ -899,7 +927,7 @@ if (search_submit == "") {
 					const spanner = pp(`${king}:`);
 					if (nums || valSplit) {
 						// p.innerHTML += `${key}:`;
-						console.log(`${king} nums: `, nums);
+						// console.log(`${king} nums: `, nums);
 						if (valSplit.length > 1) {
 							// var j = 0;
 							spanner.innerHTML += "(";
@@ -909,7 +937,8 @@ if (search_submit == "") {
 								let spText = valSplit[j];
 								// console.log(`k`)
 								if (king.search(/filter/g) >= 0) {
-									spText = deObfuscate(valSplit[j], currIds); // i'm not sure if there'll be damages if we make it deObfuscate spText so just make it deObfuscate valSplit instead
+									// spText = deObfuscate(valSplit[j], currIds); // i'm not sure if there'll be damages if we make it deObfuscate spText so just make it deObfuscate valSplit instead
+									spText = rel.exchangeId(valSplit[j])
 								}
 								spanner.appendChild(pp(spText));
 								if (j < valSplit.length - 1) {
@@ -920,7 +949,8 @@ if (search_submit == "") {
 						} else {
 							let spText = v;
 							if (king.search(/filter/g) >= 0) {
-								deObfuscate(v, currIds);
+								// spText = deObfuscate(v, currIds);
+								spText = rel.exchangeId(v);
 							}
 							spanner.appendChild(pp(spText));
 
@@ -957,30 +987,6 @@ if (search_submit == "") {
 		filterloop(fandomName);
 	}
 	header.insertAdjacentElement("afterend", details);
-}
-
-function deObfuscate(str, currIds) {
-	// links the id number to the id name
-	// console.log(`we are in a filter_ids thing.`)
-	// so basically, if we're in a filter_ids thing, replace
-	// spText = parseInt(spText);
-	let nyeh = parseInt(str);
-	if (isNaN(nyeh)) {
-		return str; // break if it's NaN
-	}
-	console.log(`nyeh: `, nyeh);
-	// console.log(`spText: `, spText);
-	// const weh = currIds.filter((w) => { return w; });
-	for (const w of currIds) {
-		if (w[1] == nyeh) {
-			console.log(`w: `, w);
-			nyeh = w[0];
-			break;
-		}
-	}
-	return nyeh;
-	// console.log(`weh: `, weh);
-	// console.log(currIds.filter((weh) => { console.log(weh); return weh[1] == parseInt(spText)}));
 }
 
 //from https://attacomsian.com/blog/javascript-download-file
